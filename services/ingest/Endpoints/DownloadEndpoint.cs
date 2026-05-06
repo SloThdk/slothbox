@@ -1,7 +1,7 @@
 // SlothBox.Ingest — GET /chunk/{shortId}/{chunkIndex} handler.
 //
 // Streams the ciphertext from MinIO directly into the response body. The nonce
-// is sent as a base64url header (X-Chunk-Nonce); the body is the raw ciphertext.
+// is sent as a base64url header (X-Slothbox-Nonce); the body is the raw ciphertext.
 //
 // Download counting model (DOCUMENTED DECISION):
 //   The api-gateway is the canonical place to bump shares.download_count via
@@ -115,7 +115,7 @@ public static class DownloadEndpoint
         httpContext.Response.StatusCode = StatusCodes.Status200OK;
         httpContext.Response.ContentType = "application/octet-stream";
         httpContext.Response.ContentLength = chunk.CiphertextSize;
-        httpContext.Response.Headers["X-Chunk-Nonce"] = EncodeBase64Url(chunk.Nonce);
+        httpContext.Response.Headers["X-Slothbox-Nonce"] = EncodeBase64Url(chunk.Nonce);
         httpContext.Response.Headers["Cache-Control"] = "no-store";
         httpContext.Response.Headers["X-Content-Type-Options"] = "nosniff";
 

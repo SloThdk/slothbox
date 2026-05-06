@@ -12,7 +12,7 @@
 //   1. Resolve share by shortId        -> 404 if missing, 410 if non-uploadable state
 //   2. Validate chunkIndex             -> 400 if out of range
 //   3. Validate Content-Length         -> 400 if missing / too big / not matching chunkSize
-//   4. Validate X-Chunk-Nonce          -> 400 if missing / wrong length / not base64url
+//   4. Validate X-Slothbox-Nonce          -> 400 if missing / wrong length / not base64url
 //   5. Stream body to MinIO            -> 502 on storage error
 //   6. Upsert share_chunks row         -> 502 on DB error
 //   7. If all chunks present, promote share state to 'ready'
@@ -167,7 +167,7 @@ public static class UploadEndpoint
         }
 
         // 4. Nonce header.
-        if (!httpContext.Request.Headers.TryGetValue("X-Chunk-Nonce", out var nonceHeaderValues) ||
+        if (!httpContext.Request.Headers.TryGetValue("X-Slothbox-Nonce", out var nonceHeaderValues) ||
             nonceHeaderValues.Count == 0)
         {
             ChunksUploaded.WithLabels("missing_nonce").Inc();

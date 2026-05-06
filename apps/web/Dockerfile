@@ -27,9 +27,14 @@ COPY package.json pnpm-lock.yaml* pnpm-workspace.yaml* ./
 COPY apps/web/package.json ./apps/web/
 COPY packages/crypto-core/package.json ./packages/crypto-core/
 
-# Frozen install — fails the build if the lockfile is stale.
+# In-image .npmrc forces hoisted layout (same reason as api-gateway —
+# pnpm's symlinked layout breaks Next's webpack resolution of workspace
+# packages inside Docker, even with transpilePackages set).
+RUN printf 'node-linker=hoisted\nstrict-peer-dependencies=false\nauto-install-peers=true\n' > .npmrc
+
+# Install needed workspace packages.
 RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
-    pnpm install --frozen-lockfile --filter @slothbox/web... --filter @slothbox/crypto-core
+    pnpm install --no-frozen-lockfile --filter @slothbox/web... --filter @slothbox/crypto-core
 
 # --- Stage 3: build the Next standalone output ---------------------------
 FROM base AS builder

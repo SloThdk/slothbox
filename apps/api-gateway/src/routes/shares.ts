@@ -139,14 +139,16 @@ async function appendAudit(
 }
 
 /**
- * Build a presigned-style upload URL for one chunk. v0.1 just emits
- * an absolute URL the frontend can PUT to — the real signature work
- * lives in the .NET ingest service which validates short-lived HMAC
- * tokens. The format here is contract-stable for v0.5+.
+ * Build a presigned-style upload URL for one chunk. v0.1 emits a plain
+ * absolute URL keyed by the public shortId — short enough to encode in
+ * the URL fragment if we ever need to. The ingest service mounts both
+ * PUT and GET on `/chunk/:shortId/:chunkIndex`. v0.5 will add an HMAC
+ * `?token=…` parameter signed by the gateway and verified by ingest so
+ * the URLs become single-use.
  */
-function buildUploadUrl(shareId: string, chunkIndex: number): string {
+function buildUploadUrl(shortId: string, chunkIndex: number): string {
   const base = config.INGEST_PUBLIC_URL.replace(/\/+$/, "");
-  return `${base}/upload/${shareId}/${chunkIndex}`;
+  return `${base}/chunk/${shortId}/${chunkIndex}`;
 }
 
 // ─── Zod schemas ──────────────────────────────────────────────────
@@ -308,9 +310,10 @@ export function sharesRouter(): Hono<RouterEnv> {
       sharesCreatedTotal.inc({ burn_after_read: String(body.burnAfterRead) });
 
       // Build upload URLs the client can stream chunks to.
+      // Keyed by shortId (matches the ingest contract) — NOT shareId.
       const uploadUrls: string[] = [];
       for (let i = 0; i < row.chunkCount; i++) {
-        uploadUrls.push(buildUploadUrl(row.id, i));
+        uploadUrls.push(buildUploadUrl(row.shortId, i));
       }
 
       // Log only what helps debugging — no IP, no shortId+IP combo.

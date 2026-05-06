@@ -1,81 +1,98 @@
 // Typed REST client for the API gateway (apps/api-gateway).
 //
-// Contract is intentionally narrow for v0.1.0-alpha:
-//   POST   /shares                  → create a share descriptor
-//   GET    /shares/:shortId         → fetch share metadata (NOT chunks)
-//   POST   /shares/:shortId/burn    → manually destroy the share
+// Contract is the source-of-truth shape from `apps/api-gateway/src/routes/shares.ts`.
+// All requests go to `${API_URL}/api/...` (the gateway mounts the shares router at /api).
 //
-// Chunks are uploaded directly to the ingest service (see `upload.ts`) and
-// fetched directly from the ingest service (see `download.ts`). The gateway is
-// the metadata + lifecycle authority — it never touches ciphertext.
+// Endpoints used by v0.1.0-alpha:
+//   POST   /api/shares                         create a share descriptor (server returns uploadUrls)
+//   GET    /api/shares/:shortId                fetch share metadata (NOT chunks)
+//   POST   /api/shares/:shortId/destroy        manually destroy the share
+//   POST   /api/shares/:shortId/downloaded     called by receiver after successful decrypt
+//                                              (gateway atomically increments download_count
+//                                               and flips state=destroyed when burn-after-read)
 //
-// All shapes are mirrored from `apps/api-gateway/src/routes/shares.ts` (to
-// land in the gateway scaffold). When the gateway lands, fold the types back
-// into a `@slothbox/contracts` package and import from there to avoid drift.
+// Chunks are uploaded to / fetched from the ingest service directly (see upload.ts /
+// download.ts) — the gateway is the metadata + lifecycle authority and never touches
+// ciphertext.
 
 import { z } from "zod";
 import { API_URL } from "./config";
 
 // ---------------------------------------------------------------------------
-// Public types
+// Public types — mirror the gateway's CreateShareSchema and GET response.
 // ---------------------------------------------------------------------------
 
-/**
- * Server-side representation of a share. Note: `keyHash` exists so the gateway
- * can sanity-check on download that the receiver landed on the correct share —
- * it is the BLAKE2b-256 of the symmetric key. Never the key itself.
- */
-export interface ShareDescriptor {
-  shortId: string;
-  fileName: string;
-  fileSize: number;
-  mimeType: string;
-  chunkCount: number;
-  chunkSize: number;
-  expiresAt: string; // ISO 8601 UTC
-  burnAfterRead: boolean;
-  createdAt: string; // ISO 8601 UTC
-  keyHash?: string; // base64url BLAKE2b-256 of the symmetric key (optional in v0.1)
-}
-
 export interface CreateShareRequest {
-  fileName: string;
+  /** Plaintext file size in bytes (server stores as bigint). */
   fileSize: number;
-  mimeType: string;
+  /** BLAKE2b-256 of the plaintext, base64url-encoded (32 bytes after decode). */
+  fileHash: string;
+  /** AEAD-encrypted metadata blob (filename + mime + extras), base64url. */
+  encryptedMeta: string;
+  /** XChaCha20-Poly1305 nonce for `encryptedMeta`, base64url (24 bytes). */
+  nonceMeta: string;
+  /** Number of ciphertext chunks (each up to chunkSize bytes). */
   chunkCount: number;
+  /** Configured chunk size — must be ≤ gateway's MAX_CHUNK_SIZE_BYTES. */
   chunkSize: number;
-  expiryHours: number;
+  /** ISO-8601 expiry timestamp; must be in the future and within MAX_SHARE_TTL_DAYS. */
+  expiresAt: string;
+  /** When true, downloading once flips state=destroyed via increment_download. */
   burnAfterRead: boolean;
-  keyHash: string; // base64url BLAKE2b-256 of the symmetric key
+  /** Optional cap on number of downloads (null = unlimited within expiry). */
+  maxDownloads: number | null;
 }
 
 export interface CreateShareResponse {
+  /** Internal UUID — used by the gateway for joins / NATS pub/sub. */
+  shareId: string;
+  /** Public URL-safe identifier — what travels in `slothbox.com/s/<shortId>`. */
   shortId: string;
-  uploadToken: string;
+  /**
+   * Per-chunk PUT URLs the client streams ciphertext to. Built by the gateway
+   * against `INGEST_PUBLIC_URL` so the client doesn't need to know the host.
+   */
+  uploadUrls: string[];
+}
+
+/** Shape returned by GET /api/shares/:shortId. fileSize comes back as a string
+ *  (gateway serialises bigint → string for JSON safety). */
+export interface ShareDescriptor {
+  shortId: string;
   expiresAt: string;
+  burnAfterRead: boolean;
+  fileSize: string;
+  encryptedMeta: string;
+  nonceMeta: string;
+  chunkCount: number;
+  chunkSize: number;
+  state: "pending" | "uploading" | "ready" | "downloaded" | "expired" | "destroyed";
 }
 
 // ---------------------------------------------------------------------------
 // Zod schemas — runtime validation at every trust boundary.
 // ---------------------------------------------------------------------------
 
-const ShareDescriptorSchema: z.ZodType<ShareDescriptor> = z.object({
+const CreateShareResponseSchema: z.ZodType<CreateShareResponse> = z.object({
+  shareId: z.string().min(1),
   shortId: z.string().min(1).max(64),
-  fileName: z.string().min(1).max(512),
-  fileSize: z.number().int().nonnegative(),
-  mimeType: z.string().max(255),
-  chunkCount: z.number().int().positive(),
-  chunkSize: z.number().int().positive(),
-  expiresAt: z.string().datetime(),
-  burnAfterRead: z.boolean(),
-  createdAt: z.string().datetime(),
-  keyHash: z.string().optional(),
+  uploadUrls: z.array(z.string().url()),
 });
 
-const CreateShareResponseSchema: z.ZodType<CreateShareResponse> = z.object({
+const ShareDescriptorSchema: z.ZodType<ShareDescriptor> = z.object({
   shortId: z.string().min(1).max(64),
-  uploadToken: z.string().min(1),
-  expiresAt: z.string().datetime(),
+  expiresAt: z.string().datetime({ offset: true }),
+  burnAfterRead: z.boolean(),
+  fileSize: z.string().regex(/^\d+$/, "fileSize must be a stringified integer"),
+  encryptedMeta: z.string().min(1),
+  nonceMeta: z.string().min(1),
+  chunkCount: z.number().int().positive(),
+  chunkSize: z.number().int().positive(),
+  state: z.enum(["pending", "uploading", "ready", "downloaded", "expired", "destroyed"]),
+});
+
+const StateOnlyResponseSchema = z.object({
+  state: z.enum(["pending", "uploading", "ready", "downloaded", "expired", "destroyed"]),
 });
 
 // ---------------------------------------------------------------------------
@@ -106,7 +123,7 @@ export class ApiError extends Error {
 async function request<T>(
   path: string,
   init: RequestInit,
-  schema: z.ZodType<T>,
+  schema: z.ZodType<T>
 ): Promise<T> {
   let response: Response;
   try {
@@ -153,7 +170,7 @@ async function request<T>(
     throw new ApiError(
       "gateway response failed schema validation",
       response.status,
-      parsed.error,
+      parsed.error
     );
   }
   return parsed.data;
@@ -164,44 +181,64 @@ async function request<T>(
 // ---------------------------------------------------------------------------
 
 /**
- * Create a share metadata record. The server returns a short id and an upload
- * token the caller must pass on every chunk PUT.
+ * Create a share metadata record. The server returns the share ID, short ID,
+ * and per-chunk upload URLs the client uses to stream ciphertext to ingest.
  */
 export async function createShare(
-  body: CreateShareRequest,
+  body: CreateShareRequest
 ): Promise<CreateShareResponse> {
   return request(
-    "/shares",
+    "/api/shares",
     {
       method: "POST",
       body: JSON.stringify(body),
     },
-    CreateShareResponseSchema,
+    CreateShareResponseSchema
   );
 }
 
 /**
  * Fetch share metadata. Used by the receiver page to know how many chunks to
- * pull and what filename to suggest.
+ * pull and the encrypted metadata blob to decrypt for filename/mime info.
  */
 export async function getShare(shortId: string): Promise<ShareDescriptor> {
   return request(
-    `/shares/${encodeURIComponent(shortId)}`,
+    `/api/shares/${encodeURIComponent(shortId)}`,
     { method: "GET" },
-    ShareDescriptorSchema,
+    ShareDescriptorSchema
   );
 }
 
 /**
- * Manually trigger burn-after-read destruction. The reaper daemon also
- * destroys shares on a schedule — this endpoint is for the explicit case where
- * the receiver just finished downloading.
+ * Notify the gateway that the receiver successfully downloaded all chunks.
+ * The gateway atomically increments download_count and (when the share is
+ * burn-after-read) transitions state=destroyed. The reaper then purges the
+ * encrypted blobs from MinIO on its next sweep.
+ *
+ * Idempotent on the client side — if the call fails we don't surface an
+ * error to the user (the share will still expire on its TTL).
  */
-export async function triggerBurn(shortId: string): Promise<{ ok: true }> {
+export async function markDownloaded(
+  shortId: string
+): Promise<{ state: ShareDescriptor["state"] }> {
   return request(
-    `/shares/${encodeURIComponent(shortId)}/burn`,
+    `/api/shares/${encodeURIComponent(shortId)}/downloaded`,
     { method: "POST" },
-    z.object({ ok: z.literal(true) }),
+    StateOnlyResponseSchema
+  );
+}
+
+/**
+ * Manually destroy the share — used by the sender from a future dashboard
+ * (v0.5+). For v0.1 it's exposed as the explicit "burn now" action.
+ */
+export async function destroyShare(
+  shortId: string
+): Promise<{ state: ShareDescriptor["state"] }> {
+  return request(
+    `/api/shares/${encodeURIComponent(shortId)}/destroy`,
+    { method: "POST" },
+    StateOnlyResponseSchema
   );
 }
 

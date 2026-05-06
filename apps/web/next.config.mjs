@@ -20,10 +20,13 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 // entry via a webpack alias. Same workaround appears in
 // packages/crypto-core/vitest.config.ts.
 //
-// libsodium-wrappers is declared as a direct dep of @slothbox/web so it's
-// reliably present in apps/web/node_modules/.
+// With node-linker=hoisted (see .npmrc), libsodium-wrappers lives at the
+// workspace root node_modules. Build the absolute path so the alias is
+// stable regardless of which workspace package triggers the import.
 const libsodiumCjsEntry = resolve(
   __dirname,
+  "..",
+  "..",
   "node_modules",
   "libsodium-wrappers",
   "dist",
@@ -35,6 +38,11 @@ const libsodiumCjsEntry = resolve(
 const nextConfig = {
   reactStrictMode: true,
   output: "standalone",
+
+  // Pin file-tracing root to the monorepo root. Without this Next walks up
+  // looking for a lockfile and may pick a stray one in $HOME — that produces
+  // a noisy warning and (worse) wrong tracing for the standalone output.
+  outputFileTracingRoot: resolve(__dirname, "..", ".."),
 
   // Workspace dependency that ships TypeScript source rather than compiled JS.
   // Next 15 needs the explicit transpile so the libsodium ESM imports work in
@@ -52,10 +60,12 @@ const nextConfig = {
     const isDev = process.env.NODE_ENV !== "production";
     const csp = [
       "default-src 'self'",
-      // 'unsafe-eval' is required by libsodium-wrappers' WebAssembly bootstrap
-      // path on some browsers. We accept the trade-off for the v0.1 alpha and
-      // revisit when we move to a SubtleCrypto-only path post-v1.0.
-      `script-src 'self'${isDev ? " 'unsafe-eval' 'unsafe-inline'" : " 'unsafe-eval'"}`,
+      // 'wasm-unsafe-eval' is what modern libsodium-wrappers actually needs
+      // for its WebAssembly bootstrap — full 'unsafe-eval' would let any
+      // injected script run arbitrary JS via Function().
+      // Dev also gets 'unsafe-eval' + 'unsafe-inline' for Next's hot-reload
+      // runtime, which is acceptable because dev never faces real users.
+      `script-src 'self' 'wasm-unsafe-eval'${isDev ? " 'unsafe-eval' 'unsafe-inline'" : ""}`,
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: blob:",
       "font-src 'self' data:",
