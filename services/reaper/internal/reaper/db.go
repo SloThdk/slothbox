@@ -106,21 +106,39 @@ type destroyContext struct {
 
 // selectReapableSQL is the candidate query. Notes:
 //
+//   - Two reapable conditions, mutually exclusive at the row level:
+//       (a) the share is still nominally LIVE (state in ready/uploading/pending)
+//           but its TTL has lapsed or download cap is hit.
+//       (b) the share has already been flipped to DESTROYED (by the gateway's
+//           /downloaded route firing burn-after-read, by /destroy, or by an
+//           earlier reaper sweep that committed the row update but failed to
+//           clear all blobs) AND there are still share_chunks rows waiting
+//           on cleanup.
+//     Putting `state='destroyed'` in the same outer IN list as the live
+//     statuses (which earlier code did) is wrong because the second OR
+//     clause never matches — the AND is unreachable. Two top-level branches
+//     joined by OR makes the boolean clean.
 //   - We re-query inside the per-share transaction with `FOR UPDATE SKIP
 //     LOCKED` so two reaper instances (e.g. during a rolling deploy)
-//     never fight over the same row. A daemon today only runs one
-//     replica, but the lock is cheap and removes a foot-gun.
+//     never fight over the same row. A daemon today only runs one replica,
+//     but the lock is cheap and removes a foot-gun.
 //   - Sort by `destroyed_at NULLS LAST, expires_at ASC` so burn-after-read
 //     rows already flagged by the read path drain first.
 const selectReapableSQL = `
 SELECT id::text, short_id
-  FROM shares
- WHERE state IN ('ready', 'uploading', 'pending')
-   AND (
-        expires_at < now()
-        OR (burn_after_read = true AND state = 'destroyed' AND destroyed_at IS NOT NULL)
-        OR (max_downloads IS NOT NULL AND download_count >= max_downloads)
-   )
+  FROM shares s
+ WHERE (
+         state IN ('ready', 'uploading', 'pending')
+         AND (
+                expires_at < now()
+                OR (max_downloads IS NOT NULL AND download_count >= max_downloads)
+         )
+       )
+    OR (
+         state = 'destroyed'
+         AND destroyed_at IS NOT NULL
+         AND EXISTS (SELECT 1 FROM share_chunks c WHERE c.share_id = s.id)
+       )
  ORDER BY destroyed_at NULLS LAST, expires_at ASC
  LIMIT $1
 `
@@ -302,11 +320,11 @@ func finalizeDestroy(
 	if err != nil {
 		return result, fmt.Errorf("marshal audit payload: %w", err)
 	}
-	// `append_audit_entry(event_type text, target_id uuid, payload jsonb)` —
-	// signature is the canonical one defined in migration 0021. The RPC
-	// returns the new chain row id; we don't need it but we still SELECT
-	// so the function is actually invoked (a bare CALL would also work).
-	var auditID string
+	// `append_audit_entry(event_type text, target_id uuid, payload jsonb)`
+	// returns BIGINT (the new chain row's seq), so we MUST scan into int64.
+	// Earlier code scanned into *string which pgx rejects with an explicit
+	// type error on every txn — that bug crashed the whole sweep.
+	var auditID int64
 	if err := tx.QueryRow(ctx, appendAuditSQL, "share_destroyed", shareID, string(payloadBytes)).Scan(&auditID); err != nil {
 		return result, fmt.Errorf("append audit entry: %w", err)
 	}
@@ -327,7 +345,7 @@ func finalizeDestroy(
 // strings through layers.
 type FinalizeResult struct {
 	Reason      string
-	AuditID     string
+	AuditID     int64
 	DestroyedAt time.Time
 	ShortID     string
 }

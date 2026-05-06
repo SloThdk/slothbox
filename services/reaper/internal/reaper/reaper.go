@@ -217,7 +217,7 @@ func (d *Daemon) reapOne(ctx context.Context, share reapableShare) error {
 		Str("event", "share_destroyed").
 		Int("chunk_count", len(chunkKeys)).
 		Str("reason", res.Reason).
-		Str("audit_id", res.AuditID).
+		Int64("audit_id", res.AuditID).
 		Time("destroyed_at", res.DestroyedAt).
 		Dur("duration_ms", time.Since(start)).
 		Msg("share destroyed")

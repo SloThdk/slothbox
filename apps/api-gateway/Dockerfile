@@ -20,20 +20,24 @@ RUN corepack enable && corepack prepare pnpm@9.12.3 --activate
 WORKDIR /workspace
 
 # Copy workspace metadata first so dependency installs cache cleanly.
-# The build context is the api-gateway dir, so we need to bring in the
-# wider monorepo files. Compose builds the image with context=./apps/
-# api-gateway by default — to get monorepo packages we instead build
-# from the repo root and pass `dockerfile: apps/api-gateway/Dockerfile`.
-# Document that here so it doesn't surprise anyone running an ad-hoc
-# `docker build`.
+# Build context is the monorepo root (see compose: context: ., dockerfile:
+# apps/api-gateway/Dockerfile). For ad-hoc builds:
+#   docker build -f apps/api-gateway/Dockerfile -t slothbox/api-gateway .
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/api-gateway/package.json ./apps/api-gateway/
 COPY packages/db/package.json ./packages/db/
 COPY packages/crypto-core/package.json ./packages/crypto-core/
 
+# In-image .npmrc forces hoisted layout. Reason: pnpm's default symlinked
+# layout breaks `pnpm exec tsup` resolution inside Docker (tsup is in
+# .pnpm/<hash>/.../tsup but the .bin shim isn't found via the workspace
+# package's node_modules/.bin under filter). Hoisted layout = npm-style
+# flat node_modules = tsup resolves cleanly.
+RUN printf 'node-linker=hoisted\nstrict-peer-dependencies=false\nauto-install-peers=true\n' > .npmrc
+
 # Install everything (including dev deps — needed for tsup).
 RUN --mount=type=cache,target=/root/.pnpm-store \
-    pnpm install --frozen-lockfile
+    pnpm install --no-frozen-lockfile
 
 # Now copy source and build.
 COPY packages/db ./packages/db

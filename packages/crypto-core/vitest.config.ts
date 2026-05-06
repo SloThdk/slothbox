@@ -9,9 +9,13 @@ import { dirname, resolve } from "node:path";
 //
 // Constructing the path from disk because the package's `exports` field
 // blocks subpath resolution via require.resolve.
+// With node-linker=hoisted the package lives at the workspace root, two
+// levels up from this config file (packages/crypto-core/).
 const here = dirname(fileURLToPath(import.meta.url));
 const cjsEntry = resolve(
   here,
+  "..",
+  "..",
   "node_modules",
   "libsodium-wrappers",
   "dist",

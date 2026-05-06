@@ -234,35 +234,39 @@ cryptographic code.
 
 ## Verifying my claims
 
-Don't trust marketing copy. Verify:
+Don't trust marketing copy. Read the source:
 
 ```bash
-# 1. The server cannot read your file — proven by source.
-#    The encryption key is generated in the browser:
-grep -rn "generateSymmetricKey" packages/crypto-core/src/
+# 1. The server cannot read your file — the encryption key is generated in
+#    the browser via libsodium's randombytes_buf:
+grep -rn "generateKey\|randombytes_buf" packages/crypto-core/src/
 
-# 2. The key never reaches the server — proven by URL structure.
-#    Look for the # fragment handling in the share-create endpoint:
-grep -rn "fragment" apps/web/src/lib/upload.ts
+# 2. The key never reaches the server — it lives in window.location.hash
+#    and travels in the URL fragment, which browsers never send to servers:
+grep -rn "window.location.hash\|#key=" apps/web/src/
 
-# 3. The server only stores ciphertext — proven by the storage interface:
-grep -rn "encryptedBlob" services/ingest/Services/MinioStorage.cs
+# 3. The server only stores ciphertext — every blob written to MinIO is the
+#    AEAD output, never plaintext:
+grep -rn "PutObjectAsync" services/ingest/Services/
+
+# 4. Per-chunk AAD binds (shareId, chunkIndex) so chunks can't be silently
+#    reordered or moved between shares:
+grep -rn "buildChunkAad" packages/crypto-core/src/
+
+# 5. RLS + audit chain are enforced in the database, not the application:
+grep -rn "ROW LEVEL SECURITY\|append_audit_entry" db/migrations/
 ```
 
-For the v1.0 features (per-recipient encryption, RFC 3161 receipts, deletion
-proofs), the standalone `slothbox-verify` CLI lets you check any SlothBox receipt
-**without contacting our service**. Install:
+For the v1.0 features (per-recipient encryption, RFC 3161 receipts,
+verifiable deletion proofs), the standalone `slothbox-verify` CLI is planned
+to let you audit any SlothBox receipt **without contacting our service**. The
+v0.1 build ships the CLI as a skeleton that responds to `--help` and reports
+"verification lands in v1.0" for the actual subcommands — see
+[`tools/verify/README.md`](tools/verify/README.md).
 
-```bash
-# macOS
-brew install philipsloth/tap/slothbox-verify
-
-# Linux
-curl -fsSL https://slothbox.com/install.sh | sh
-
-# Windows
-scoop install slothbox-verify
-```
+Distribution channels (brew tap / scoop bucket / apt repo) are documented in
+the verifier README as v1.0 milestones; they are not active yet. To try the
+skeleton today, build from source: `cd tools/verify && go build ./...`.
 
 ---
 

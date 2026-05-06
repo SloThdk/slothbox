@@ -2,12 +2,18 @@
 // id and pulled the metadata.
 //
 // Two states:
-//   1. ready  — file metadata visible, "Download + decrypt" button.
+//   1. ready  — file size visible, "Download + decrypt" button.
 //   2. busy   — chunk-fetch + AEAD-decrypt progress bar.
 //   3. done   — success state with re-download option.
 //   4. error  — bad key, expired share, AEAD failure.
 //
 // All cryptographic operations live in `lib/download.ts`.
+//
+// PRIVACY NOTE: `fileName` and `mimeType` only become known to the receiver
+// after the AEAD-encrypted metadata blob is decrypted (i.e. after the user
+// clicks "Download + decrypt"). The pre-download UI shows only the encrypted
+// payload size + expiry — by design, so a passive observer can't infer the
+// content from URL inspection alone.
 
 "use client";
 
@@ -18,10 +24,10 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import {
   downloadFile,
+  notifyDownloadComplete,
   type DownloadProgressEvent,
   triggerBlobDownload,
 } from "@/lib/download";
-import { triggerBurn } from "@/lib/api";
 import type { ShareDescriptor } from "@/lib/api";
 import { formatBytes } from "@/lib/utils";
 
@@ -35,7 +41,7 @@ export interface DecryptProps {
 type DecryptState =
   | { kind: "ready" }
   | { kind: "busy"; progress: DownloadProgressEvent | null; controller: AbortController }
-  | { kind: "done"; blob: Blob }
+  | { kind: "done"; blob: Blob; fileName: string }
   | { kind: "error"; message: string };
 
 export function Decrypt({ shortId, descriptor, decryptionKey }: DecryptProps) {
@@ -50,27 +56,22 @@ export function Decrypt({ shortId, descriptor, decryptionKey }: DecryptProps) {
         signal: controller.signal,
         onProgress: (progress) => {
           setState((prev) =>
-            prev.kind === "busy" ? { ...prev, progress } : prev,
+            prev.kind === "busy" ? { ...prev, progress } : prev
           );
         },
       });
 
       // Trigger the browser save-as immediately. We can also keep the blob in
-      // memory so a "Download again" button works without re-fetching.
+      // memory so a "Save again" button works without re-fetching.
       triggerBlobDownload(result.blob, result.fileName);
-      setState({ kind: "done", blob: result.blob });
+      setState({ kind: "done", blob: result.blob, fileName: result.fileName });
       toast.success("Decrypted. Saved to your downloads folder.");
 
-      // Burn-after-read: ask the gateway to destroy the share now. We swallow
-      // any error here — if the gateway is down, the reaper daemon will pick
-      // it up on schedule. The user should NOT see this fail.
-      if (descriptor.burnAfterRead) {
-        try {
-          await triggerBurn(shortId);
-        } catch {
-          // intentionally silent — see comment above
-        }
-      }
+      // Notify the gateway the download completed. For burn-after-read shares,
+      // this is what triggers immediate destruction (gateway flips state and
+      // signals the reaper). Errors are swallowed inside notifyDownloadComplete
+      // — the reaper will pick up orphans on its sweep.
+      void notifyDownloadComplete(shortId);
     } catch (err) {
       const message = err instanceof Error ? err.message : "download failed";
       if (message === "download cancelled") {
@@ -80,7 +81,7 @@ export function Decrypt({ shortId, descriptor, decryptionKey }: DecryptProps) {
       setState({ kind: "error", message });
       toast.error(message);
     }
-  }, [shortId, decryptionKey, descriptor.burnAfterRead]);
+  }, [shortId, decryptionKey]);
 
   const cancel = React.useCallback(() => {
     if (state.kind === "busy") state.controller.abort();
@@ -88,23 +89,29 @@ export function Decrypt({ shortId, descriptor, decryptionKey }: DecryptProps) {
 
   const downloadAgain = React.useCallback(() => {
     if (state.kind === "done") {
-      triggerBlobDownload(state.blob, descriptor.fileName);
+      triggerBlobDownload(state.blob, state.fileName);
     }
-  }, [state, descriptor.fileName]);
+  }, [state]);
+
+  // fileSize comes back from the gateway as a stringified bigint for JSON
+  // safety — convert here for display only.
+  const fileSizeBytes = Number(descriptor.fileSize);
 
   return (
     <div className="flex flex-col gap-6">
-      {/* File card */}
+      {/* File card — pre-decryption shows only payload size + expiry. */}
       <div className="flex items-center gap-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-card)] p-4 sm:p-5">
         <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-[var(--color-accent)] to-[var(--color-accent-2)] text-[#04221b]">
           <FileLock2 className="h-6 w-6" aria-hidden />
         </div>
         <div className="min-w-0 flex-1">
           <p className="truncate text-base font-medium text-[var(--color-fg)]">
-            {descriptor.fileName}
+            {state.kind === "done"
+              ? state.fileName
+              : "Encrypted payload"}
           </p>
           <p className="text-xs text-[var(--color-muted)]">
-            {formatBytes(descriptor.fileSize)} ·{" "}
+            {formatBytes(fileSizeBytes)} ·{" "}
             {descriptor.burnAfterRead
               ? "self-destructs after this download"
               : `expires ${formatExpiresIn(descriptor.expiresAt)}`}

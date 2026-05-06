@@ -3,15 +3,18 @@
 // Order of operations (NEVER deviate without crypto review):
 //
 //   1. `initCrypto()` — load libsodium into the browser.
-//   2. Generate the 32-byte symmetric key and the per-chunk 24-byte nonces.
-//   3. Hash the key (BLAKE2b-256) so the server can sanity-check the receiver
-//      landed on the right share without ever seeing the key itself.
-//   4. POST `/shares` to obtain a `shortId` + `uploadToken`.
-//   5. For each chunk: read the slice, build AAD (binds shareId + chunkIndex),
-//      encrypt, and PUT to ingest at `/chunk/:shareId/:chunkIndex`.
-//      The nonce travels in `X-Slothbox-Nonce`, the AEAD-tagged ciphertext is
-//      the request body.
-//   6. Return the share URL with the key in the URL fragment. The fragment
+//   2. Generate the 32-byte symmetric key + per-chunk 24-byte nonces +
+//      one extra 24-byte nonce for the metadata blob.
+//   3. Hash the plaintext file (BLAKE2b-256) so the server has a content
+//      address it can sanity-check on the receive side.
+//   4. Encrypt the metadata blob (filename + mime) with the same key, into
+//      `encryptedMeta` + `nonceMeta`.
+//   5. POST `/api/shares` to obtain a `shortId`, `shareId`, and per-chunk
+//      `uploadUrls`.
+//   6. For each chunk i: read the slice, build AAD (binds shortId + i),
+//      encrypt, PUT the ciphertext to `uploadUrls[i]`. The nonce travels
+//      in `X-Slothbox-Nonce`.
+//   7. Return the share URL with the key in the URL fragment. The fragment
 //      never reaches the server — that's how the trust boundary works.
 //
 // Progress events are surfaced via an optional callback (rather than wiring a
@@ -26,6 +29,7 @@ import {
   generateNonce,
   hashBytes,
   initCrypto,
+  stringToBytes,
 } from "@slothbox/crypto-core";
 import {
   createShare,
@@ -34,7 +38,6 @@ import {
 } from "./api";
 import {
   CHUNK_SIZE_BYTES,
-  INGEST_URL,
   MAX_FILE_SIZE_BYTES,
   PUBLIC_URL,
 } from "./config";
@@ -48,6 +51,8 @@ export interface UploadOptions {
   expiryHours?: number;
   /** If true, the share self-destructs after first successful download. */
   burnAfterRead?: boolean;
+  /** Optional cap on number of downloads (null = unlimited within expiry). */
+  maxDownloads?: number | null;
   /** Optional progress callback fired after every chunk completes. */
   onProgress?: (event: UploadProgressEvent) => void;
   /** Optional cancellation signal. */
@@ -79,7 +84,7 @@ export interface UploadResult {
 export class UploadError extends Error {
   constructor(
     message: string,
-    public override readonly cause?: unknown,
+    public override readonly cause?: unknown
   ) {
     super(message);
     this.name = "UploadError";
@@ -95,20 +100,21 @@ export class UploadError extends Error {
  * decryption key in the URL fragment.
  *
  * SECURITY NOTE: this function NEVER sends the symmetric key to any server.
- * The key is generated client-side, the BLAKE2b-256 hash is sent for receiver
- * sanity-checking, and the raw key is encoded into the URL fragment which
- * browsers never include in HTTP requests.
+ * The key is generated client-side, the BLAKE2b-256 hash of the *plaintext*
+ * (not the key) is sent for content addressing / integrity checks, and the
+ * raw key is encoded into the URL fragment which browsers never include in
+ * HTTP requests.
  */
 export async function uploadFile(
   file: File,
-  options: UploadOptions = {},
+  options: UploadOptions = {}
 ): Promise<UploadResult> {
   if (file.size <= 0) {
     throw new UploadError("file is empty");
   }
   if (file.size > MAX_FILE_SIZE_BYTES) {
     throw new UploadError(
-      `file is too large (${file.size} bytes > ${MAX_FILE_SIZE_BYTES} bytes max)`,
+      `file is too large (${file.size} bytes > ${MAX_FILE_SIZE_BYTES} bytes max)`
     );
   }
 
@@ -118,23 +124,47 @@ export async function uploadFile(
   // Generate the symmetric key client-side. This is the value that goes into
   // the URL fragment — never logged, never sent.
   const key = await generateKey();
-  const keyHash = await hashBytes(key);
-  const keyHashB64 = bytesToBase64Url(keyHash);
 
   const chunkSize = CHUNK_SIZE_BYTES;
   const chunkCount = Math.ceil(file.size / chunkSize);
 
+  // Hash the plaintext as a single pass — used as the file content address
+  // in the audit trail. Server stores it; client recomputes on download to
+  // detect tampering.
+  const wholeFile = new Uint8Array(await file.arrayBuffer());
+  const fileHashBytes = await hashBytes(wholeFile);
+
+  // Build + encrypt the metadata blob. We use a placeholder shareId of "meta"
+  // for the AAD because we don't have a real shareId yet (the server hasn't
+  // assigned one) — the server-side decrypt path will rebuild AAD with the
+  // same constant. Documented in CRYPTO.md.
+  const metaJson = JSON.stringify({
+    fileName: file.name,
+    mimeType: file.type || "application/octet-stream",
+  });
+  const metaBytes = stringToBytes(metaJson);
+  const nonceMeta = await generateNonce();
+  const metaAad = buildChunkAad("meta", 0);
+  const encryptedMeta = await encryptChunk({
+    plaintext: metaBytes,
+    key,
+    nonce: nonceMeta,
+    aad: metaAad,
+  });
+
   const expiryHours = clampExpiry(options.expiryHours ?? 168);
+  const expiresAt = new Date(Date.now() + expiryHours * 60 * 60 * 1000).toISOString();
 
   const createReq: CreateShareRequest = {
-    fileName: file.name,
     fileSize: file.size,
-    mimeType: file.type || "application/octet-stream",
+    fileHash: bytesToBase64Url(fileHashBytes),
+    encryptedMeta: bytesToBase64Url(encryptedMeta),
+    nonceMeta: bytesToBase64Url(nonceMeta),
     chunkCount,
     chunkSize,
-    expiryHours,
+    expiresAt,
     burnAfterRead: options.burnAfterRead ?? false,
-    keyHash: keyHashB64,
+    maxDownloads: options.maxDownloads ?? null,
   };
 
   let descriptor: CreateShareResponse;
@@ -143,11 +173,16 @@ export async function uploadFile(
   } catch (err) {
     throw new UploadError(
       err instanceof Error ? err.message : "could not create share",
-      err,
+      err
     );
   }
 
-  const { shortId, uploadToken, expiresAt } = descriptor;
+  const { shortId, uploadUrls } = descriptor;
+  if (uploadUrls.length !== chunkCount) {
+    throw new UploadError(
+      `gateway returned ${uploadUrls.length} upload URLs but we have ${chunkCount} chunks`
+    );
+  }
 
   // Pre-compute the totals so the progress callback has stable denominators.
   // Each chunk grows by 16 bytes (AEAD tag).
@@ -172,10 +207,13 @@ export async function uploadFile(
     const aad = buildChunkAad(shortId, i);
     const ciphertext = await encryptChunk({ plaintext, key, nonce, aad });
 
+    const uploadUrl = uploadUrls[i];
+    if (!uploadUrl) {
+      throw new UploadError(`missing upload URL for chunk ${i}`);
+    }
+
     await putChunk({
-      shortId,
-      chunkIndex: i,
-      uploadToken,
+      url: uploadUrl,
       ciphertext,
       nonce,
       signal: options.signal,
@@ -204,17 +242,13 @@ export async function uploadFile(
 // ---------------------------------------------------------------------------
 
 interface PutChunkArgs {
-  shortId: string;
-  chunkIndex: number;
-  uploadToken: string;
+  url: string;
   ciphertext: Uint8Array;
   nonce: Uint8Array;
   signal?: AbortSignal;
 }
 
 async function putChunk(args: PutChunkArgs): Promise<void> {
-  const url = `${INGEST_URL}/chunk/${encodeURIComponent(args.shortId)}/${args.chunkIndex}`;
-
   let response: Response;
   try {
     // Copy into a fresh ArrayBuffer so the runtime never receives a
@@ -224,12 +258,11 @@ async function putChunk(args: PutChunkArgs): Promise<void> {
     const body = new ArrayBuffer(args.ciphertext.byteLength);
     new Uint8Array(body).set(args.ciphertext);
 
-    response = await fetch(url, {
+    response = await fetch(args.url, {
       method: "PUT",
       headers: {
         "Content-Type": "application/octet-stream",
         "X-Slothbox-Nonce": bytesToBase64Url(args.nonce),
-        "X-Slothbox-Upload-Token": args.uploadToken,
       },
       body,
       ...(args.signal ? { signal: args.signal } : {}),
@@ -247,7 +280,7 @@ async function putChunk(args: PutChunkArgs): Promise<void> {
 }
 
 function clampExpiry(hours: number): number {
-  // Server has its own clamp (SHARE_MAX_EXPIRY_HOURS). The client-side bound
+  // Server has its own clamp (MAX_SHARE_TTL_DAYS). The client-side bound
   // is just sanity — never a security boundary.
   if (!Number.isFinite(hours) || hours <= 0) return 168;
   if (hours > 24 * 30) return 24 * 30;

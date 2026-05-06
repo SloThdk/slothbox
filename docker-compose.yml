@@ -107,6 +107,7 @@ services:
       - MINIO_SECRET_KEY=${MINIO_SECRET_KEY}
       - MINIO_BUCKET=${MINIO_BUCKET:-slothbox-blobs}
       - REDIS_URL=${REDIS_URL}
+      - INTERNAL_TOKEN=${INTERNAL_TOKEN}
       - LOG_LEVEL=${LOG_LEVEL:-Information}
     networks:
       - internal
@@ -185,7 +186,9 @@ services:
       - pg_data:/var/lib/postgresql/data
       - ./db/migrations:/docker-entrypoint-initdb.d:ro
     ports:
-      - "5433:5432"
+      # Bind to loopback only — never reachable from the LAN. Prod compose
+      # removes this binding entirely (see docker-compose.prod.yml).
+      - "127.0.0.1:5433:5432"
     networks:
       - internal
     healthcheck:
@@ -207,8 +210,13 @@ services:
     volumes:
       - minio_data:/data
     ports:
-      - "9000:9000"
-      - "9001:9001"
+      # Loopback-only — MinIO has S3 API at :9000 (services use the internal
+      # docker network) and an admin console at :9001 with default creds in
+      # local dev. Either port reachable from the LAN with default creds is a
+      # one-curl pivot to all ciphertext, so dev binds to 127.0.0.1 only and
+      # prod compose removes the binding entirely.
+      - "127.0.0.1:9000:9000"
+      - "127.0.0.1:9001:9001"
     networks:
       - internal
     healthcheck:
@@ -284,7 +292,10 @@ services:
       - grafana_data:/var/lib/grafana
       - ./infra/grafana/provisioning:/etc/grafana/provisioning:ro
     ports:
-      - "3030:3000"
+      # Loopback-only — Grafana ships with admin/admin in local dev, so we
+      # never want the LAN to reach it. Prod fronts Grafana behind Caddy
+      # under /grafana with proper auth (see docker-compose.prod.yml).
+      - "127.0.0.1:3030:3000"
     networks:
       - internal
     depends_on:
