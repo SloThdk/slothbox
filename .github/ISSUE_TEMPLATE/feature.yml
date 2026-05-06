@@ -1,0 +1,45 @@
+name: Feature request
+description: Suggest something
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does this solve?
+      description: Lead with the user need, not the solution.
+      placeholder: e.g. "When I share a file with my accountant, I'd like proof of when they downloaded it without revealing what was in the file."
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed solution
+      description: How would this work for the user?
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: What else might solve this?
+
+  - type: dropdown
+    id: scope
+    attributes:
+      label: Scope
+      options:
+        - "Frontend only"
+        - "Backend only"
+        - "Cryptographic protocol"
+        - "Cross-cutting"
+        - "Operations / deployment"
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: confirm
+    attributes:
+      label: Confirmation
+      options:
+        - label: I searched for an existing issue first
+          required: true

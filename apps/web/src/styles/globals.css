@@ -1,0 +1,202 @@
+/*
+ * SlothBox global stylesheet.
+ *
+ * Tailwind v4 entrypoint. The single `@import "tailwindcss"` statement replaces
+ * the v3 trio of `@tailwind base / components / utilities`. Theme tokens live in
+ * the `@theme` block and are exposed automatically as both CSS custom
+ * properties (`var(--color-bg)`) and Tailwind utilities (`bg-bg`, `text-fg`,
+ * etc.).
+ */
+
+@import "tailwindcss";
+
+/* --------------------------------------------------------------------------
+ * Theme tokens — CSS-first.
+ *
+ * v4 derives Tailwind utilities from these custom properties. Adding a new
+ * token to `@theme` is the only thing required to make `bg-<name>` and
+ * friends work in JSX.
+ * -------------------------------------------------------------------------- */
+@theme {
+  --color-bg: #0a0a0a;
+  --color-fg: #ededed;
+  --color-accent: #10b981; /* emerald — primary CTA */
+  --color-accent-2: #6366f1; /* indigo — secondary accent / gradients */
+  --color-border: #262626;
+  --color-muted: #737373;
+  --color-card: #111111;
+  --color-card-fg: #f5f5f5;
+  --color-danger: #ef4444;
+
+  /* Type scale.
+   *
+   * The default UI font is Inter (loaded by `next/font/google` in
+   * `app/layout.tsx`). The serif display face for the hero is Playfair
+   * Display, also loaded via `next/font/google`. JetBrains Mono powers the
+   * monospaced share-key display.
+   *
+   * Each font is exposed by next/font as a CSS variable; we surface them as
+   * Tailwind tokens here so JSX can use `font-sans`, `font-display`,
+   * `font-mono` directly.
+   */
+  --font-family-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-family-display:
+    var(--font-playfair), Georgia, "Times New Roman", serif;
+  --font-family-mono:
+    var(--font-jetbrains-mono), ui-monospace, "SF Mono", monospace;
+
+  /* Container max-widths — tuned a bit narrower than Tailwind defaults so the
+   * dense, opinionated landing copy doesn't sprawl on ultrawide displays. */
+  --container-md: 720px;
+  --container-lg: 960px;
+  --container-xl: 1180px;
+}
+
+/* --------------------------------------------------------------------------
+ * Light-mode override.
+ *
+ * The product is dark-by-default. The class-based `.light` toggle is wired so
+ * a future theme switch can opt out, and the `prefers-color-scheme: light`
+ * query mirrors that for visitors who prefer light by default.
+ * -------------------------------------------------------------------------- */
+@layer base {
+  :root {
+    color-scheme: dark;
+  }
+
+  html.light {
+    color-scheme: light;
+    --color-bg: #fafafa;
+    --color-fg: #0a0a0a;
+    --color-border: #e5e5e5;
+    --color-muted: #525252;
+    --color-card: #ffffff;
+    --color-card-fg: #0a0a0a;
+  }
+
+  /* Respect OS preference only when no explicit class is set. */
+  @media (prefers-color-scheme: light) {
+    html:not(.dark):not(.light) {
+      color-scheme: light;
+      --color-bg: #fafafa;
+      --color-fg: #0a0a0a;
+      --color-border: #e5e5e5;
+      --color-muted: #525252;
+      --color-card: #ffffff;
+      --color-card-fg: #0a0a0a;
+    }
+  }
+
+  /* Resets and base typography. */
+  html,
+  body {
+    background-color: var(--color-bg);
+    color: var(--color-fg);
+    font-family: var(--font-family-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    min-height: 100%;
+  }
+
+  body {
+    /* Subtle radial glow under the hero. The colours match accent / accent-2
+     * tokens at very low alpha so a future theme swap does not need to touch
+     * this file. */
+    background-image:
+      radial-gradient(
+        ellipse 80% 50% at 50% -20%,
+        rgba(16, 185, 129, 0.15),
+        transparent 70%
+      ),
+      radial-gradient(
+        ellipse 60% 40% at 80% 10%,
+        rgba(99, 102, 241, 0.08),
+        transparent 60%
+      );
+    background-attachment: fixed;
+  }
+
+  ::selection {
+    background-color: var(--color-accent);
+    color: var(--color-bg);
+  }
+
+  /* Default focus ring across the app. Buttons / inputs may override but only
+   * to add — never to remove (accessibility floor). */
+  :focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  /* Native form-controls inherit colours. */
+  input,
+  button,
+  textarea,
+  select {
+    font: inherit;
+    color: inherit;
+  }
+}
+
+/* --------------------------------------------------------------------------
+ * Component-scope helpers. Kept tiny on purpose — utilities first.
+ * -------------------------------------------------------------------------- */
+@layer components {
+  .gradient-text {
+    background: linear-gradient(
+      135deg,
+      var(--color-accent) 0%,
+      var(--color-accent-2) 100%
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+  }
+
+  .surface {
+    background-color: var(--color-card);
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+  }
+
+  .surface-hover:hover {
+    border-color: color-mix(in srgb, var(--color-accent) 40%, var(--color-border));
+  }
+}
+
+/* --------------------------------------------------------------------------
+ * Animations.
+ * -------------------------------------------------------------------------- */
+@layer utilities {
+  .animate-in-fade {
+    animation: fade-in 0.5s ease-out both;
+  }
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes pulse-glow {
+    0%,
+    100% {
+      box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4);
+    }
+    50% {
+      box-shadow: 0 0 0 8px rgba(16, 185, 129, 0);
+    }
+  }
+
+  .animate-pulse-glow {
+    animation: pulse-glow 2s ease-out infinite;
+  }
+}

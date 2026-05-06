@@ -1,0 +1,140 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+# Cancel previous in-progress runs on the same ref
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  # ─── TS / Node packages ────────────────────────────────────
+  node:
+    name: Node ${{ matrix.workspace }}
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        workspace:
+          - "@slothbox/crypto-core"
+          - "@slothbox/db"
+          - "@slothbox/web"
+          - "@slothbox/api-gateway"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.12.3
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20.18"
+          cache: "pnpm"
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        run: pnpm --filter ${{ matrix.workspace }} run typecheck
+
+      - name: Lint
+        run: pnpm --filter ${{ matrix.workspace }} run lint
+        continue-on-error: false
+
+      - name: Test
+        run: pnpm --filter ${{ matrix.workspace }} run test
+        continue-on-error: false
+
+      - name: Build
+        if: matrix.workspace == '@slothbox/web' || matrix.workspace == '@slothbox/api-gateway'
+        run: pnpm --filter ${{ matrix.workspace }} run build
+
+  # ─── .NET services ─────────────────────────────────────────
+  dotnet:
+    name: .NET ${{ matrix.service }}
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        service: [ingest, receipt]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Restore
+        working-directory: services/${{ matrix.service }}
+        run: dotnet restore
+
+      - name: Build
+        working-directory: services/${{ matrix.service }}
+        run: dotnet build --configuration Release --no-restore
+
+      - name: Test
+        working-directory: services/${{ matrix.service }}
+        run: dotnet test --configuration Release --no-build --verbosity normal
+        continue-on-error: true # no tests yet in v0.1
+
+  # ─── Go services ───────────────────────────────────────────
+  go:
+    name: Go ${{ matrix.module }}
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        module: [services/reaper, tools/verify]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+          cache: true
+          cache-dependency-path: ${{ matrix.module }}/go.sum
+
+      - name: Vet
+        working-directory: ${{ matrix.module }}
+        run: go vet ./...
+
+      - name: Build
+        working-directory: ${{ matrix.module }}
+        run: go build -v ./...
+
+      - name: Test
+        working-directory: ${{ matrix.module }}
+        run: go test -race -v ./...
+        continue-on-error: true # tests come in v0.5
+
+  # ─── Format check ─────────────────────────────────────────
+  format:
+    name: Format
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.12.3
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20.18"
+          cache: "pnpm"
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm format:check

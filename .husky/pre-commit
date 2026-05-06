@@ -1,0 +1,26 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+# Pre-commit checks for SlothBox
+# Fails fast on any of: secrets, formatting drift, type errors
+
+echo "→ gitleaks (secrets scan)..."
+if command -v gitleaks > /dev/null 2>&1; then
+    gitleaks protect --staged --redact --no-banner || {
+        echo ""
+        echo "✗ gitleaks found a potential secret in your staged changes."
+        echo "  Review the report above. If it's a false positive, add it to .gitleaks.toml allowlist."
+        exit 1
+    }
+else
+    echo "  ⚠ gitleaks not installed — skipping. Install with: brew install gitleaks"
+fi
+
+echo "→ format check..."
+pnpm format:check || {
+    echo ""
+    echo "✗ Formatting drift detected. Run: pnpm format"
+    exit 1
+}
+
+echo "✓ pre-commit checks passed."

@@ -1,0 +1,26 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+# Conventional Commits validator (lightweight, no external dep)
+
+commit_msg=$(cat "$1")
+
+# Allowed types
+pattern='^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\([a-z0-9_-]+\))?!?: .{1,100}'
+
+if ! echo "$commit_msg" | head -n1 | grep -Eq "$pattern"; then
+    echo ""
+    echo "✗ Commit message must follow Conventional Commits."
+    echo ""
+    echo "  Format:  type(scope?): subject"
+    echo "  Types:   feat | fix | docs | style | refactor | perf | test | build | ci | chore | revert"
+    echo ""
+    echo "  Examples:"
+    echo "    feat(ingest): add chunked upload streaming"
+    echo "    fix(crypto): handle zero-length plaintext correctly"
+    echo "    docs(readme): clarify the trust model section"
+    echo ""
+    echo "  Got: $commit_msg"
+    echo ""
+    exit 1
+fi

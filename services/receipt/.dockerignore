@@ -1,0 +1,35 @@
+# Build artefacts and editor noise — keep the Docker context lean so the
+# `dotnet restore` cache layer stays stable across local + CI builds.
+
+bin/
+obj/
+out/
+publish/
+
+# Editor scratch
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local env (we read env from the host, never from a baked .env)
+.env
+.env.*
+!.env.example
+
+# Docs that don't need to enter the build context
+README.md
+*.md
+
+# Tests aren't built in v0.1, but keep this rule for v0.5 when xunit lands.
+**/*Tests/bin/
+**/*Tests/obj/

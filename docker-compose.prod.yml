@@ -1,0 +1,103 @@
+# Production overrides
+# Apply with: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+
+services:
+  caddy:
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      - DOMAIN=${DOMAIN:-slothbox.com}
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  web:
+    image: ghcr.io/slothdk/slothbox-web:${IMAGE_TAG:-latest}
+    build: null
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  api-gateway:
+    image: ghcr.io/slothdk/slothbox-api-gateway:${IMAGE_TAG:-latest}
+    build: null
+    deploy:
+      resources:
+        limits:
+          memory: 768M
+
+  ingest:
+    image: ghcr.io/slothdk/slothbox-ingest:${IMAGE_TAG:-latest}
+    build: null
+    deploy:
+      resources:
+        limits:
+          memory: 1024M
+        reservations:
+          memory: 512M
+
+  receipt:
+    image: ghcr.io/slothdk/slothbox-receipt:${IMAGE_TAG:-latest}
+    build: null
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  reaper:
+    image: ghcr.io/slothdk/slothbox-reaper:${IMAGE_TAG:-latest}
+    build: null
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+
+  postgres:
+    ports: []  # Don't expose Postgres publicly in prod
+    environment:
+      - POSTGRES_INITDB_ARGS=--data-checksums
+    deploy:
+      resources:
+        limits:
+          memory: 2048M
+
+  minio:
+    ports: []  # MinIO console only via Caddy with auth
+    deploy:
+      resources:
+        limits:
+          memory: 1024M
+
+  valkey:
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  nats:
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  prometheus:
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  grafana:
+    ports: []  # Grafana only via Caddy with auth
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD}
+      - GF_SERVER_ROOT_URL=https://${DOMAIN}/grafana
+      - GF_SERVER_SERVE_FROM_SUB_PATH=true
+
+  loki:
+    deploy:
+      resources:
+        limits:
+          memory: 512M

@@ -1,0 +1,47 @@
+{
+  "name": "slothbox",
+  "version": "0.1.0-alpha.1",
+  "private": true,
+  "description": "End-to-end encrypted file transfer with court-admissible delivery receipts. Server cannot decrypt anything.",
+  "license": "MIT",
+  "author": "Philip Sloth <philipsloth1@gmail.com> (https://philipsloth.com)",
+  "homepage": "https://github.com/SloThdk/slothbox",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/SloThdk/slothbox.git"
+  },
+  "bugs": {
+    "url": "https://github.com/SloThdk/slothbox/issues"
+  },
+  "engines": {
+    "node": ">=20.10.0"
+  },
+  "packageManager": "pnpm@9.12.3",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "pnpm -r --parallel --stream run dev",
+    "build": "pnpm -r run build",
+    "lint": "pnpm -r run lint",
+    "typecheck": "pnpm -r run typecheck",
+    "test": "pnpm -r run test",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md,yml,yaml}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md,yml,yaml}\"",
+    "compose:up": "docker compose up -d",
+    "compose:down": "docker compose down",
+    "compose:logs": "docker compose logs -f",
+    "compose:rebuild": "docker compose build --no-cache",
+    "db:migrate": "pnpm --filter @slothbox/db run migrate",
+    "db:reset": "pnpm --filter @slothbox/db run reset",
+    "verify:secrets": "gitleaks detect --no-git --redact",
+    "prepare": "husky"
+  },
+  "devDependencies": {
+    "husky": "^9.1.6",
+    "prettier": "^3.3.3",
+    "prettier-plugin-tailwindcss": "^0.6.9",
+    "typescript": "^5.6.3"
+  }
+}

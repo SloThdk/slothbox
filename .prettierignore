@@ -1,0 +1,16 @@
+node_modules
+dist
+build
+.next
+out
+target
+bin
+obj
+coverage
+pnpm-lock.yaml
+package-lock.json
+go.sum
+*.tsbuildinfo
+docs/adr/_template.md
+*.min.js
+*.min.css

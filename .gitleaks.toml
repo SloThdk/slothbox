@@ -1,0 +1,73 @@
+# Gitleaks configuration for SlothBox
+# Extends the default rules with project-specific patterns and allowlists.
+
+[extend]
+useDefault = true
+
+# ─── Project-specific rules ──────────────────────────────────
+[[rules]]
+id = "slothbox-stripe-live-key"
+description = "Stripe live secret key"
+regex = '''sk_live_[0-9a-zA-Z]{24,}'''
+tags = ["key", "stripe", "live"]
+
+[[rules]]
+id = "slothbox-stripe-restricted-key"
+description = "Stripe restricted live key"
+regex = '''rk_live_[0-9a-zA-Z]{24,}'''
+tags = ["key", "stripe", "live"]
+
+[[rules]]
+id = "slothbox-cloudflare-api-token"
+description = "Cloudflare API token"
+regex = '''[A-Za-z0-9_-]{40}'''
+path = '''(?i)(\.env|\.cf|wrangler\.toml|cloudflare)'''
+tags = ["key", "cloudflare"]
+
+[[rules]]
+id = "slothbox-postgres-url"
+description = "Postgres connection string with password"
+regex = '''postgres(ql)?:\/\/[^:\s]+:[^@\s]+@[^\s]+'''
+tags = ["secret", "database"]
+
+[[rules]]
+id = "slothbox-jwt-token"
+description = "JWT token"
+regex = '''eyJ[A-Za-z0-9-_]{10,}\.[A-Za-z0-9-_]{10,}\.[A-Za-z0-9-_]{10,}'''
+tags = ["token", "jwt"]
+
+[[rules]]
+id = "slothbox-resend-api-key"
+description = "Resend API key"
+regex = '''re_[A-Za-z0-9_]{32,}'''
+tags = ["key", "resend"]
+
+# ─── Allowlist (false positives) ─────────────────────────────
+[allowlist]
+description = "Common false positives"
+paths = [
+    '''(.*?)(jpg|jpeg|gif|png|svg|webp|woff|woff2|ttf|otf|ico|mp4|mov)$''',
+    '''.*\.lock$''',
+    '''(^|/)pnpm-lock\.yaml$''',
+    '''(^|/)package-lock\.json$''',
+    '''(^|/)go\.sum$''',
+    '''.*\.tsbuildinfo$''',
+]
+
+regexes = [
+    # Standard test vectors / placeholder values that look like secrets but aren't
+    '''(?i)(example|test|fake|dummy|placeholder|change_me|your_key_here)''',
+    '''(?i)CHANGE_ME''',
+    '''(?i)\.env\.example''',
+    # Public test keys explicitly published in libsodium tests
+    '''sodium_test_''',
+]
+
+commits = []
+
+stopwords = [
+    "example",
+    "test",
+    "dummy",
+    "placeholder",
+]
