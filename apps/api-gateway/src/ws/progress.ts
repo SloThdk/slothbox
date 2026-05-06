@@ -23,6 +23,10 @@ import type { WSContext } from "hono/ws";
 import { createNodeWebSocket } from "@hono/node-ws";
 import type { Hono } from "hono";
 import { logger } from "../lib/logger.js";
+import type { RequestIdVars } from "../middleware/requestId.js";
+
+/** Hono env shared with the rest of the app. */
+type AppEnv = { Variables: RequestIdVars };
 
 /**
  * Build a {@link createNodeWebSocket}-compatible upgrade handler and
@@ -31,7 +35,7 @@ import { logger } from "../lib/logger.js";
  * The function returns the `injectWebSocket` callback the entry
  * point must invoke against the Node `Server` after `serve()`.
  */
-export function attachProgressWs(app: Hono): {
+export function attachProgressWs(app: Hono<AppEnv>): {
   injectWebSocket: ReturnType<typeof createNodeWebSocket>["injectWebSocket"];
 } {
   const { injectWebSocket, upgradeWebSocket } = createNodeWebSocket({ app });
@@ -56,7 +60,7 @@ export function attachProgressWs(app: Hono): {
     "/ws/progress",
     upgradeWebSocket((c) => {
       const shareId = c.req.query("shareId");
-      const requestId = (c.get("requestId" as never) as string | undefined) ?? "ws";
+      const requestId = c.get("requestId") ?? "ws";
 
       if (!shareId || !SHARE_ID.test(shareId)) {
         // Reject early: the WS adapter will still complete the
@@ -76,7 +80,7 @@ export function attachProgressWs(app: Hono): {
       let heartbeat: NodeJS.Timeout | null = null;
 
       return {
-        onOpen(_evt: unknown, ws: WSContext) {
+        onOpen(_evt: Event, ws: WSContext) {
           logger.debug({ requestId, shareId, event: "ws_open" }, "ws opened");
           heartbeat = setInterval(() => {
             try {
@@ -132,26 +136,15 @@ export function attachProgressWs(app: Hono): {
             })
           );
         },
-        onClose() {
+        onClose(_evt, _ws: WSContext) {
           if (heartbeat) {
             clearInterval(heartbeat);
             heartbeat = null;
           }
           logger.debug({ requestId, shareId, event: "ws_close" }, "ws closed");
         },
-        onError(err: Event) {
-          logger.warn(
-            {
-              requestId,
-              shareId,
-              err: {
-                message:
-                  (err as unknown as { message?: string }).message ??
-                  "ws error event",
-              },
-            },
-            "ws error"
-          );
+        onError(_evt: Event, _ws: WSContext) {
+          logger.warn({ requestId, shareId, event: "ws_error" }, "ws error event");
         },
       };
     })

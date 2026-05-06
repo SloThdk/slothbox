@@ -9,7 +9,7 @@
 // stretching here, no hand-rolled MAC. If you find such code in this file,
 // it's a bug — please file an issue.
 
-import sodium from "libsodium-wrappers-sumo";
+import sodium from "libsodium-wrappers";
 import { concatBytes, uint32ToBytesBE, stringToBytes } from "./utils.js";
 
 let ready: Promise<void> | null = null;

@@ -3,7 +3,7 @@
 // Used in v0.5+ for password-protected shares. Wrapper around libsodium's
 // crypto_pwhash (which is Argon2id under the hood).
 
-import sodium from "libsodium-wrappers-sumo";
+import sodium from "libsodium-wrappers";
 
 let ready: Promise<void> | null = null;
 async function ensureReady(): Promise<void> {

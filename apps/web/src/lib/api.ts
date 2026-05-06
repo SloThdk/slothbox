@@ -89,7 +89,7 @@ const CreateShareResponseSchema: z.ZodType<CreateShareResponse> = z.object({
  */
 export class ApiError extends Error {
   public readonly status: number;
-  public readonly cause: unknown;
+  public override readonly cause: unknown;
 
   constructor(message: string, status: number, cause?: unknown) {
     super(message);

@@ -18,7 +18,6 @@
 import {
   base64UrlToBytes,
   buildChunkAad,
-  bytesToBase64Url,
   decryptChunk,
   hashBytes,
   initCrypto,
@@ -53,7 +52,7 @@ export interface DownloadResult {
 export class DownloadError extends Error {
   constructor(
     message: string,
-    public readonly cause?: unknown,
+    public override readonly cause?: unknown,
   ) {
     super(message);
     this.name = "DownloadError";
@@ -192,7 +191,10 @@ export async function downloadFile(
     });
   }
 
-  const blob = new Blob(plaintextChunks, {
+  // TS 5.7 narrowed Uint8Array to a generic over the underlying buffer kind,
+  // so Uint8Array<ArrayBufferLike> isn't directly a BlobPart. The cast is safe:
+  // BlobPart accepts BufferSource, and these chunks always back ArrayBuffer.
+  const blob = new Blob(plaintextChunks as BlobPart[], {
     type: descriptor.mimeType || "application/octet-stream",
   });
 
@@ -277,10 +279,6 @@ async function fetchChunk(args: FetchChunkArgs): Promise<FetchChunkResult> {
   if (ciphertext.length < 16) {
     throw new DownloadError("ciphertext too short — missing AEAD tag");
   }
-
-  // Re-export bytesToBase64Url out of utils for symmetry. Unused here but kept
-  // to mirror the upload path; it's exported so callers can hash the URL hash.
-  void bytesToBase64Url;
 
   return { ciphertext, nonce };
 }

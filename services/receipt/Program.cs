@@ -188,13 +188,11 @@ static LogEventLevel ParseLevel(string raw)
     };
 }
 
-/// <summary>
-/// Convert a libpq URI (<c>postgresql://user:pass@host:port/db</c>) to the
-/// keyword/value form Npgsql expects (<c>Host=...;Port=...;Username=...;
-/// Password=...;Database=...</c>). Npgsql 8 actually accepts the URI form
-/// directly, but older versions did not — converting once at startup keeps
-/// us forward-compatible without depending on undocumented behaviour.
-/// </summary>
+// Convert a libpq URI (postgresql://user:pass@host:port/db) to the
+// keyword/value form Npgsql expects (Host=...;Port=...;Username=...;
+// Password=...;Database=...). Npgsql 8 actually accepts the URI form
+// directly, but older versions did not — converting once at startup keeps
+// us forward-compatible without depending on undocumented behaviour.
 static string ConvertToNpgsqlConnectionString(string raw)
 {
     if (!raw.StartsWith("postgresql://", StringComparison.OrdinalIgnoreCase)

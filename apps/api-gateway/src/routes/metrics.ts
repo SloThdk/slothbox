@@ -11,10 +11,13 @@
 
 import { Hono } from "hono";
 import { registry } from "../lib/metrics.js";
+import type { RequestIdVars } from "../middleware/requestId.js";
+
+type RouterEnv = { Variables: RequestIdVars };
 
 /** Build the Prometheus metrics router. */
-export function metricsRouter(): Hono {
-  const r = new Hono();
+export function metricsRouter(): Hono<RouterEnv> {
+  const r = new Hono<RouterEnv>();
 
   r.get("/metrics", async (c) => {
     const body = await registry.metrics();

@@ -79,7 +79,7 @@ export interface UploadResult {
 export class UploadError extends Error {
   constructor(
     message: string,
-    public readonly cause?: unknown,
+    public override readonly cause?: unknown,
   ) {
     super(message);
     this.name = "UploadError";
@@ -217,13 +217,12 @@ async function putChunk(args: PutChunkArgs): Promise<void> {
 
   let response: Response;
   try {
-    // Use a fresh ArrayBuffer copy so the runtime can't refuse a
-    // SharedArrayBuffer-backed body. fetch() won't take Uint8Array directly in
-    // every browser; the underlying ArrayBuffer is the safe choice.
-    const buffer = args.ciphertext.buffer.slice(
-      args.ciphertext.byteOffset,
-      args.ciphertext.byteOffset + args.ciphertext.byteLength,
-    );
+    // Copy into a fresh ArrayBuffer so the runtime never receives a
+    // SharedArrayBuffer-backed body (fetch refuses those in some browsers)
+    // and so the cast to BodyInit is unambiguous regardless of how the
+    // libsodium output Uint8Array was allocated.
+    const body = new ArrayBuffer(args.ciphertext.byteLength);
+    new Uint8Array(body).set(args.ciphertext);
 
     response = await fetch(url, {
       method: "PUT",
@@ -232,7 +231,7 @@ async function putChunk(args: PutChunkArgs): Promise<void> {
         "X-Slothbox-Nonce": bytesToBase64Url(args.nonce),
         "X-Slothbox-Upload-Token": args.uploadToken,
       },
-      body: buffer,
+      body,
       ...(args.signal ? { signal: args.signal } : {}),
     });
   } catch (err) {

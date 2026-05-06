@@ -25,6 +25,7 @@ import { HTTPException } from "hono/http-exception";
 import { getRedis } from "../lib/redis.js";
 import { logger } from "../lib/logger.js";
 import { rateLimitedTotal } from "../lib/metrics.js";
+import type { RequestIdVars } from "./requestId.js";
 
 /** A single sliding-window rule applied per identity. */
 export type RateLimitRule = {
@@ -125,8 +126,8 @@ async function evaluate(
  *   ]), handler)
  */
 export function rateLimit(rules: readonly RateLimitRule[]) {
-  return createMiddleware(async (c, next) => {
-    const requestId = (c.get("requestId" as never) as string | undefined) ?? "unknown";
+  return createMiddleware<{ Variables: RequestIdVars }>(async (c, next) => {
+    const requestId = c.get("requestId") ?? "unknown";
     // Hono's Node adapter exposes the raw socket via `c.env`, but
     // working through headers is simpler and Caddy always sets XFF.
     const identity = clientIp(c.req.raw.headers, "0.0.0.0");

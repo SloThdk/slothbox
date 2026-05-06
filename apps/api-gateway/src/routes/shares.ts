@@ -34,11 +34,15 @@ import {
   rateLimit,
   type RateLimitRule,
 } from "../middleware/rateLimit.js";
+import type { RequestIdVars } from "../middleware/requestId.js";
 import {
   sharesCreatedTotal,
   sharesDestroyedTotal,
   sharesFetchedTotal,
 } from "../lib/metrics.js";
+
+/** Hono env shared across routers — every router carries the request id. */
+type RouterEnv = { Variables: RequestIdVars };
 
 // ─── Constants ────────────────────────────────────────────────────
 
@@ -111,8 +115,15 @@ async function appendAudit(
 ): Promise<void> {
   try {
     const db = getDb();
+    // Pass the JSON string as a parameter — postgres-js binds it into
+    // ::jsonb cleanly. NEVER interpolate JSON via sql.raw — that's a
+    // SQL-injection landmine the moment a payload value contains
+    // attacker-controlled bytes (and several of ours do, e.g.
+    // shortId in destroy logs is generated server-side but the
+    // pattern shouldn't tolerate the vulnerable shape at all).
+    const payloadJson = JSON.stringify(payload);
     await db.execute(
-      sql`SELECT append_audit_entry(${eventType}, ${shareId}::uuid, ${sql.raw("'" + JSON.stringify(payload).replace(/'/g, "''") + "'::jsonb")})`
+      sql`SELECT append_audit_entry(${eventType}::text, ${shareId}::uuid, ${payloadJson}::jsonb)`
     );
   } catch (err) {
     logger.error(
@@ -221,25 +232,25 @@ const readRules: readonly RateLimitRule[] = [
 // ─── Router ───────────────────────────────────────────────────────
 
 /** Build the /api/shares/* router. */
-export function sharesRouter(): Hono {
-  const r = new Hono();
+export function sharesRouter(): Hono<RouterEnv> {
+  const r = new Hono<RouterEnv>();
 
   // ── POST /api/shares ─────────────────────────────────────────
   r.post(
     "/shares",
     rateLimit(createRules),
-    zValidator("json", CreateShareSchema, (result, c) => {
+    zValidator("json", CreateShareSchema, (result) => {
       if (!result.success) {
         const details = result.error.issues
           .map((i) => `${i.path.join(".") || "(root)"}: ${i.message}`)
           .join("; ");
-        throw new HTTPException(400, { message: `invalid request body: ${details}` });
+        throw new HTTPException(400, {
+          message: `invalid request body: ${details}`,
+        });
       }
-      // hand off to handler
-      void c;
     }),
     async (c) => {
-      const requestId = c.get("requestId" as never) as string;
+      const requestId = c.get("requestId");
       const body = c.req.valid("json");
 
       const shortId = generateShortId();
@@ -407,7 +418,7 @@ export function sharesRouter(): Hono {
       }
     }),
     async (c) => {
-      const requestId = c.get("requestId" as never) as string;
+      const requestId = c.get("requestId");
       const { shortId } = c.req.valid("param");
       const db = getDb();
 
@@ -425,9 +436,10 @@ export function sharesRouter(): Hono {
         throw new HTTPException(404, { message: "share not found" });
       }
 
+      const destroyedId = updated.id;
       void appendAudit(
         "share_destroyed",
-        updated.id,
+        destroyedId,
         { shortId, reason: "manual" },
         requestId
       );
@@ -440,7 +452,9 @@ export function sharesRouter(): Hono {
         try {
           nc.publish(
             "slothbox.share.destroyed",
-            new TextEncoder().encode(JSON.stringify({ shareId: updated.id, reason: "manual" }))
+            new TextEncoder().encode(
+              JSON.stringify({ shareId: destroyedId, reason: "manual" })
+            )
           );
         } catch (err) {
           logger.warn(
@@ -469,7 +483,7 @@ export function sharesRouter(): Hono {
       }
     }),
     async (c) => {
-      const requestId = c.get("requestId" as never) as string;
+      const requestId = c.get("requestId");
       const { shortId } = c.req.valid("param");
       const db = getDb();
 
@@ -524,6 +538,9 @@ export function sharesRouter(): Hono {
       if (becameDestroyed) {
         sharesDestroyedTotal.inc({ reason: "burn" });
 
+        // Capture the share id outside the async IIFE so TS doesn't
+        // need a non-null assertion across the closure boundary.
+        const destroyedShareId = updated.id;
         // Burn-after-read → notify reaper instantly via NATS.
         void (async () => {
           const nc = await getNats();
@@ -531,7 +548,9 @@ export function sharesRouter(): Hono {
           try {
             nc.publish(
               "slothbox.share.destroyed",
-              new TextEncoder().encode(JSON.stringify({ shareId: updated!.id, reason: "burn" }))
+              new TextEncoder().encode(
+                JSON.stringify({ shareId: destroyedShareId, reason: "burn" })
+              )
             );
           } catch (err) {
             logger.warn(
