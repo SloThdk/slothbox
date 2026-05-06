@@ -28,7 +28,7 @@ RUN dotnet publish SlothBox.Ingest.csproj \
     /p:UseAppHost=false
 
 # ─── Stage 2: runtime ─────────────────────────────────────────────
-FROM mcr.microsoft.com/dotnet/aspnet:8.0-alpine AS runtime
+FROM mcr.microsoft.com/dotnet/aspnet:10.0-alpine AS runtime
 
 # wget is needed by the docker HEALTHCHECK command. The aspnet:8.0-alpine base
 # does not ship with it, so we pin it here. ca-certificates lets us reach a
