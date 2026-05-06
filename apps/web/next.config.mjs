@@ -9,6 +9,28 @@
 // the Caddy reverse proxy. They are intentionally strict; any future addition
 // (third-party script, embed, etc.) MUST be reviewed here first.
 
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+
+// libsodium-wrappers v0.7.16 ships a broken ESM build (the .mjs entry imports
+// a sibling libsodium.mjs that is not present in the published `files` array —
+// see https://github.com/jedisct1/libsodium.js/issues/308). We force the CJS
+// entry via a webpack alias. Same workaround appears in
+// packages/crypto-core/vitest.config.ts.
+//
+// libsodium-wrappers is declared as a direct dep of @slothbox/web so it's
+// reliably present in apps/web/node_modules/.
+const libsodiumCjsEntry = resolve(
+  __dirname,
+  "node_modules",
+  "libsodium-wrappers",
+  "dist",
+  "modules",
+  "libsodium-wrappers.js"
+);
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
@@ -30,9 +52,9 @@ const nextConfig = {
     const isDev = process.env.NODE_ENV !== "production";
     const csp = [
       "default-src 'self'",
-      // 'unsafe-eval' is required by libsodium-wrappers-sumo's WebAssembly
-      // bootstrap path on some browsers. We accept the trade-off for the v0.1
-      // alpha and revisit when we move to a SubtleCrypto-only path post-v1.0.
+      // 'unsafe-eval' is required by libsodium-wrappers' WebAssembly bootstrap
+      // path on some browsers. We accept the trade-off for the v0.1 alpha and
+      // revisit when we move to a SubtleCrypto-only path post-v1.0.
       `script-src 'self'${isDev ? " 'unsafe-eval' 'unsafe-inline'" : " 'unsafe-eval'"}`,
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: blob:",
@@ -68,6 +90,13 @@ const nextConfig = {
   // The libsodium WASM module needs `node:` polyfills disabled in the browser
   // bundle; Next 15 + Webpack 5 handles this by default but we make it explicit
   // so a future tooling upgrade doesn't silently regress.
+  //
+  // We also wire two aliases:
+  //  1. extensionAlias — TypeScript ESM source uses `./foo.js` to import
+  //     `./foo.ts` (per the TS handbook recommendation). Webpack doesn't follow
+  //     that convention by default, so we add the explicit mapping.
+  //  2. libsodium-wrappers → CJS entry — works around the broken ESM packaging
+  //     in v0.7.16. Same workaround as in packages/crypto-core/vitest.config.ts.
   webpack(config, { isServer }) {
     if (!isServer) {
       config.resolve.fallback = {
@@ -77,6 +106,18 @@ const nextConfig = {
         path: false,
       };
     }
+
+    config.resolve.extensionAlias = {
+      ...(config.resolve.extensionAlias ?? {}),
+      ".js": [".ts", ".tsx", ".js", ".jsx"],
+      ".mjs": [".mts", ".mjs"],
+    };
+
+    config.resolve.alias = {
+      ...(config.resolve.alias ?? {}),
+      "libsodium-wrappers$": libsodiumCjsEntry,
+    };
+
     return config;
   },
 };
