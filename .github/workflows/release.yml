@@ -29,7 +29,7 @@ jobs:
           fi
 
       - name: Create GitHub release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           body_path: release-notes.md
           draft: false
@@ -78,7 +78,7 @@ jobs:
           sha256sum slothbox-verify-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.ext }} > slothbox-verify-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.ext }}.sha256
 
       - name: Attach to release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: |
             tools/verify/slothbox-verify-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.ext }}
