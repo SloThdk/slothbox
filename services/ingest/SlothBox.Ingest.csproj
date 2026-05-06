@@ -59,7 +59,7 @@
     <PackageReference Include="Serilog.Formatting.Compact" Version="3.0.0" />
 
     <!-- Health checks -->
-    <PackageReference Include="AspNetCore.HealthChecks.NpgSql" Version="8.0.2" />
+    <PackageReference Include="AspNetCore.HealthChecks.NpgSql" Version="9.0.0" />
     <PackageReference Include="AspNetCore.HealthChecks.Redis" Version="8.0.1" />
     <PackageReference Include="AspNetCore.HealthChecks.Uris" Version="8.0.1" />
 
