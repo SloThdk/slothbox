@@ -26,7 +26,7 @@ RUN dotnet publish SlothBox.Receipt.csproj \
     /p:UseAppHost=false
 
 # ─── Runtime stage ────────────────────────────────────────────────────────
-FROM mcr.microsoft.com/dotnet/aspnet:8.0-alpine AS runtime
+FROM mcr.microsoft.com/dotnet/aspnet:10.0-alpine AS runtime
 WORKDIR /app
 
 # Non-root execution. dotnet/aspnet:8.0-alpine ships an `app` user/group on
