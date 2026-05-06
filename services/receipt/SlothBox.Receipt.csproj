@@ -39,7 +39,7 @@
     <!-- ─── Persistence ─────────────────────────────────────────────
          Npgsql is included in the v0.1 skeleton so v0.5's Merkle leaf
          insert path doesn't need a dependency churn. Not exercised yet. -->
-    <PackageReference Include="Npgsql" Version="8.0.5" />
+    <PackageReference Include="Npgsql" Version="10.0.2" />
 
     <!-- ─── Cryptography (v0.5 RFC 3161 TSA client) ─────────────────
          BouncyCastle is the only mature .NET implementation of RFC 3161
