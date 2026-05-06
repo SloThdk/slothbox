@@ -46,7 +46,7 @@
          (TimeStampRequest / TimeStampResponse / TimeStampToken). Pinned
          here so v0.5 work doesn't introduce a "wait, what version do we
          pick?" pause. -->
-    <PackageReference Include="BouncyCastle.Cryptography" Version="2.4.0" />
+    <PackageReference Include="BouncyCastle.Cryptography" Version="2.6.2" />
 
     <!-- ─── Logging ─────────────────────────────────────────────────
          Serilog.AspNetCore wires Serilog as the host logger and adds the
