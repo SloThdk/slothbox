@@ -39,8 +39,8 @@ services:
   # ─── Frontend ───────────────────────────────────────────────
   web:
     build:
-      context: ./apps/web
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: apps/web/Dockerfile
     container_name: slothbox-web
     restart: unless-stopped
     environment:
@@ -61,8 +61,8 @@ services:
   # ─── API gateway ────────────────────────────────────────────
   api-gateway:
     build:
-      context: ./apps/api-gateway
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: apps/api-gateway/Dockerfile
     container_name: slothbox-api-gateway
     restart: unless-stopped
     environment:

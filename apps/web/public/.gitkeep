@@ -1,0 +1,2 @@
+# Placeholder so the empty public/ directory survives git + Docker COPY.
+# Static assets (favicon.ico, og-image, etc.) land here pre-public launch.
