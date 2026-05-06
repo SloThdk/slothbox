@@ -54,8 +54,8 @@
     <PackageReference Include="StackExchange.Redis" Version="2.8.16" />
 
     <!-- Logging: structured JSON -->
-    <PackageReference Include="Serilog.AspNetCore" Version="8.0.2" />
-    <PackageReference Include="Serilog.Sinks.Console" Version="6.0.0" />
+    <PackageReference Include="Serilog.AspNetCore" Version="10.0.0" />
+    <PackageReference Include="Serilog.Sinks.Console" Version="6.1.1" />
     <PackageReference Include="Serilog.Formatting.Compact" Version="3.0.0" />
 
     <!-- Health checks -->
