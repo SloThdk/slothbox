@@ -66,7 +66,7 @@
          string when v0.5 starts persisting receipts. Wired into /healthz
          already so we don't have to refactor the endpoint later. -->
     <PackageReference Include="AspNetCore.HealthChecks.NpgSql" Version="8.0.2" />
-    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="8.0.10" />
+    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="10.0.7" />
   </ItemGroup>
 
 </Project>
