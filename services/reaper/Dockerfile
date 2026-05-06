@@ -38,12 +38,16 @@ COPY . .
 #   -s  strips symbol table
 #   -trimpath rewrites file paths so the binary doesn't leak
 #       /home/builder/... into reproducible-build hashes.
+# Build the main package only (./), not all packages under the module
+# (./...). With ./... and `-o /reaper`, go refuses with "cannot write
+# multiple packages to non-directory" because internal/reaper is also a
+# package — even though it has no main. Build the root package explicitly.
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
     go build \
         -ldflags='-w -s' \
         -trimpath \
         -o /reaper \
-        ./...
+        .
 
 # Stage 2 — distroless static, nonroot. The :nonroot tag pre-bakes UID 65532
 # so we don't need a USER clause (kept anyway for clarity).

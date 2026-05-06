@@ -36,13 +36,15 @@ FROM mcr.microsoft.com/dotnet/aspnet:8.0-alpine AS runtime
 RUN apk add --no-cache wget ca-certificates \
     && rm -rf /var/cache/apk/*
 
-# Run as a non-root user — the .NET base image runs as root by default.
-RUN addgroup -S app && adduser -S app -G app -u 10001
+# Run as a non-root user. dotnet/aspnet:8.0-alpine ships an `app` user/group
+# on current tags so we use a dedicated `slothbox` group/user (UID 10001).
+RUN getent group slothbox >/dev/null 2>&1 || addgroup -S slothbox \
+    && (id slothbox >/dev/null 2>&1 || adduser -S -G slothbox -u 10001 slothbox)
 WORKDIR /app
 
-COPY --from=build --chown=app:app /app/publish ./
+COPY --from=build --chown=slothbox:slothbox /app/publish ./
 
-USER app
+USER slothbox
 EXPOSE 3023
 
 # Globalisation invariant cuts ~30 MB of ICU and is set in the csproj too.
