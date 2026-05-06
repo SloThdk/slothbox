@@ -9,7 +9,6 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
 using Prometheus;
 using SlothBox.Ingest.Configuration;
-using SlothBox.Ingest.Endpoints;
 using SlothBox.Ingest.Services;
 
 namespace SlothBox.Ingest.Endpoints;

@@ -8,10 +8,13 @@
  */
 
 import { Hono } from "hono";
+import type { RequestIdVars } from "../middleware/requestId.js";
+
+type RouterEnv = { Variables: RequestIdVars };
 
 /** Build the health router. */
-export function healthRouter(): Hono {
-  const r = new Hono();
+export function healthRouter(): Hono<RouterEnv> {
+  const r = new Hono<RouterEnv>();
 
   r.get("/healthz", (c) => {
     return c.json(

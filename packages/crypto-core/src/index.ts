@@ -7,7 +7,7 @@ export * from "./symmetric.js";
 export * from "./derivation.js";
 export * from "./utils.js";
 
-import sodium from "libsodium-wrappers-sumo";
+import sodium from "libsodium-wrappers";
 
 let _ready: Promise<void> | null = null;
 

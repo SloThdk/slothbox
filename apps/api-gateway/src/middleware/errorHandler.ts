@@ -20,6 +20,10 @@ import type { Context, ErrorHandler } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { logger } from "../lib/logger.js";
 import { httpRequestsTotal, statusClass } from "../lib/metrics.js";
+import type { RequestIdVars } from "./requestId.js";
+
+/** Hono env that error-handled routes always carry. */
+type ErrorEnv = { Variables: RequestIdVars };
 
 /** Shape of the JSON error envelope returned to clients. */
 type ErrorEnvelope = {
@@ -34,8 +38,11 @@ type ErrorEnvelope = {
  * Build a Hono error handler. We export a factory rather than a
  * concrete handler so tests can inject a mock logger if needed.
  */
-export const errorHandler: ErrorHandler = (err, c: Context) => {
-  const requestId = (c.get("requestId" as never) as string | undefined) ?? "unknown";
+export const errorHandler: ErrorHandler<ErrorEnv> = (err, c: Context<ErrorEnv>) => {
+  // The request-id middleware always runs first; if for any reason it
+  // didn't (e.g. error inside the middleware itself before set), fall
+  // back to a placeholder string so the response shape is stable.
+  const requestId = c.get("requestId") ?? "unknown";
   const route = c.req.routePath ?? c.req.path;
   const method = c.req.method;
 

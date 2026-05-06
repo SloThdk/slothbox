@@ -92,7 +92,7 @@ try
         // they're either malicious or on a terrible connection; either way we
         // don't owe them a worker thread.
         kestrel.Limits.MinRequestBodyDataRate =
-            new Microsoft.AspNetCore.Server.Kestrel.Core.MinDataRate(
+            new MinDataRate(
                 bytesPerSecond: 1024,
                 gracePeriod: TimeSpan.FromSeconds(30));
 

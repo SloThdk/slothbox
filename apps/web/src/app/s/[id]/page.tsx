@@ -26,7 +26,33 @@ interface PageProps {
   params: Promise<{ id: string }>;
 }
 
+/**
+ * Outer page component — wraps the receiver UI in a Suspense boundary because
+ * Next 15 requires one whenever a client component calls `use()` on the
+ * params promise. The boundary fallback mirrors the loading state of the
+ * inner component so first-paint feels seamless.
+ */
 export default function ShareReceiverPage({ params }: PageProps) {
+  return (
+    <React.Suspense fallback={<ReceiverFallback />}>
+      <ShareReceiver params={params} />
+    </React.Suspense>
+  );
+}
+
+function ReceiverFallback() {
+  return (
+    <section className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-12 sm:px-6 sm:py-16">
+      <div className="space-y-2">
+        <div className="h-3 w-32 animate-pulse rounded bg-[var(--color-border)]" />
+        <div className="h-10 w-3/4 animate-pulse rounded bg-[var(--color-border)]" />
+      </div>
+      <div className="h-48 w-full animate-pulse rounded-xl bg-[var(--color-border)]" />
+    </section>
+  );
+}
+
+function ShareReceiver({ params }: PageProps) {
   // Unwrap the param Promise (Next 15 contract).
   const { id } = usePromise(params);
   const shortId = decodeURIComponent(id);

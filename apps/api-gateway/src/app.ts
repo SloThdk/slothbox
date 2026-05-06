@@ -68,22 +68,31 @@ export function buildApp(): {
   // The API itself doesn't render HTML so no CSP is needed; lock
   // every other header to a strict default. The frontend (apps/web)
   // is responsible for its own CSP.
+  //
+  // contentSecurityPolicy is intentionally OMITTED — Hono's
+  // SecureHeadersOptions accepts only an object for that field, and
+  // the JSON API doesn't render markup so the default CSP would only
+  // add overhead for no benefit.
   app.use(
     "*",
     secureHeaders({
-      contentSecurityPolicy: false, // frontend owns CSP
       crossOriginEmbedderPolicy: "require-corp",
       crossOriginOpenerPolicy: "same-origin",
       crossOriginResourcePolicy: "same-site",
       originAgentCluster: "?1",
       referrerPolicy: "no-referrer",
-      strictTransportSecurity: isProduction
-        ? "max-age=63072000; includeSubDomains; preload"
-        : undefined,
+      // HSTS is only meaningful behind HTTPS — skip in dev/local.
+      ...(isProduction
+        ? {
+            strictTransportSecurity:
+              "max-age=63072000; includeSubDomains; preload",
+          }
+        : {}),
       xContentTypeOptions: "nosniff",
       xFrameOptions: "DENY",
       xPermittedCrossDomainPolicies: "none",
       xXssProtection: "0",
+      removePoweredBy: true,
     })
   );
 

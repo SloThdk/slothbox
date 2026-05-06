@@ -46,7 +46,7 @@ function createLogger(): Logger {
       ],
       remove: true,
     },
-  } as const;
+  };
 
   if (isProduction) {
     return pino(baseOptions);

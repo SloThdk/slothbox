@@ -18,7 +18,7 @@ namespace SlothBox.Receipt.Configuration;
 
 /// <summary>
 /// Service-wide configuration. Bound from environment variables at startup
-/// and validated via <see cref="ValidateAttribute"/> annotations.
+/// and validated via <see cref="ValidationAttribute"/> annotations.
 /// </summary>
 public sealed class ReceiptOptions
 {
