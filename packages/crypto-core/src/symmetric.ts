@@ -41,9 +41,23 @@ export async function generateNonce(): Promise<Nonce> {
 /**
  * Build the AAD for a single chunk. Binds the chunk to a specific share + index
  * so chunks cannot be silently reordered or moved between shares.
+ *
+ * INJECTIVITY: we prefix the shareId bytes with their u16-BE length so two
+ * inputs (shareId, chunkIndex) cannot collide via boundary ambiguity. Without
+ * the length prefix, ("abc12", chunkIndex 0x73310030) and ("abc12s10", 0)
+ * would produce the same byte string. With the length prefix they differ in
+ * the first two bytes. The cost is two bytes per AAD; the gain is a sharp
+ * domain-separation guarantee independent of any future shortId-length change.
  */
 export function buildChunkAad(shareId: string, chunkIndex: number): Uint8Array {
-  return concatBytes(stringToBytes(shareId), uint32ToBytesBE(chunkIndex));
+  const shareIdBytes = stringToBytes(shareId);
+  if (shareIdBytes.length > 0xffff) {
+    throw new Error("shareId too long for AAD length prefix");
+  }
+  const lenPrefix = new Uint8Array(2);
+  lenPrefix[0] = (shareIdBytes.length >>> 8) & 0xff;
+  lenPrefix[1] = shareIdBytes.length & 0xff;
+  return concatBytes(lenPrefix, shareIdBytes, uint32ToBytesBE(chunkIndex));
 }
 
 /**

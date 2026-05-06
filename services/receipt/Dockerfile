@@ -29,17 +29,21 @@ RUN dotnet publish SlothBox.Receipt.csproj \
 FROM mcr.microsoft.com/dotnet/aspnet:8.0-alpine AS runtime
 WORKDIR /app
 
-# Non-root execution — Alpine ships busybox `addgroup` / `adduser`.
-RUN addgroup -S app && adduser -S app -G app
+# Non-root execution. dotnet/aspnet:8.0-alpine ships an `app` user/group on
+# current tags so we use a dedicated `slothbox` group/user (UID 10002 — the
+# ingest service uses 10001, keeping per-service UIDs distinct simplifies
+# host-volume permission audits if we ever bind-mount one).
+RUN getent group slothbox >/dev/null 2>&1 || addgroup -S slothbox \
+    && (id slothbox >/dev/null 2>&1 || adduser -S -G slothbox -u 10002 slothbox)
 
 # Install wget so the HEALTHCHECK below doesn't need a separate base image.
 # `--no-cache` keeps the layer small.
 RUN apk add --no-cache wget icu-libs
 
 # Copy published artefacts and chown to the non-root user.
-COPY --from=build --chown=app:app /app/publish ./
+COPY --from=build --chown=slothbox:slothbox /app/publish ./
 
-USER app
+USER slothbox
 
 # Standard ASP.NET Core env: bind on the receipt port, run as Production by
 # default. docker-compose overrides ASPNETCORE_ENVIRONMENT for dev.

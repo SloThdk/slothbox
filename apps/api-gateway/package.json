@@ -8,7 +8,7 @@
   "main": "./dist/index.js",
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "tsup src/index.ts --format esm --target node20 --out-dir dist --clean --sourcemap",
+    "build": "tsup",
     "start": "node dist/index.js",
     "lint": "echo 'api-gateway uses tsc strict for static checks; eslint config to be added in v0.5' && exit 0",
     "typecheck": "tsc --noEmit",
