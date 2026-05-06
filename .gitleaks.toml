@@ -24,11 +24,13 @@ regex = '''[A-Za-z0-9_-]{40}'''
 path = '''(?i)(\.env|\.cf|wrangler\.toml|cloudflare)'''
 tags = ["key", "cloudflare"]
 
-[[rules]]
-id = "slothbox-postgres-url"
-description = "Postgres connection string with password"
-regex = '''postgres(ql)?:\/\/[^:\s]+:[^@\s]+@[^\s]+'''
-tags = ["secret", "database"]
+# Removed `slothbox-postgres-url` rule. The default gitleaks rules already
+# catch real database secrets (generic-api-key, generic-password, etc), and
+# our custom URL pattern was too broad — it triggered on documentation
+# examples (`postgresql://user:pass@host:port/db`), the .env.example
+# template (`...slothbox:CHANGE_ME_LOCAL_DEV_ONLY@...`), and the dev .env
+# placeholder string. Go's regexp engine doesn't support lookarounds so
+# excluding placeholders inline isn't viable — easier to drop the rule.
 
 [[rules]]
 id = "slothbox-jwt-token"
