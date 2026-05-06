@@ -1,0 +1,70 @@
+name: Bug report
+description: Something is broken
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug.
+
+        **DO NOT use this template for security vulnerabilities** — see
+        [`SECURITY.md`](https://github.com/SloThdk/slothbox/blob/master/SECURITY.md)
+        and email `security@philipsloth.com` instead.
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: Clear description of the bug
+      placeholder: e.g. "Uploading a 2 GB file fails with a timeout after 5 minutes"
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      description: Numbered list, exact steps
+      placeholder: |
+        1. Go to slothbox.com
+        2. Drop file `large.bin` (1.8 GB)
+        3. Click upload
+        4. Wait ~5 minutes
+        5. Observe timeout error
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: SlothBox version
+      description: Tag or commit SHA you observed this on
+      placeholder: v0.1.0-alpha.1
+    validations:
+      required: true
+
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: Browser + OS (frontend) or Docker version (backend)
+      placeholder: "Chrome 130 on macOS 15.1"
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: Paste relevant logs from `docker compose logs <service>`
+      render: shell
+
+  - type: checkboxes
+    id: confirm
+    attributes:
+      label: Confirmation
+      options:
+        - label: This is not a security vulnerability (those go to security@philipsloth.com)
+          required: true
+        - label: I searched for an existing issue first
+          required: true

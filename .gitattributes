@@ -1,0 +1,48 @@
+# Auto-detect text files and normalize line endings
+* text=auto eol=lf
+
+# Source files — always LF
+*.ts text eol=lf
+*.tsx text eol=lf
+*.js text eol=lf
+*.jsx text eol=lf
+*.json text eol=lf
+*.md text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.toml text eol=lf
+*.sh text eol=lf
+*.cs text eol=lf
+*.go text eol=lf
+*.sql text eol=lf
+*.html text eol=lf
+*.css text eol=lf
+
+# Windows-only files
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
+# Binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.webp binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.otf binary
+*.zip binary
+*.tar.gz binary
+*.pdf binary
+
+# Lockfiles — generated, mark as such for diff readability
+pnpm-lock.yaml linguist-generated=true
+package-lock.json linguist-generated=true
+go.sum linguist-generated=true
+
+# Don't show test fixtures in language stats
+**/__fixtures__/* linguist-vendored
+**/test-vectors/* linguist-vendored

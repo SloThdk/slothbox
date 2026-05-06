@@ -1,0 +1,85 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Create release
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Extract changelog section
+        id: changelog
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          # Extract the section under [version] from CHANGELOG.md
+          awk "/^## \[${version}\]/{flag=1; next} /^## \[/{flag=0} flag" CHANGELOG.md > release-notes.md
+          if [ ! -s release-notes.md ]; then
+            echo "(no changelog entry — this release was tagged without updating CHANGELOG.md)" > release-notes.md
+          fi
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          body_path: release-notes.md
+          draft: false
+          prerelease: ${{ contains(github.ref_name, '-alpha') || contains(github.ref_name, '-beta') || contains(github.ref_name, '-rc') }}
+
+  build-verifier-cli:
+    name: Build verifier CLI ${{ matrix.os }}-${{ matrix.arch }}
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: linux
+            arch: amd64
+          - os: linux
+            arch: arm64
+          - os: darwin
+            arch: amd64
+          - os: darwin
+            arch: arm64
+          - os: windows
+            arch: amd64
+            ext: ".exe"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+
+      - name: Build
+        working-directory: tools/verify
+        env:
+          GOOS: ${{ matrix.os }}
+          GOARCH: ${{ matrix.arch }}
+          CGO_ENABLED: "0"
+        run: |
+          go build -trimpath -ldflags="-s -w -X 'github.com/SloThdk/slothbox/tools/verify/internal/version.Version=${GITHUB_REF_NAME}' -X 'github.com/SloThdk/slothbox/tools/verify/internal/version.GitSHA=${GITHUB_SHA}'" \
+            -o slothbox-verify-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.ext }} ./...
+
+      - name: Compute SHA256
+        working-directory: tools/verify
+        run: |
+          sha256sum slothbox-verify-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.ext }} > slothbox-verify-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.ext }}.sha256
+
+      - name: Attach to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            tools/verify/slothbox-verify-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.ext }}
+            tools/verify/slothbox-verify-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.ext }}.sha256

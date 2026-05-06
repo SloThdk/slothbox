@@ -1,0 +1,73 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <!--
+    SlothBox.Receipt — RFC 3161 timestamped delivery receipt service.
+
+    v0.1.0-alpha (this revision): SKELETON ONLY.
+      - Service compiles, runs, exposes /healthz + /metrics.
+      - All receipt / audit endpoints return 501 Not Implemented with a
+        milestone reference. See ../../MILESTONES.md.
+
+    v0.5.0 (next, "Accounts and Receipts"):
+      - BouncyCastle.Cryptography becomes load-bearing (RFC 3161 TSA client).
+      - Npgsql persists the Merkle leaf log.
+      - Endpoints flip from 501 stubs to real implementations.
+
+    Strict-mode rules:
+      - Nullable enabled, warnings-as-errors. The compiler is the cheapest
+        reviewer for nullability slips and uncaught edge cases on a
+        security-critical path.
+      - All deps version-pinned so local + CI + container produce byte-equal
+        restores.
+  -->
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <RootNamespace>SlothBox.Receipt</RootNamespace>
+    <AssemblyName>SlothBox.Receipt</AssemblyName>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <!-- Smaller container layers; we don't need the SDK culture tables. -->
+    <PublishTrimmed>false</PublishTrimmed>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <!-- Suppress missing-XML-comment noise on internal types; public symbols still get checked. -->
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- ─── Persistence ─────────────────────────────────────────────
+         Npgsql is included in the v0.1 skeleton so v0.5's Merkle leaf
+         insert path doesn't need a dependency churn. Not exercised yet. -->
+    <PackageReference Include="Npgsql" Version="8.0.5" />
+
+    <!-- ─── Cryptography (v0.5 RFC 3161 TSA client) ─────────────────
+         BouncyCastle is the only mature .NET implementation of RFC 3161
+         (TimeStampRequest / TimeStampResponse / TimeStampToken). Pinned
+         here so v0.5 work doesn't introduce a "wait, what version do we
+         pick?" pause. -->
+    <PackageReference Include="BouncyCastle.Cryptography" Version="2.4.0" />
+
+    <!-- ─── Logging ─────────────────────────────────────────────────
+         Serilog.AspNetCore wires Serilog as the host logger and adds the
+         request-logging middleware. JSON sink for structured Loki ingest. -->
+    <PackageReference Include="Serilog.AspNetCore" Version="8.0.3" />
+    <PackageReference Include="Serilog.Sinks.Console" Version="6.0.0" />
+    <PackageReference Include="Serilog.Formatting.Compact" Version="3.0.0" />
+    <PackageReference Include="Serilog.Settings.Configuration" Version="8.0.4" />
+
+    <!-- ─── Metrics ─────────────────────────────────────────────────
+         Prometheus scrape endpoint at /metrics. Plays cleanly with the
+         project's existing Grafana / prometheus.yml setup. -->
+    <PackageReference Include="prometheus-net.AspNetCore" Version="8.2.1" />
+
+    <!-- ─── Health checks ──────────────────────────────────────────
+         AspNetCore.HealthChecks.NpgSql probes the DATABASE_URL connection
+         string when v0.5 starts persisting receipts. Wired into /healthz
+         already so we don't have to refactor the endpoint later. -->
+    <PackageReference Include="AspNetCore.HealthChecks.NpgSql" Version="8.0.2" />
+    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="8.0.10" />
+  </ItemGroup>
+
+</Project>

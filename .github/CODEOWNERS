@@ -1,0 +1,28 @@
+# SlothBox CODEOWNERS
+#
+# Cryptographic code requires maintainer review without exception.
+# All other files default to maintainer review for now (single-maintainer project).
+
+# Default: maintainer review
+*                                       @philipsloth
+
+# Cryptographic core — DO NOT bypass
+/packages/crypto-core/                  @philipsloth
+/apps/web/src/lib/upload.ts             @philipsloth
+/apps/web/src/lib/download.ts           @philipsloth
+
+# Database schema and RLS policies
+/db/migrations/                         @philipsloth
+/packages/db/src/schema.ts              @philipsloth
+
+# Security-critical configuration
+/.gitleaks.toml                         @philipsloth
+/.github/                               @philipsloth
+/SECURITY.md                            @philipsloth
+/docs/CRYPTO.md                         @philipsloth
+/docs/THREAT_MODEL.md                   @philipsloth
+/infra/caddy/                           @philipsloth
+
+# Production infrastructure
+/docker-compose.prod.yml                @philipsloth
+/docs/RUNBOOK.md                        @philipsloth

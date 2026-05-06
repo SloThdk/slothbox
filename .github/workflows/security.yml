@@ -1,0 +1,160 @@
+name: Security
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+  schedule:
+    - cron: "23 6 * * 1"  # weekly Monday 06:23 UTC
+
+permissions:
+  contents: read
+  security-events: write
+  actions: read
+
+concurrency:
+  group: security-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ─── Secret scanning ───────────────────────────────────────
+  gitleaks:
+    name: Gitleaks
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_CONFIG: .gitleaks.toml
+
+  # ─── Dependency vulnerability scan ────────────────────────
+  npm-audit:
+    name: npm audit
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.12.3
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20.18"
+          cache: "pnpm"
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Audit (high+)
+        run: pnpm audit --audit-level=high --prod
+
+  dotnet-vulnerable:
+    name: .NET vulnerable packages
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        service: [ingest, receipt]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+      - working-directory: services/${{ matrix.service }}
+        run: |
+          dotnet restore
+          dotnet list package --vulnerable --include-transitive 2>&1 | tee audit.log
+          # Fail if any vulnerable package found
+          if grep -q "has the following vulnerable packages" audit.log; then
+            echo "vulnerable packages detected"
+            exit 1
+          fi
+
+  govulncheck:
+    name: govulncheck
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        module: [services/reaper, tools/verify]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+      - run: go install golang.org/x/vuln/cmd/govulncheck@latest
+      - working-directory: ${{ matrix.module }}
+        run: govulncheck ./...
+
+  # ─── Static analysis (CodeQL) ─────────────────────────────
+  codeql:
+    name: CodeQL ${{ matrix.language }}
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [javascript-typescript, csharp, go]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+          queries: security-extended,security-and-quality
+      - uses: github/codeql-action/autobuild@v3
+      - uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:${{ matrix.language }}"
+
+  # ─── Container image scanning ─────────────────────────────
+  trivy:
+    name: Trivy ${{ matrix.image }}
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - image: web
+            context: ./apps/web
+          - image: api-gateway
+            context: ./apps/api-gateway
+          - image: ingest
+            context: ./services/ingest
+          - image: receipt
+            context: ./services/receipt
+          - image: reaper
+            context: ./services/reaper
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Build image
+        run: docker build -t slothbox-${{ matrix.image }}:scan ${{ matrix.context }}
+        continue-on-error: true # some images may not build until services are fleshed out
+
+      - name: Scan
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: slothbox-${{ matrix.image }}:scan
+          format: sarif
+          output: trivy-${{ matrix.image }}.sarif
+          severity: CRITICAL,HIGH
+          exit-code: "0" # report but don't fail v0.1
+        continue-on-error: true
+
+      - name: Upload SARIF
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: trivy-${{ matrix.image }}.sarif
+          category: trivy-${{ matrix.image }}
+        continue-on-error: true

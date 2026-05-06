@@ -1,0 +1,30 @@
+# Build artefacts: never copy these into the build context.
+**/bin/
+**/obj/
+
+# IDE detritus.
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+
+# Test artefacts.
+**/TestResults/
+**/coverage*.xml
+**/.coverlet/
+
+# Misc.
+*.log
+.DS_Store
+Thumbs.db
+
+# Don't ship the Dockerfile itself into the image.
+Dockerfile
+.dockerignore
+
+# Local dev secrets — never copy these in.
+.env
+.env.*
+*.pem
+*.key

@@ -1,0 +1,88 @@
+# Secrets — NEVER COMMIT THESE
+.env
+.env.local
+.env.*.local
+.env.production
+.env.development
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+secrets/
+.secrets/
+
+# Dependencies
+node_modules/
+.pnpm-store/
+.pnpm-debug.log
+
+# Build artifacts
+.next/
+out/
+dist/
+build/
+target/
+bin/
+obj/
+*.tsbuildinfo
+
+# .NET
+**/bin/
+**/obj/
+**/.vs/
+*.user
+*.suo
+
+# Go
+**/vendor/
+*.exe
+*.test
+*.prof
+
+# Logs
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# IDEs
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.example.json
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# OS
+*~
+.~lock.*
+
+# Coverage + test
+coverage/
+.nyc_output/
+*.lcov
+
+# Docker volumes (when run locally without named volumes)
+data/
+volumes/
+
+# Local override files
+docker-compose.override.yml
+*.local.yml
+
+# Backups + dumps
+*.sql.gz
+*.dump
+backups/
+
+# Crypto test artifacts
+test-keys/
+test-shares/
+
+# AI tooling
+.claude/
+.cursor/

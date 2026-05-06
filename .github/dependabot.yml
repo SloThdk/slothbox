@@ -1,0 +1,95 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Europe/Copenhagen
+    open-pull-requests-limit: 10
+    versioning-strategy: increase
+    groups:
+      next:
+        patterns: ["next", "@next/*"]
+      react:
+        patterns: ["react", "react-dom", "@types/react", "@types/react-dom"]
+      tailwind:
+        patterns: ["tailwindcss", "@tailwindcss/*", "prettier-plugin-tailwindcss"]
+      drizzle:
+        patterns: ["drizzle-orm", "drizzle-kit"]
+      hono:
+        patterns: ["hono", "@hono/*"]
+      types:
+        patterns: ["@types/*"]
+      lint:
+        patterns: ["eslint*", "prettier*"]
+    labels: ["deps", "auto"]
+
+  - package-ecosystem: nuget
+    directory: "/services/ingest"
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    labels: ["deps", "dotnet", "ingest"]
+
+  - package-ecosystem: nuget
+    directory: "/services/receipt"
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    labels: ["deps", "dotnet", "receipt"]
+
+  - package-ecosystem: gomod
+    directory: "/services/reaper"
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    labels: ["deps", "go", "reaper"]
+
+  - package-ecosystem: gomod
+    directory: "/tools/verify"
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    labels: ["deps", "go", "verify"]
+
+  - package-ecosystem: docker
+    directory: "/apps/web"
+    schedule:
+      interval: weekly
+    labels: ["deps", "docker"]
+
+  - package-ecosystem: docker
+    directory: "/apps/api-gateway"
+    schedule:
+      interval: weekly
+    labels: ["deps", "docker"]
+
+  - package-ecosystem: docker
+    directory: "/services/ingest"
+    schedule:
+      interval: weekly
+    labels: ["deps", "docker"]
+
+  - package-ecosystem: docker
+    directory: "/services/receipt"
+    schedule:
+      interval: weekly
+    labels: ["deps", "docker"]
+
+  - package-ecosystem: docker
+    directory: "/services/reaper"
+    schedule:
+      interval: weekly
+    labels: ["deps", "docker"]
+
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+    labels: ["deps", "ci"]

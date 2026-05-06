@@ -1,0 +1,86 @@
+# SlothBox — Caddy reverse proxy
+#
+# Auto-HTTPS via Let's Encrypt. Strict security headers. Internal services
+# never exposed publicly except through here.
+
+{
+	# Production: real email for Let's Encrypt urgent renewals
+	email admin@philipsloth.com
+	servers {
+		protocols h1 h2 h3
+	}
+}
+
+# ─── Local development (no TLS) ────────────────────────────────
+:80 {
+	# Health check for upstream load balancers
+	handle /healthz {
+		respond "ok" 200
+	}
+
+	# API routes
+	handle /api/* {
+		reverse_proxy api-gateway:3022
+	}
+
+	# Ingest routes (chunked upload — large bodies allowed)
+	handle /ingest/* {
+		reverse_proxy ingest:3023 {
+			flush_interval -1
+		}
+	}
+
+	# Receipt routes (v0.5+)
+	handle /receipt/* {
+		reverse_proxy receipt:3024
+	}
+
+	# WebSocket
+	handle /ws/* {
+		reverse_proxy api-gateway:3022 {
+			header_up Host {host}
+		}
+	}
+
+	# Frontend (everything else)
+	handle {
+		reverse_proxy web:3021
+	}
+
+	# Standard security headers
+	header {
+		Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "no-referrer"
+		Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=()"
+		Cross-Origin-Embedder-Policy "require-corp"
+		Cross-Origin-Opener-Policy "same-origin"
+		Cross-Origin-Resource-Policy "same-origin"
+		Content-Security-Policy "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' wss: ws:; frame-ancestors 'none'; form-action 'self'; base-uri 'self'"
+		-Server
+	}
+
+	# Compression
+	encode zstd gzip
+
+	# Body size limit — 4 GB for chunked uploads, set per-route
+	request_body /ingest/* {
+		max_size 5GB
+	}
+	request_body / {
+		max_size 1MB
+	}
+
+	# Logging
+	log {
+		output stdout
+		format json
+	}
+}
+
+# ─── Production (TLS via Let's Encrypt) ────────────────────────
+# Uncomment in production by setting DOMAIN env var or duplicating block
+# slothbox.com, www.slothbox.com {
+#     ... same handle blocks ...
+# }
