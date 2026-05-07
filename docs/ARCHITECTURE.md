@@ -183,9 +183,10 @@ See the README for the per-language justification. Highlights:
   image library for thumbnail generation.
 - **Go for reaper** because cron-style daemons benefit from Go's static binary
   and ~8 MB RAM footprint.
-- **Self-hosted Postgres + MinIO** instead of managed equivalents because this
-  project demonstrates "I can run my own infrastructure" — your portfolio already
-  shows managed Supabase via SlothCV.
+- **Self-hosted Postgres + MinIO** instead of managed equivalents because the
+  project demonstrates an operator-runs-own-infrastructure posture — the
+  managed-Supabase variant of the same trust discipline lives in
+  [SlothCV](https://github.com/SloThdk/slothcv) for the comparison.
 - **Drizzle instead of Prisma** because it is edge-runtime compatible and
   produces SQL closer to what's actually executed.
 

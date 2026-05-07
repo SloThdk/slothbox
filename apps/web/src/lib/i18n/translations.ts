@@ -147,17 +147,89 @@ export const TRANSLATIONS = {
     en: "v0.1.0-alpha · public source",
     da: "v0.1.0-alpha · offentlig kildekode",
   },
+  "alphaBanner.title": {
+    en: "v0.1 alpha — read this before sending real data.",
+    da: "v0.1 alpha — læs dette før du sender rigtige data.",
+  },
+  "alphaBanner.body": {
+    en: "Anyone holding the share URL can destroy or burn the share — the v0.1 access model treats the shortId as the access secret. Court-admissible RFC 3161 receipts arrive in v0.5; per-recipient asymmetric encryption arrives in v1.0. Use this build for portfolio review and personal experimentation, not legally-sensitive transfers.",
+    da: "Alle, der har delingens URL, kan destruere eller brænde delingen — v0.1's adgangsmodel behandler shortId som adgangshemmeligheden. Retsgyldige RFC 3161-kvitteringer kommer i v0.5, og per-modtager asymmetrisk kryptering kommer i v1.0. Brug denne version til portfolio-gennemgang og personlig test, ikke juridisk følsomme overførsler.",
+  },
+  "alphaBanner.dismiss": {
+    en: "I understand",
+    da: "Jeg forstår",
+  },
+  "alphaBanner.readMore": {
+    en: "Read the full security policy",
+    da: "Læs hele sikkerhedspolitikken",
+  },
+
+  // ─── Footer abuse + takedown link ─────────────────────────────
+  "footer.link.abuse": {
+    en: "Report abuse",
+    da: "Rapportér misbrug",
+  },
+
+  // ─── /abuse page ──────────────────────────────────────────────
+  "abuse.eyebrow": {
+    en: "Trust & safety",
+    da: "Tillid & sikkerhed",
+  },
+  "abuse.heading": {
+    en: "Report illegal content or abuse.",
+    da: "Rapportér ulovligt indhold eller misbrug.",
+  },
+  "abuse.lede": {
+    en: "If you have received a SlothBox share link that contains illegal content (CSAM, terrorist content, IP-infringing material, fraud, malware, anything else covered by EU or Danish law) or are otherwise being harmed by abuse of this service, please report it. The operator can destroy the share without ever decrypting its contents — the destroy operation invalidates the encryption key reference in the audit chain, which renders the ciphertext mathematically unrecoverable.",
+    da: "Hvis du har modtaget et SlothBox-delingslink, der indeholder ulovligt indhold (CSAM, terror-indhold, krænkelser af immaterielle rettigheder, svindel, malware eller andet omfattet af EU- eller dansk lovgivning), eller du på anden måde er ramt af misbrug af denne tjeneste, så rapportér det. Operatøren kan destruere delingen uden at dekryptere indholdet — destroy-operationen invaliderer nøglereferencen i audit-kæden, hvilket gør ciphertexten matematisk uigenoprettelig.",
+  },
+  "abuse.howTo.heading": {
+    en: "How to report",
+    da: "Sådan rapporterer du",
+  },
+  "abuse.howTo.body": {
+    en: "Email the contact below with the share's shortId (the 12-character path segment after `/s/` in the URL — NOT the part after `#`, which is the decryption key and must never leave your browser). Include a description of the abuse and your contact details if you want a response. Reports are reviewed within 24 hours; high-severity reports (CSAM, immediate-harm content) are prioritised same-day.",
+    da: "Skriv til kontakten herunder med delingens shortId (de 12 tegn i URL'en efter `/s/` — IKKE delen efter `#`, som er dekrypteringsnøglen og aldrig må forlade din browser). Inkludér en beskrivelse af misbruget og dine kontaktoplysninger, hvis du ønsker svar. Rapporter gennemgås inden for 24 timer; rapporter med høj alvor (CSAM, indhold med umiddelbar skade) prioriteres samme dag.",
+  },
+  "abuse.contact.heading": {
+    en: "Contact",
+    da: "Kontakt",
+  },
+  "abuse.contact.body": {
+    en: "Email reports to",
+    da: "Send rapporter til",
+  },
+  "abuse.contact.body.tail": {
+    en: "PGP and Signal contact options are listed in the security policy.",
+    da: "PGP- og Signal-kontaktmuligheder er angivet i sikkerhedspolitikken.",
+  },
+  "abuse.dontInclude.heading": {
+    en: "Do NOT include",
+    da: "Inkludér IKKE",
+  },
+  "abuse.dontInclude.body": {
+    en: "Do NOT paste the full share URL including the part after `#`. That fragment is the decryption key. Sending it would let the operator decrypt the content, which defeats the end-to-end encryption guarantee. The shortId alone is enough to destroy the share.",
+    da: "Indsæt IKKE hele delings-URL'en inklusive delen efter `#`. Det fragment er dekrypteringsnøglen. Hvis du sender den, kan operatøren dekryptere indholdet, hvilket bryder end-to-end-kryptering. Kun shortId'et er nødvendigt for at destruere delingen.",
+  },
+  "abuse.legal.heading": {
+    en: "Legal basis",
+    da: "Retsgrundlag",
+  },
+  "abuse.legal.body": {
+    en: "This page is the SlothBox notice mechanism under the EU Digital Services Act (Regulation 2022/2065, Article 16). Reports are processed under Danish law; the operator is established in Denmark. The operator does not have access to the plaintext content of any share, so abuse triage relies on the reporting party's description plus the metadata associated with the shortId (creation timestamp, expiry, sender IP-fragment hash, chunk count, total ciphertext size).",
+    da: "Denne side er SlothBox' notice-mekanisme under EU's Digital Services Act (forordning 2022/2065, artikel 16). Rapporter behandles efter dansk ret; operatøren er etableret i Danmark. Operatøren har ikke adgang til klarteksten af nogen deling, så vurdering af misbrug bygger på rapportørens beskrivelse plus metadata tilknyttet shortId'et (oprettelses-tidsstempel, udløb, hash-fragment af afsenderens IP, antal bidder, samlet ciphertext-størrelse).",
+  },
   "hero.headline.l1": {
     en: "Send any file.",
     da: "Send hvilken som helst fil.",
   },
   "hero.headline.l2": {
-    en: "We can't read it.",
-    da: "Vi kan ikke læse den.",
+    en: "The server can't read it.",
+    da: "Serveren kan ikke læse den.",
   },
   "hero.headline.l3": {
-    en: "Verify the math.",
-    da: "Tjek matematikken selv.",
+    en: "Read the source.",
+    da: "Læs kildekoden.",
   },
   "hero.copy.before": {
     en: "SlothBox seals your file in your browser before it leaves your machine. The unlock key lives in the part of the URL after",
@@ -370,8 +442,8 @@ export const TRANSLATIONS = {
     da: "Trusselsmodel",
   },
   "security.threat.body": {
-    en: "We protect content confidentiality from the SlothBox operator and from network observers. We do not protect against an endpoint compromise (sender or recipient). We document explicit non-goals so you can decide whether the model fits your use case.",
-    da: "Vi beskytter indholdets fortrolighed mod SlothBox-operatøren og mod netværksaflyttere. Vi beskytter ikke mod et kompromitteret endpoint (afsender eller modtager). Vi dokumenterer eksplicitte ikke-mål, så du kan vurdere, om modellen passer til dit formål.",
+    en: "The system protects content confidentiality from the SlothBox operator and from network observers. It does not protect against an endpoint compromise (sender or recipient). Explicit non-goals are documented so you can decide whether the model fits your use case.",
+    da: "Systemet beskytter indholdets fortrolighed mod SlothBox-operatøren og mod netværksaflyttere. Det beskytter ikke mod et kompromitteret endpoint (afsender eller modtager). De eksplicitte ikke-mål er dokumenteret, så du kan vurdere, om modellen passer til dit formål.",
   },
   "security.architecture.title": {
     en: "Verifiable architecture",
@@ -423,6 +495,10 @@ export const TRANSLATIONS = {
     en: "Expires after",
     da: "Udløber efter",
   },
+  "upload.expires.help": {
+    en: "When this timer runs out, the share link stops working and the encrypted blob is deleted from the server. Pick the shortest window that still gives the recipient time to download.",
+    da: "Når timeren løber ud, stopper delingslinket med at virke, og den krypterede fil bliver slettet fra serveren. Vælg det korteste vindue, der stadig giver modtageren tid til at downloade.",
+  },
   "upload.expiry.placeholder": {
     en: "Select expiry",
     da: "Vælg udløb",
@@ -448,8 +524,8 @@ export const TRANSLATIONS = {
     da: "Brænd efter læsning",
   },
   "upload.burn.help": {
-    en: "Self-destruct on first download.",
-    da: "Selv-destruér ved første download.",
+    en: "The share is destroyed the moment your recipient finishes downloading. Use this for one-shot transfers where you don't want a second download to be possible.",
+    da: "Delingen destrueres i samme øjeblik modtageren har downloadet filen. Brug det til engangs-overførsler, hvor en anden download ikke skal være mulig.",
   },
   "upload.trust": {
     en: "Encryption happens in your browser. The key never leaves this tab.",
