@@ -23,13 +23,7 @@ export interface ShareLinkProps {
   onSendAnother?: () => void;
 }
 
-export function ShareLink({
-  url,
-  expiresAt,
-  fileName,
-  fileSize,
-  onSendAnother,
-}: ShareLinkProps) {
+export function ShareLink({ url, expiresAt, fileName, fileSize, onSendAnother }: ShareLinkProps) {
   const [copied, setCopied] = React.useState(false);
 
   const onCopy = React.useCallback(async () => {
@@ -67,21 +61,16 @@ export function ShareLink({
             Encrypted. Ready to send.
           </h3>
           <p className="mt-1 text-sm text-[var(--color-muted)]">
-            Anyone with the full link below can download and decrypt this file
-            once. Expires in {expiresHuman}.
+            Anyone with the full link below can download and decrypt this file once. Expires in{" "}
+            {expiresHuman}.
           </p>
         </div>
       </div>
 
       <div className="flex items-center gap-3 rounded-lg border border-[var(--color-border)] bg-[color-mix(in_srgb,var(--color-card)_85%,var(--color-bg))] px-3 py-3">
-        <FileText
-          className="h-4 w-4 shrink-0 text-[var(--color-muted)]"
-          aria-hidden
-        />
+        <FileText className="h-4 w-4 shrink-0 text-[var(--color-muted)]" aria-hidden />
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-medium text-[var(--color-fg)]">
-            {fileName}
-          </p>
+          <p className="truncate text-sm font-medium text-[var(--color-fg)]">{fileName}</p>
           <p className="text-xs text-[var(--color-muted)]">
             {formatBytes(fileSize)} · encrypted with XChaCha20-Poly1305
           </p>
@@ -118,9 +107,9 @@ export function ShareLink({
           </Button>
         </div>
         <p className="text-[11px] leading-relaxed text-[var(--color-muted)]">
-          The portion after <code className="font-mono">#key=</code> is the
-          decryption key. It stays inside this URL — your browser never sends
-          it to any server. If you lose it, the file is unrecoverable.
+          The portion after <code className="font-mono">#key=</code> is the decryption key. It stays
+          inside this URL — your browser never sends it to any server. If you lose it, the file is
+          unrecoverable.
         </p>
       </div>
 

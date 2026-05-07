@@ -395,7 +395,7 @@ networks:
     driver: bridge
   internal:
     driver: bridge
-    internal: false  # Caddy needs egress for Let's Encrypt
+    internal: false # Caddy needs egress for Let's Encrypt
 
 # ─── Volumes ───────────────────────────────────────────────────
 volumes:

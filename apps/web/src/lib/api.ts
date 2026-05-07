@@ -120,11 +120,7 @@ export class ApiError extends Error {
 // Internal fetch wrapper
 // ---------------------------------------------------------------------------
 
-async function request<T>(
-  path: string,
-  init: RequestInit,
-  schema: z.ZodType<T>
-): Promise<T> {
+async function request<T>(path: string, init: RequestInit, schema: z.ZodType<T>): Promise<T> {
   let response: Response;
   try {
     response = await fetch(`${API_URL}${path}`, {
@@ -153,7 +149,7 @@ async function request<T>(
       payload !== null &&
       "error" in payload &&
       typeof (payload as { error: unknown }).error === "string"
-        ? ((payload as { error: string }).error)
+        ? (payload as { error: string }).error
         : `gateway returned HTTP ${response.status}`;
     throw new ApiError(message, response.status, payload);
   }
@@ -167,11 +163,7 @@ async function request<T>(
 
   const parsed = schema.safeParse(body);
   if (!parsed.success) {
-    throw new ApiError(
-      "gateway response failed schema validation",
-      response.status,
-      parsed.error
-    );
+    throw new ApiError("gateway response failed schema validation", response.status, parsed.error);
   }
   return parsed.data;
 }
@@ -184,9 +176,7 @@ async function request<T>(
  * Create a share metadata record. The server returns the share ID, short ID,
  * and per-chunk upload URLs the client uses to stream ciphertext to ingest.
  */
-export async function createShare(
-  body: CreateShareRequest
-): Promise<CreateShareResponse> {
+export async function createShare(body: CreateShareRequest): Promise<CreateShareResponse> {
   return request(
     "/api/shares",
     {
@@ -232,9 +222,7 @@ export async function markDownloaded(
  * Manually destroy the share — used by the sender from a future dashboard
  * (v0.5+). For v0.1 it's exposed as the explicit "burn now" action.
  */
-export async function destroyShare(
-  shortId: string
-): Promise<{ state: ShareDescriptor["state"] }> {
+export async function destroyShare(shortId: string): Promise<{ state: ShareDescriptor["state"] }> {
   return request(
     `/api/shares/${encodeURIComponent(shortId)}/destroy`,
     { method: "POST" },

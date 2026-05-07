@@ -31,8 +31,7 @@ const SAFE_ID = /^[A-Za-z0-9_.-]{1,128}$/;
 export const requestIdMiddleware = createMiddleware<{ Variables: RequestIdVars }>(
   async (c, next) => {
     const incoming = c.req.header("x-request-id");
-    const id =
-      incoming && SAFE_ID.test(incoming) ? incoming : randomUUID();
+    const id = incoming && SAFE_ID.test(incoming) ? incoming : randomUUID();
 
     c.set("requestId", id);
     c.header("x-request-id", id);

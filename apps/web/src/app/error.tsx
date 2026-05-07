@@ -26,19 +26,17 @@ export default function GlobalError({
 
   return (
     <section className="mx-auto flex w-full max-w-xl flex-col items-center gap-6 px-4 py-24 text-center sm:px-6">
-      <p className="font-mono text-xs uppercase tracking-[0.3em] text-[var(--color-danger)]">
+      <p className="font-mono text-xs tracking-[0.3em] text-[var(--color-danger)] uppercase">
         unexpected error
       </p>
       <h1 className="font-display text-4xl font-semibold tracking-tight text-[var(--color-fg)] sm:text-5xl">
         Something went wrong.
       </h1>
       <p className="text-base text-[var(--color-muted)]">
-        A hiccup we didn&apos;t plan for. Try again, or refresh the page. If
-        it keeps happening, mention error code{" "}
-        <code className="font-mono text-[var(--color-fg)]">
-          {error.digest ?? "unknown"}
-        </code>{" "}
-        when reporting.
+        A hiccup we didn&apos;t plan for. Try again, or refresh the page. If it keeps happening,
+        mention error code{" "}
+        <code className="font-mono text-[var(--color-fg)]">{error.digest ?? "unknown"}</code> when
+        reporting.
       </p>
       <div className="flex gap-3">
         <Button onClick={reset}>Try again</Button>

@@ -65,9 +65,7 @@ function ShareReceiver({ params }: PageProps) {
     // Pull the key from the URL fragment. This is the ONLY place in the app
     // that touches `window.location.hash`. The fragment never reaches the
     // server, by browser-spec design.
-    const key = extractKeyFromHash(
-      typeof window !== "undefined" ? window.location.hash : "",
-    );
+    const key = extractKeyFromHash(typeof window !== "undefined" ? window.location.hash : "");
     if (!key) {
       setStatus({ kind: "missing-key" });
       return () => {
@@ -94,15 +92,15 @@ function ShareReceiver({ params }: PageProps) {
   return (
     <section className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-12 sm:px-6 sm:py-16">
       <header>
-        <p className="text-xs font-semibold uppercase tracking-wider text-[var(--color-accent)]">
+        <p className="text-xs font-semibold tracking-wider text-[var(--color-accent)] uppercase">
           Encrypted share
         </p>
-        <h1 className="mt-2 font-display text-3xl font-semibold text-[var(--color-fg)] sm:text-4xl">
+        <h1 className="font-display mt-2 text-3xl font-semibold text-[var(--color-fg)] sm:text-4xl">
           Decrypt + download
         </h1>
         <p className="mt-2 text-sm text-[var(--color-muted)]">
-          The decryption happens in this tab. The unlock key was passed to you
-          in the URL fragment and never reaches our servers.
+          The decryption happens in this tab. The unlock key was passed to you in the URL fragment
+          and never reaches our servers.
         </p>
       </header>
 
@@ -115,11 +113,7 @@ function ShareReceiver({ params }: PageProps) {
           ) : status.kind === "error" ? (
             <ErrorState message={status.message} />
           ) : (
-            <Decrypt
-              shortId={shortId}
-              descriptor={status.descriptor}
-              decryptionKey={status.key}
-            />
+            <Decrypt shortId={shortId} descriptor={status.descriptor} decryptionKey={status.key} />
           )}
         </CardContent>
       </Card>
@@ -135,7 +129,7 @@ function ShareReceiver({ params }: PageProps) {
 
 function LoadingState() {
   return (
-    <div className="flex animate-in-fade flex-col gap-3">
+    <div className="animate-in-fade flex flex-col gap-3">
       <div className="flex items-center gap-3">
         <div className="h-12 w-12 animate-pulse rounded-lg bg-[var(--color-border)]" />
         <div className="flex flex-1 flex-col gap-2">
@@ -158,9 +152,8 @@ function MissingKeyState() {
         The decryption key is missing.
       </h2>
       <p className="text-sm text-[var(--color-muted)]">
-        Your URL doesn&apos;t contain the part after the{" "}
-        <code className="font-mono">#</code>. Some chat apps strip it.
-        Ask the sender to copy and paste the full link directly.
+        Your URL doesn&apos;t contain the part after the <code className="font-mono">#</code>. Some
+        chat apps strip it. Ask the sender to copy and paste the full link directly.
       </p>
       <Link
         href="/"
@@ -183,8 +176,8 @@ function ErrorState({ message }: { message: string }) {
       </h2>
       <p className="text-sm text-[var(--color-muted)]">{message}</p>
       <p className="text-xs text-[var(--color-muted)]">
-        The most likely cause: the share has expired, was burned after a
-        previous download, or the id is wrong.
+        The most likely cause: the share has expired, was burned after a previous download, or the
+        id is wrong.
       </p>
       <Link
         href="/"
@@ -199,13 +192,10 @@ function ErrorState({ message }: { message: string }) {
 function ReceiverFootnote() {
   return (
     <div className="flex items-start gap-3 rounded-lg border border-[var(--color-border)]/60 bg-[var(--color-card)]/60 p-4 text-xs text-[var(--color-muted)]">
-      <Shield
-        className="h-4 w-4 shrink-0 text-[var(--color-accent)]"
-        aria-hidden
-      />
+      <Shield className="h-4 w-4 shrink-0 text-[var(--color-accent)]" aria-hidden />
       <p className="leading-relaxed">
-        SlothBox runs in the EU. Your browser performs the decryption and the
-        key never leaves this tab — verify the source on{" "}
+        SlothBox runs in the EU. Your browser performs the decryption and the key never leaves this
+        tab — verify the source on{" "}
         <a
           href={`${GITHUB_URL}/blob/master/apps/web/src/lib/download.ts`}
           target="_blank"

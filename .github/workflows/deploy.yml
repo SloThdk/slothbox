@@ -1,5 +1,17 @@
 name: Deploy
 
+# Two jobs:
+#  1. build  — multi-arch Docker build for all 5 services, push to GHCR.
+#              Runs on every master push and every v* tag.
+#  2. deploy — SSH to the production Hetzner box and `docker compose pull` +
+#              `up -d`. Gated behind the repo variable AUTO_DEPLOY=true so it
+#              only fires when secrets are configured. Manual runs always
+#              attempt deploy.
+#
+# Build platforms intentionally include linux/arm64 because the production
+# host is an ARM cax11. linux/amd64 is kept so contributors can `docker pull`
+# on a normal x86 dev box.
+
 on:
   push:
     branches: [master]
@@ -27,19 +39,28 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        # `context` is the build context Docker uploads. `file` is the path to
+        # the Dockerfile relative to that context. The two TS workspaces use
+        # the monorepo root as context (their Dockerfiles reference the root
+        # package.json + pnpm-lock.yaml + workspace packages); the .NET / Go
+        # services are self-contained so their context can be the service
+        # directory itself.
         include:
           - image: web
-            context: ./apps/web
+            context: .
+            file: ./apps/web/Dockerfile
           - image: api-gateway
-            context: ./apps/api-gateway
+            context: .
+            file: ./apps/api-gateway/Dockerfile
           - image: ingest
             context: ./services/ingest
+            file: ./services/ingest/Dockerfile
           - image: receipt
             context: ./services/receipt
+            file: ./services/receipt/Dockerfile
           - image: reaper
             context: ./services/reaper
-    outputs:
-      image-tag: ${{ steps.meta.outputs.version }}
+            file: ./services/reaper/Dockerfile
     steps:
       - uses: actions/checkout@v4
         with:
@@ -70,8 +91,12 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: ${{ matrix.context }}
+          file: ${{ matrix.file }}
           push: true
-          platforms: linux/amd64
+          # Multi-arch. The Hetzner production host is ARM; contributors
+          # tend to dev on AMD64. Both platforms get pushed under the same
+          # tag and Docker pulls the right one based on the host's arch.
+          platforms: linux/amd64,linux/arm64
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
@@ -82,7 +107,13 @@ jobs:
     needs: build
     runs-on: ubuntu-24.04
     environment: production
-    if: github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v')
+    # Only attempt SSH deploy when AUTO_DEPLOY is enabled in repo variables
+    # OR the workflow was triggered manually. Without this gate the job
+    # would fail on every push for any fork that hasn't configured the
+    # 3 production secrets (HETZNER_HOST / HETZNER_USER / HETZNER_SSH_KEY).
+    if: |
+      (github.event_name == 'workflow_dispatch') ||
+      (vars.AUTO_DEPLOY == 'true' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v')))
     steps:
       - uses: actions/checkout@v4
         with:
@@ -94,14 +125,21 @@ jobs:
           host: ${{ secrets.HETZNER_HOST }}
           username: ${{ secrets.HETZNER_USER }}
           key: ${{ secrets.HETZNER_SSH_KEY }}
+          # Real install path is /home/slothbox/slothbox (per the slothbox
+          # user's homedir). Earlier draft assumed /opt/slothbox.
           script: |
-            cd /opt/slothbox
+            cd /home/slothbox/slothbox
+            git pull --ff-only origin master
             export IMAGE_TAG=${{ github.sha }}
             docker compose -f docker-compose.yml -f docker-compose.prod.yml pull
             docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --remove-orphans
             docker compose -f docker-compose.yml -f docker-compose.prod.yml ps
 
       - name: Smoke test
+        # Skip if PRODUCTION_DOMAIN isn't configured yet — the project starts
+        # life on a bare IP (no HTTPS). Once a real domain + Caddy TLS are in
+        # place, set the secret and this guard auto-enables the check.
+        if: ${{ secrets.PRODUCTION_DOMAIN != '' }}
         run: |
           for i in {1..30}; do
             if curl -fsS https://${{ secrets.PRODUCTION_DOMAIN }}/healthz; then

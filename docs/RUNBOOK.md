@@ -132,6 +132,7 @@ sudo -u slothbox docker compose up -d --force-recreate <service>
 ```
 
 Secrets that need rotation when a maintainer leaves:
+
 - `POSTGRES_PASSWORD`
 - `MINIO_SECRET_KEY`
 - `AUTH_SECRET`
@@ -158,6 +159,7 @@ docker stats --no-stream
 ```
 
 Most likely culprits:
+
 - `ingest` under heavy upload load — scale vertically (CCX23 / CCX33)
 - `postgres` on bad query — check `pg_stat_statements`
 - `loki` on log ingest — adjust `promtail` rate
@@ -179,6 +181,7 @@ docker compose exec reaper /reaper --once
 ### Postgres won't start
 
 Check `docker compose logs postgres`. Common issues:
+
 - Volume permission mismatch — `chown -R 999:999 /var/lib/docker/volumes/slothbox_pg_data/_data/`
 - Disk full — see above
 - Corrupted WAL — restore from base backup
@@ -203,16 +206,16 @@ Prometheus alerts to watch (set up to email or Discord webhook):
 
 ## Routine tasks
 
-| Task | Frequency |
-|---|---|
-| Renew Let's Encrypt certs | Automatic via Caddy |
-| Postgres VACUUM ANALYZE | Automatic via autovacuum |
-| Review Dependabot PRs | Weekly |
-| Review failed login attempts | Weekly |
-| Run full restore drill | Quarterly |
-| Rotate secrets (no specific reason) | Yearly |
-| Upgrade Postgres minor version | When upstream patch lands |
-| Upgrade Postgres major version | Plan a maintenance window, dump-restore |
+| Task                                | Frequency                               |
+| ----------------------------------- | --------------------------------------- |
+| Renew Let's Encrypt certs           | Automatic via Caddy                     |
+| Postgres VACUUM ANALYZE             | Automatic via autovacuum                |
+| Review Dependabot PRs               | Weekly                                  |
+| Review failed login attempts        | Weekly                                  |
+| Run full restore drill              | Quarterly                               |
+| Rotate secrets (no specific reason) | Yearly                                  |
+| Upgrade Postgres minor version      | When upstream patch lands               |
+| Upgrade Postgres major version      | Plan a maintenance window, dump-restore |
 
 ## Decommissioning
 

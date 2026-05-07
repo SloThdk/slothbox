@@ -30,16 +30,9 @@ import { getDb, shares, type ShareState } from "@slothbox/db";
 import { config } from "../lib/config.js";
 import { logger } from "../lib/logger.js";
 import { getNats } from "../lib/nats.js";
-import {
-  rateLimit,
-  type RateLimitRule,
-} from "../middleware/rateLimit.js";
+import { rateLimit, type RateLimitRule } from "../middleware/rateLimit.js";
 import type { RequestIdVars } from "../middleware/requestId.js";
-import {
-  sharesCreatedTotal,
-  sharesDestroyedTotal,
-  sharesFetchedTotal,
-} from "../lib/metrics.js";
+import { sharesCreatedTotal, sharesDestroyedTotal, sharesFetchedTotal } from "../lib/metrics.js";
 
 /** Hono env shared across routers — every router carries the request id. */
 type RouterEnv = { Variables: RequestIdVars };
@@ -104,11 +97,7 @@ function encodeBase64Url(buf: Uint8Array | Buffer): string {
  * the `digest` extension) to take down the create path.
  */
 async function appendAudit(
-  eventType:
-    | "share_created"
-    | "share_downloaded"
-    | "share_destroyed"
-    | "chain_anchor",
+  eventType: "share_created" | "share_downloaded" | "share_destroyed" | "chain_anchor",
   shareId: string | null,
   payload: Record<string, unknown>,
   requestId: string
@@ -300,9 +289,7 @@ export function sharesRouter(): Hono<RouterEnv> {
           shortId: row.shortId,
           chunkCount: row.chunkCount,
           burnAfterRead: body.burnAfterRead,
-          ttlSeconds: Math.floor(
-            (new Date(body.expiresAt).getTime() - Date.now()) / 1000
-          ),
+          ttlSeconds: Math.floor((new Date(body.expiresAt).getTime() - Date.now()) / 1000),
         },
         requestId
       );
@@ -440,12 +427,7 @@ export function sharesRouter(): Hono<RouterEnv> {
       }
 
       const destroyedId = updated.id;
-      void appendAudit(
-        "share_destroyed",
-        destroyedId,
-        { shortId, reason: "manual" },
-        requestId
-      );
+      void appendAudit("share_destroyed", destroyedId, { shortId, reason: "manual" }, requestId);
       sharesDestroyedTotal.inc({ reason: "manual" });
 
       // Signal the reaper so blobs are purged ASAP. Best-effort.
@@ -455,9 +437,7 @@ export function sharesRouter(): Hono<RouterEnv> {
         try {
           nc.publish(
             "slothbox.share.destroyed",
-            new TextEncoder().encode(
-              JSON.stringify({ shareId: destroyedId, reason: "manual" })
-            )
+            new TextEncoder().encode(JSON.stringify({ shareId: destroyedId, reason: "manual" }))
           );
         } catch (err) {
           logger.warn(
@@ -467,10 +447,7 @@ export function sharesRouter(): Hono<RouterEnv> {
         }
       })();
 
-      logger.info(
-        { requestId, event: "share_destroyed", reason: "manual" },
-        "share destroyed"
-      );
+      logger.info({ requestId, event: "share_destroyed", reason: "manual" }, "share destroyed");
 
       return c.json({ state: updated.state }, 200);
     }
@@ -493,19 +470,17 @@ export function sharesRouter(): Hono<RouterEnv> {
       // The increment_download RPC is the source of truth for state
       // transitions on download — burn-after-read fires destroyed,
       // hitting maxDownloads fires expired, both atomically.
-      let updated:
-        | { id: string; state: ShareState; burnAfterRead: boolean }
-        | null = null;
+      let updated: { id: string; state: ShareState; burnAfterRead: boolean } | null = null;
       try {
         const result = await db.execute(
           sql`SELECT id, state, burn_after_read AS "burnAfterRead" FROM increment_download(${shortId})`
         );
         // postgres-js returns an array-like with rows; defensive read.
-        const rows = (result as unknown as ReadonlyArray<{
+        const rows = result as unknown as ReadonlyArray<{
           id: string;
           state: ShareState;
           burnAfterRead: boolean;
-        }>);
+        }>;
         const first = rows[0];
         if (first) updated = first;
       } catch (err) {
@@ -523,9 +498,7 @@ export function sharesRouter(): Hono<RouterEnv> {
       }
 
       const becameDestroyed = updated.state === "destroyed";
-      const eventType = becameDestroyed
-        ? "share_destroyed"
-        : "share_downloaded";
+      const eventType = becameDestroyed ? "share_destroyed" : "share_downloaded";
 
       void appendAudit(
         eventType,

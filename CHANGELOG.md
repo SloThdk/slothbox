@@ -8,6 +8,7 @@ the project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Planned for v0.5.0
+
 - Lucia v3 / better-auth + Argon2id + magic-link primary
 - Account dashboard with share history, manual revoke
 - RFC 3161 timestamp receipt issuance
@@ -16,6 +17,7 @@ the project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Grafana dashboards published
 
 ### Planned for v1.0.0
+
 - Per-recipient asymmetric encryption via `age`
 - Verifiable deletion proofs anchored to a public Merkle root
 - Standalone offline verifier CLI (full feature)
@@ -23,6 +25,7 @@ the project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Public bug bounty program
 
 ### Planned for v1.1.0
+
 - WebRTC P2P file transfer
 - MitID OIDC for verified senders
 - Time-locked / deadman's-switch shares
@@ -31,6 +34,7 @@ the project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [0.1.0-alpha.1] — 2026-05-07
 
 ### Added
+
 - Initial scaffold of the v0.1.0-alpha public repository
 - Monorepo with pnpm workspaces:
   - `apps/web` — Next.js 15 frontend
@@ -66,6 +70,7 @@ the project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - MIT license
 
 ### Security
+
 - Server-side cannot decrypt files — encryption key lives in URL fragment
 - Audited cryptographic primitives only (no roll-your-own)
 - Branch protection requires signed commits + CODEOWNERS review
@@ -74,6 +79,7 @@ the project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Encrypted backups via `age`
 
 ### Known limitations (tracked for v0.5 / v1.0)
+
 - No accounts / dashboard yet (anonymous shares only)
 - RFC 3161 receipts return 501 Not Implemented
 - Per-recipient encryption not yet implemented
