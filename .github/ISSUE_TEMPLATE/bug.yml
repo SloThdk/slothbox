@@ -9,7 +9,8 @@ body:
 
         **DO NOT use this template for security vulnerabilities** — see
         [`SECURITY.md`](https://github.com/SloThdk/slothbox/blob/master/SECURITY.md)
-        and email `security@philipsloth.com` instead.
+        and email `philipsloth1@gmail.com` (or use the contact form at
+        https://philipsloth.com/contact) instead.
 
   - type: textarea
     id: what-happened
@@ -26,7 +27,7 @@ body:
       label: Steps to reproduce
       description: Numbered list, exact steps
       placeholder: |
-        1. Go to slothbox.com
+        1. Go to slothbox.philipsloth.com
         2. Drop file `large.bin` (1.8 GB)
         3. Click upload
         4. Wait ~5 minutes
@@ -64,7 +65,7 @@ body:
     attributes:
       label: Confirmation
       options:
-        - label: This is not a security vulnerability (those go to security@philipsloth.com)
+        - label: This is not a security vulnerability (those go to philipsloth1@gmail.com or via https://philipsloth.com/contact — see SECURITY.md)
           required: true
         - label: I searched for an existing issue first
           required: true

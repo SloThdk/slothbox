@@ -196,12 +196,16 @@ export const TRANSLATIONS = {
     da: "Kontakt",
   },
   "abuse.contact.body": {
-    en: "Email reports to",
-    da: "Send rapporter til",
+    en: "Email reports directly to",
+    da: "Send rapporter direkte til",
+  },
+  "abuse.contact.or": {
+    en: "or use the contact form at",
+    da: "eller brug kontaktformularen på",
   },
   "abuse.contact.body.tail": {
-    en: "PGP and Signal contact options are listed in the security policy.",
-    da: "PGP- og Signal-kontaktmuligheder er angivet i sikkerhedspolitikken.",
+    en: "Both routes reach the same inbox. PGP and Signal contact options are listed in the security policy.",
+    da: "Begge veje rammer samme indbakke. PGP- og Signal-kontaktmuligheder er angivet i sikkerhedspolitikken.",
   },
   "abuse.dontInclude.heading": {
     en: "Do NOT include",
@@ -470,8 +474,12 @@ export const TRANSLATIONS = {
     da: "Rapportering af sårbarheder",
   },
   "security.disclose.body.lead": {
-    en: "Email",
-    da: "Skriv til",
+    en: "Send vulnerability reports privately to the maintainer at",
+    da: "Send sårbarhedsrapporter privat til vedligeholderen på",
+  },
+  "security.disclose.body.or": {
+    en: "or use the contact form at",
+    da: "eller brug kontaktformularen på",
   },
   "security.disclose.body.rest": {
     en: ". PGP key fingerprint and disclosure window are documented in",
