@@ -151,7 +151,26 @@ export function SecurityContent() {
         </h2>
         <p className="mt-2 text-sm leading-relaxed text-[var(--color-muted)]">
           {t("security.disclose.body.lead")}{" "}
-          <code className="font-mono text-[var(--color-fg)]">security@philipsloth.com</code>
+          {/* Two-route disclosure: direct email OR the philipsloth.com
+              contact form. Both reach the same inbox; presenting both
+              lowers the friction for a reporter who'd rather not use
+              email. The literal email is mailto-linked so a click sends
+              straight to the maintainer's compose window. */}
+          <a
+            href="mailto:philipsloth1@gmail.com?subject=SlothBox%20security%20report"
+            className="font-mono text-[var(--color-accent)] underline-offset-4 hover:underline"
+          >
+            philipsloth1@gmail.com
+          </a>{" "}
+          {t("security.disclose.body.or")}{" "}
+          <a
+            href="https://philipsloth.com/contact"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[var(--color-accent)] underline-offset-4 hover:underline"
+          >
+            philipsloth.com/contact
+          </a>
           {t("security.disclose.body.rest")}{" "}
           <a
             href={`${GITHUB_URL}/blob/master/SECURITY.md`}

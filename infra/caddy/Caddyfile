@@ -15,8 +15,13 @@
 # which makes Caddy bind plaintext only.
 
 {
-	# Real email so Let's Encrypt can warn before cert expiry / outages.
-	email admin@philipsloth.com
+	# Maintainer's real, monitored inbox — Let's Encrypt mails this address
+	# when a cert is approaching expiry without a renewal, when ACME rate
+	# limits are hit, and on policy changes (e.g. CT log expectations). This
+	# must be a working address; using a non-existent contact silently
+	# breaks the warning loop and the first sign of trouble becomes a hard
+	# outage 90 days later.
+	email philipsloth1@gmail.com
 
 	# HTTP/3 + HTTP/2 + HTTP/1.1. h3 needs UDP/443 open in the cloud
 	# provider's network firewall — verify before deploy. UDP/443 is an

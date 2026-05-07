@@ -96,7 +96,13 @@ For a longer threat model with attack trees, see [`docs/THREAT_MODEL.md`](docs/T
 issues. Do not post to social media until the issue is fixed and a CVE (if
 applicable) is assigned.
 
-Email **security@philipsloth.com** with:
+Two ways to send a private vulnerability report:
+
+1. **Email** the maintainer directly at **<philipsloth1@gmail.com>**, OR
+2. **Use the contact form** at <https://philipsloth.com/contact> — pick the
+   "security" topic and the form routes the message to the same inbox.
+
+Either route, please include:
 
 - A description of the vulnerability
 - Reproducible steps or proof-of-concept
@@ -138,9 +144,10 @@ Out of scope for the **security** disclosure channel (different routes apply):
 - Social engineering attempts against the maintainer.
 - **Abuse of the public service** (illegal content, harassment, spam, IP
   infringement) — these go through the **abuse** channel, not the security
-  channel. Report at <https://slothbox.philipsloth.com/abuse> or directly to
-  `abuse@philipsloth.com`. This is the EU DSA Article 16 notice mechanism;
-  reports are reviewed within 24 hours and high-severity (CSAM,
+  channel. Use the in-product form at <https://slothbox.philipsloth.com/abuse>,
+  or contact the maintainer directly at <philipsloth1@gmail.com> or via
+  <https://philipsloth.com/contact>. This is the EU DSA Article 16 notice
+  mechanism; reports are reviewed within 24 hours and high-severity (CSAM,
   immediate-harm) prioritised same-day.
 
 ---
