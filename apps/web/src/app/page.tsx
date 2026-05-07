@@ -16,43 +16,59 @@ import { GITHUB_URL } from "@/lib/config";
 
 function Hero() {
   return (
-    <section className="mx-auto flex w-full max-w-[var(--container-xl)] flex-col items-center gap-10 px-4 pt-12 pb-16 sm:px-6 sm:pt-20 lg:flex-row lg:gap-12">
-      <div className="flex max-w-2xl flex-1 flex-col gap-6 lg:max-w-none lg:basis-1/2">
-        <span className="inline-flex w-fit items-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-card)] px-3 py-1 text-xs text-[var(--color-muted)]">
-          <span className="animate-pulse-glow inline-flex h-1.5 w-1.5 rounded-full bg-[var(--color-accent)]" />
+    <section className="mx-auto flex w-full max-w-[var(--container-xl)] flex-col items-center gap-10 px-4 pt-14 pb-20 sm:px-6 sm:pt-24 lg:flex-row lg:gap-16">
+      <div className="flex max-w-2xl flex-1 flex-col gap-7 lg:max-w-none lg:basis-1/2">
+        {/* Status pill — moved to a serif-rendered "edition" line. Reads like
+            the masthead of a periodical, not a SaaS toast. */}
+        <span className="inline-flex w-fit items-center gap-2.5 border-y border-[var(--color-border-strong)] py-1.5 font-mono text-[0.65rem] tracking-[0.3em] text-[var(--color-muted)] uppercase">
+          <span className="animate-pulse-soft inline-flex h-1.5 w-1.5 rounded-full bg-[var(--color-accent)]" />
           v0.1.0-alpha · public source · EU-hosted
         </span>
 
-        <h1 className="font-display text-4xl leading-[1.05] font-semibold tracking-tight text-[var(--color-fg)] sm:text-5xl md:text-6xl">
-          Send any file. <span className="gradient-text">We can&apos;t read it.</span> Verify the
-          math yourself.
+        {/* Hero headline. Serif Playfair Display, looser leading, italicised
+            mid-sentence for editorial cadence. The gold underline sits behind
+            the key claim ("we can't read it"). */}
+        <h1 className="font-display text-[2.5rem] leading-[1.05] font-medium tracking-tight text-[var(--color-fg)] sm:text-[3.25rem] md:text-[3.75rem]">
+          Send any file.
+          <br />
+          <span className="hero-mark">We can&apos;t read it.</span>
+          <br />
+          <span className="font-display italic text-[var(--color-muted)]">
+            Verify the math yourself.
+          </span>
         </h1>
 
-        <p className="max-w-xl text-base leading-relaxed text-[var(--color-muted)] sm:text-lg">
-          SlothBox encrypts your file in your browser before it leaves your machine. The unlock key
+        <p className="max-w-xl text-[0.95rem] leading-relaxed text-[var(--color-muted)] sm:text-[1.05rem]">
+          SlothBox seals your file in your browser before it leaves your machine. The unlock key
           lives in the part of the URL after{" "}
-          <code className="rounded bg-[var(--color-card)] px-1 py-0.5 font-mono text-sm text-[var(--color-fg)]">
+          <code className="rounded border border-[var(--color-border)] bg-[var(--color-card)] px-1.5 py-0.5 font-mono text-[0.85em] text-[var(--color-accent)]">
             #
           </code>{" "}
-          — which browsers <em>never</em> send to any server. Audited libsodium primitives only. No
-          telemetry. No accounts required.
+          — which browsers <em className="text-[var(--color-fg)] not-italic">never</em> send to any
+          server. Audited libsodium primitives only. No telemetry. No accounts required.
         </p>
 
-        <div className="flex flex-wrap items-center gap-3 pt-2">
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-2 pt-1 text-sm">
           <Link
             href="/security"
-            className="text-sm font-medium text-[var(--color-accent)] underline-offset-4 hover:underline"
+            className="group inline-flex items-center gap-1.5 font-medium text-[var(--color-accent)] underline-offset-4 hover:underline"
           >
-            How the trust model works →
+            How the trust model works
+            <span aria-hidden className="transition-transform group-hover:translate-x-0.5">
+              →
+            </span>
           </Link>
-          <span className="hidden text-[var(--color-border)] sm:inline">·</span>
+          <span className="hidden text-[var(--color-border-strong)] sm:inline">·</span>
           <a
             href={GITHUB_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-sm font-medium text-[var(--color-fg)] underline-offset-4 hover:underline"
+            className="group inline-flex items-center gap-1.5 font-medium text-[var(--color-fg)] underline-offset-4 hover:underline"
           >
-            Read the source on GitHub →
+            Read the source on GitHub
+            <span aria-hidden className="transition-transform group-hover:translate-x-0.5">
+              →
+            </span>
           </a>
         </div>
       </div>
@@ -93,33 +109,33 @@ const GUARANTEES = [
 
 function Guarantees() {
   return (
-    <section className="mx-auto w-full max-w-[var(--container-xl)] px-4 py-16 sm:px-6">
-      <div className="mb-10 max-w-2xl">
-        <p className="text-xs font-semibold tracking-wider text-[var(--color-accent)] uppercase">
-          Four guarantees
-        </p>
-        <h2 className="font-display mt-2 text-3xl font-semibold text-[var(--color-fg)] sm:text-4xl">
-          Trust comes from architecture — not marketing copy.
+    <section className="mx-auto w-full max-w-[var(--container-xl)] px-4 py-20 sm:px-6">
+      <div className="mb-12 max-w-2xl">
+        <p className="eyebrow">Four guarantees</p>
+        <h2 className="font-display mt-3 text-3xl leading-[1.15] font-medium text-[var(--color-fg)] sm:text-[2.4rem]">
+          Trust comes from <em className="text-[var(--color-accent)]">architecture</em> — not
+          marketing copy.
         </h2>
-        <p className="mt-3 text-[var(--color-muted)]">
+        <p className="mt-4 text-[var(--color-muted)]">
           Every claim below is enforced at the code or infrastructure layer. You can read the source
           yourself.
         </p>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-px overflow-hidden rounded-lg border border-[var(--color-border)] bg-[var(--color-border)] sm:grid-cols-2">
         {GUARANTEES.map((item) => (
-          <Card key={item.title} className="surface-hover transition-colors">
-            <CardContent className="flex flex-col gap-3 p-6">
-              <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-[color-mix(in_srgb,var(--color-accent)_15%,transparent)] text-[var(--color-accent)]">
-                <item.icon className="h-5 w-5" aria-hidden />
-              </span>
-              <h3 className="font-display text-lg font-semibold text-[var(--color-fg)]">
-                {item.title}
-              </h3>
-              <p className="text-sm leading-relaxed text-[var(--color-muted)]">{item.body}</p>
-            </CardContent>
-          </Card>
+          <div
+            key={item.title}
+            className="surface-hover flex flex-col gap-3 bg-[var(--color-card)] p-7"
+          >
+            <span className="flex h-9 w-9 items-center justify-center rounded-md border border-[var(--color-accent-tint)] bg-[var(--color-accent-soft)] text-[var(--color-accent)]">
+              <item.icon className="h-4.5 w-4.5" aria-hidden strokeWidth={1.6} />
+            </span>
+            <h3 className="font-display text-[1.15rem] font-medium text-[var(--color-fg)]">
+              {item.title}
+            </h3>
+            <p className="text-sm leading-relaxed text-[var(--color-muted)]">{item.body}</p>
+          </div>
         ))}
       </div>
     </section>
@@ -153,32 +169,35 @@ const STEPS = [
 
 function HowItWorks() {
   return (
-    <section className="mx-auto w-full max-w-[var(--container-xl)] px-4 py-16 sm:px-6">
-      <div className="mb-10 max-w-2xl">
-        <p className="text-xs font-semibold tracking-wider text-[var(--color-accent)] uppercase">
-          How it works
-        </p>
-        <h2 className="font-display mt-2 text-3xl font-semibold text-[var(--color-fg)] sm:text-4xl">
-          Three steps. Zero secrets shared with us.
+    <section className="mx-auto w-full max-w-[var(--container-xl)] px-4 py-20 sm:px-6">
+      <div className="ornament mb-14">three steps</div>
+
+      <div className="mb-12 max-w-2xl">
+        <p className="eyebrow">How it works</p>
+        <h2 className="font-display mt-3 text-3xl leading-[1.15] font-medium text-[var(--color-fg)] sm:text-[2.4rem]">
+          Three steps. <em className="text-[var(--color-accent)]">Zero</em> secrets shared with us.
         </h2>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
         {STEPS.map((step) => (
-          <Card key={step.n}>
-            <CardContent className="flex flex-col gap-3 p-6">
-              <div className="flex items-center justify-between">
-                <span className="font-mono text-xs tracking-widest text-[var(--color-muted)] uppercase">
-                  {step.n}
-                </span>
-                <step.icon className="h-5 w-5 text-[var(--color-accent)]" aria-hidden />
-              </div>
-              <h3 className="font-display text-lg font-semibold text-[var(--color-fg)]">
-                {step.title}
-              </h3>
-              <p className="text-sm leading-relaxed text-[var(--color-muted)]">{step.body}</p>
-            </CardContent>
-          </Card>
+          <div
+            key={step.n}
+            className="surface surface-hover relative flex flex-col gap-4 p-7"
+          >
+            <div className="flex items-center justify-between border-b border-[var(--color-border)] pb-3">
+              <span className="font-display text-3xl text-[var(--color-accent)]">{step.n}</span>
+              <step.icon
+                className="h-5 w-5 text-[var(--color-muted)]"
+                aria-hidden
+                strokeWidth={1.6}
+              />
+            </div>
+            <h3 className="font-display text-[1.15rem] font-medium text-[var(--color-fg)]">
+              {step.title}
+            </h3>
+            <p className="text-sm leading-relaxed text-[var(--color-muted)]">{step.body}</p>
+          </div>
         ))}
       </div>
     </section>
@@ -191,20 +210,22 @@ function HowItWorks() {
 
 function FooterCta() {
   return (
-    <section className="mx-auto w-full max-w-[var(--container-xl)] px-4 pt-6 pb-12 sm:px-6">
-      <div className="surface flex flex-col items-start gap-4 p-8 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h3 className="font-display text-2xl font-semibold text-[var(--color-fg)]">
-            Built for regulated work.
+    <section className="mx-auto w-full max-w-[var(--container-xl)] px-4 pt-8 pb-16 sm:px-6">
+      <div className="surface flex flex-col items-start gap-5 p-8 sm:flex-row sm:items-center sm:justify-between sm:p-10">
+        <div className="max-w-xl">
+          <p className="eyebrow">For regulated work</p>
+          <h3 className="font-display mt-2 text-[1.6rem] leading-[1.2] font-medium text-[var(--color-fg)]">
+            Lawyers, accountants, journalists, doctors.
           </h3>
-          <p className="mt-1 max-w-xl text-sm text-[var(--color-muted)]">
-            Lawyers, accountants, journalists, doctors — anyone bound by tavshedspligt or
-            audit-trail requirements. v0.5 adds court-admissible delivery receipts.
+          <p className="mt-3 text-sm leading-relaxed text-[var(--color-muted)]">
+            Anyone bound by tavshedspligt, GDPR, Bogføringsloven, or audit-trail requirements.{" "}
+            <span className="text-[var(--color-fg)]">v0.5</span> ships court-admissible RFC 3161
+            delivery receipts.
           </p>
         </div>
         <Link
           href="/security"
-          className="inline-flex h-11 items-center gap-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-card)] px-5 text-sm font-medium text-[var(--color-fg)] transition-colors hover:border-[var(--color-accent)]"
+          className="inline-flex h-11 shrink-0 items-center gap-2 rounded-md border border-[var(--color-accent-tint)] bg-[var(--color-accent-soft)] px-5 text-sm font-medium text-[var(--color-accent)] transition-colors hover:border-[var(--color-accent)] hover:bg-[var(--color-accent-soft)]"
         >
           Read the security docs →
         </Link>
