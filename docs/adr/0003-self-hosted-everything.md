@@ -14,22 +14,25 @@ Docker, MinIO for object storage, Lucia for auth (v0.5+).
 
 ## Decision
 
-Self-host the data layer:
+Self-host the data layer on a single EU-jurisdiction Linux VM:
 
-- **Postgres 16** — `postgres:16.4-alpine` in Docker, on the same Hetzner box
-- **MinIO** — `minio/minio` in Docker, on the same box, S3-compatible API
+- **Postgres 16** — `postgres:16.4-alpine` in Docker, on the production VM
+- **MinIO** — `minio/minio` in Docker, on the same VM, S3-compatible API
 - **Auth** — Lucia v3 / better-auth, Postgres-backed, no third-party service
-- **Backups** — WAL-G to Hetzner Storage Box, encrypted with age
+- **Backups** — WAL-G to provider block storage, encrypted with age
 
 ## Consequences
 
 - More ops work — backups, monitoring, patches, version upgrades are mine
-- Lower running cost — one Hetzner CCX13 (€14/mo) replaces ~$60-80/mo of
-  managed equivalents
+- Lower running cost than the managed-everything baseline; concrete numbers
+  vary by provider and region and are deliberately not advertised in this
+  ADR (they only matter at scale, and the project's primary demo value is
+  architectural, not financial)
 - Demo value — this project shows "I can run my own infra" which my other
   projects (managed Supabase) don't demonstrate
-- EU residency is concrete — the data lives on a Hetzner box in Germany,
-  not on a managed service whose data residency policy I'd have to research
+- EU residency is concrete — the data lives on a VM in a German data
+  centre, not on a managed service whose data residency policy I'd have
+  to research
 - Recovery story is real — I can drill restores, snapshot the box, and
   rebuild from `docker-compose.yml` + WAL archives
 
@@ -43,7 +46,7 @@ Self-host the data layer:
 - **MongoDB / DynamoDB** — wrong data model; security model relies on
   Postgres RLS + triggers
 - **Cloudflare R2** for object storage instead of MinIO — fine choice, but
-  adds another vendor and removes the "all on one box" demo. Could swap in
+  adds another vendor and removes the "all on one VM" demo. Could swap in
   v1.0+ if egress economics demand it.
 
 ## References

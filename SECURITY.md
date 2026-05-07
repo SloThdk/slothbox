@@ -135,7 +135,7 @@ We follow these practices for the deployed service:
 - **Dependency updates** via Dependabot for security updates (daily) and
   patch/minor updates (weekly). Major updates manually reviewed.
 - **Container image scanning** — `trivy image` on every Docker build in CI
-- **Postgres backups** — WAL-G with encrypted offsite copy to Hetzner Storage Box
+- **Postgres backups** — WAL-G with encrypted offsite copy to provider block storage
 - **TLS** — Caddy with auto-renewing Let's Encrypt certs, TLS 1.3 only
 
 ---

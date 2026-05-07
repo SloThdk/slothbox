@@ -10,8 +10,9 @@
 FROM mcr.microsoft.com/dotnet/sdk:8.0-alpine AS build
 WORKDIR /src
 
-# TARGETARCH is set by docker buildx (amd64/arm64). Map to .NET RID so the
-# same Dockerfile builds on local x86 + the ARM Hetzner box.
+# TARGETARCH is set by docker buildx (amd64/arm64). Map to .NET runtime
+# identifier so the same Dockerfile builds on local x86 + the ARM
+# production VM.
 ARG TARGETARCH=amd64
 RUN case "$TARGETARCH" in \
       amd64) echo "linux-musl-x64" > /tmp/rid ;; \
