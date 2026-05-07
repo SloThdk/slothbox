@@ -10,8 +10,9 @@ Last updated: **2026-05-07 04:55 CEST** by the autonomous build session.
 
 ## TL;DR
 
-- **LIVE on real HTTPS at <https://slothbox.philipsloth.com>** (Hetzner cax11
-  ARM, Falkenstein DE, Let's Encrypt cert auto-renewing, HTTP/3 enabled).
+- **LIVE on real HTTPS at <https://slothbox.philipsloth.com>** (single
+  EU-jurisdiction ARM Linux VM, Let's Encrypt cert auto-renewing,
+  HTTP/3 enabled).
 - **End-to-end smoke verified**: real upload + retrieval + SHA-256 match
   on the live URL.
 - **All 14 services healthy** under the production hardening overlay.
@@ -21,8 +22,8 @@ Last updated: **2026-05-07 04:55 CEST** by the autonomous build session.
   zero CSP violations on any browser.
 - **Enterprise hardening live**: `cap_drop: ALL`, `no-new-privileges`,
   read-only root filesystems with sized tmpfs, per-service memory + CPU
-  limits, json-file log rotation, Hetzner Cloud Firewall, nightly pg_dump
-  with 28-day retention.
+  limits, json-file log rotation, provider-managed network firewall
+  (TCP 22 / 80 / 443 only), nightly pg_dump with 28-day retention.
 - **Observability provisioned**: 11 Prometheus alert rules, Grafana
   dashboard JSON with 9 panels covering req-rate / 5xx / latency /
   container memory / CPU + Loki error log feed.
@@ -80,12 +81,12 @@ rotation (10 MB × 3 generations, compressed) + memory + CPU cgroup limits.
 
 ## CI/CD
 
-| Workflow       | Status on commit `a688fea+`                                                                       |
-| -------------- | ------------------------------------------------------------------------------------------------- |
-| **CI**         | **Green** — Node matrix (4 workspaces) + .NET (2 services) + Go (2 modules) + Format              |
-| **Security**   | **Green** — Gitleaks + npm-audit + .NET vulnerable + govulncheck + CodeQL + Trivy (14/14 jobs)    |
-| **Deploy**     | Auto-fires on master via SSH to Hetzner. `vars.AUTO_DEPLOY=true` gate. `workflow_dispatch` works. |
-| **Dependabot** | Active for Docker base images + GHA + npm                                                         |
+| Workflow       | Status on commit `a688fea+`                                                                                   |
+| -------------- | ------------------------------------------------------------------------------------------------------------- |
+| **CI**         | **Green** — Node matrix (4 workspaces) + .NET (2 services) + Go (2 modules) + Format                          |
+| **Security**   | **Green** — Gitleaks + npm-audit + .NET vulnerable + govulncheck + CodeQL + Trivy (14/14 jobs)                |
+| **Deploy**     | Auto-fires on master via SSH to the production host. `vars.AUTO_DEPLOY=true` gate. `workflow_dispatch` works. |
+| **Dependabot** | Active for Docker base images + GHA + npm                                                                     |
 
 Security workflow split: gitleaks + npm audit + .NET vuln are required gates
 (they break the build on real findings); CodeQL + govulncheck + Trivy are
@@ -104,18 +105,23 @@ Real vulnerabilities patched this session:
   stdlib advisories. Toolchain bumped 1.22 → 1.24 across go.mod, Dockerfile,
   and all 3 GHA workflows.
 
-GH secrets (verified set):
+GH secrets (verified set; values stored only as GitHub Actions secrets,
+never in this repo):
 
-- `HETZNER_HOST=178.105.105.187`
-- `HETZNER_USER=slothbox`
-- `HETZNER_SSH_KEY` = ed25519 keypair, prod-only
-- (optional) `PRODUCTION_DOMAIN` overrides default `slothbox.philipsloth.com` for smoke test
+- `HETZNER_HOST` — the production host's public IPv4 (provider firewall
+  restricts inbound to TCP 22 / 80 / 443).
+- `HETZNER_USER` — non-root deploy user with NOPASSWD on `docker compose`.
+- `HETZNER_SSH_KEY` — ed25519 keypair scoped to that user, prod-only,
+  no shared seed material with any other key Philip holds.
+- (optional) `PRODUCTION_DOMAIN` overrides default `slothbox.philipsloth.com`
+  for the post-deploy smoke test.
 
-## Hetzner credentials
+## Operator credential layout
 
-Persisted at `~/.claude-secrets/slothbox-hetzner.env`. Indexed in
-`~/.claude-secrets/_README.md`. Future Claude sessions never need to ask
-for the API token / server IP / SSH paths.
+Operator-side secrets (provider API token, server IP, SSH paths) are
+persisted on Philip's workstation under `~/.claude-secrets/` — outside
+the repo, outside any CI runner, outside any Docker image. Nothing in
+this repository contains a working credential.
 
 ## Hard lines NOT crossed (deliberate)
 

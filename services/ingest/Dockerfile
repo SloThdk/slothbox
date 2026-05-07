@@ -10,8 +10,8 @@ FROM mcr.microsoft.com/dotnet/sdk:8.0-alpine AS build
 WORKDIR /src
 
 # TARGETARCH is set automatically by docker buildx to amd64 / arm64 depending
-# on the build platform. We map it to the .NET RID so the same Dockerfile
-# works on local x86 dev machines AND on the ARM Hetzner box.
+# on the build platform. We map it to the .NET runtime identifier so the same
+# Dockerfile works on local x86 dev machines AND on the ARM production VM.
 ARG TARGETARCH=amd64
 RUN case "$TARGETARCH" in \
       amd64) echo "linux-musl-x64" > /tmp/rid ;; \

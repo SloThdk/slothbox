@@ -11,7 +11,7 @@
 [![Deploy](https://github.com/SloThdk/slothbox/actions/workflows/deploy.yml/badge.svg)](https://github.com/SloThdk/slothbox/actions/workflows/deploy.yml)
 [![Crypto: libsodium + age](https://img.shields.io/badge/crypto-libsodium%20%2B%20age-brightgreen)](docs/CRYPTO.md)
 [![Status: v0.1.0-alpha](https://img.shields.io/badge/status-v0.1.0--alpha-orange)](MILESTONES.md)
-[![EU-hosted: Hetzner DE](<https://img.shields.io/badge/region-EU%20(Hetzner%20DE)-blue>)](#why-eu-hosted)
+[![EU-hosted](https://img.shields.io/badge/region-EU--only-blue)](#why-eu-hosted)
 
 > [!WARNING]
 > **v0.1.0-alpha is a portfolio reference build.** The underlying cryptographic primitives
@@ -23,8 +23,9 @@
 
 ## Production deployment
 
-The reference instance lives at **<https://slothbox.philipsloth.com>**, hosted on
-a Hetzner cax11 ARM box in Falkenstein, DE (4.49 EUR/mo). Every commit to `master`
+The reference instance lives at **<https://slothbox.philipsloth.com>**, running on a
+single EU-jurisdiction Linux VM (German data centre — actual Schrems II compliance via
+infrastructure choice, not a regional label on a US cloud). Every commit to `master`
 that passes CI auto-rolls forward via `.github/workflows/deploy.yml`:
 
 | Verification           | Where                                                                                           |
@@ -178,8 +179,8 @@ Polyglot for honest reasons. If you ask "why X?" in interview the answer holds u
 
 ### Try the live deployment
 
-The reference deployment is at **<https://slothbox.philipsloth.com>** (Hetzner cax11
-ARM, EU). Drag-drop a file, get a share link, send it.
+The reference deployment is at **<https://slothbox.philipsloth.com>** (EU-only). Drag-drop a
+file, get a share link, send it.
 
 ### Or run the entire stack on your machine
 
@@ -235,7 +236,7 @@ inventory with comments explaining the threat each control mitigates.
 - **Real-time** — WebSocket (control plane) · WebRTC DataChannels (P2P file path, v1.1)
 - **Cryptography** — libsodium-wrappers (browser) · libsodium-net (C#) · age (asymmetric)
 - **Observability** — Grafana · Prometheus · Loki · Promtail
-- **Host** — Hetzner cax11 ARM (Falkenstein DE) — 4.49 EUR/mo with managed firewall
+- **Host** — single EU-jurisdiction ARM Linux VM with managed firewall (German data centre)
 - **CI/CD** — GitHub Actions (CI/Security/Deploy/Dependabot) · GHCR multi-arch (amd64+arm64) · SSH deploy with `vars.AUTO_DEPLOY` gate
 - **TLS** — Caddy 2.8 with Let's Encrypt · HTTP/3 · automatic renewal · per-request CSP nonce middleware
 
@@ -256,11 +257,12 @@ Detailed scope per release in [`MILESTONES.md`](MILESTONES.md).
 
 ## Why EU-hosted
 
-SlothBox runs exclusively in EU regions (currently Hetzner DE / FI). For users
-subject to EU data protection (GDPR), Danish Bogføringsloven, or any sector-specific
-confidentiality regime (`tavshedspligt`, attorney-client privilege, medical
-confidentiality), this matters: data does not transit US-jurisdiction infrastructure
-where Schrems II compliance is contested.
+SlothBox runs exclusively in EU regions — the reference deployment is hosted on
+an EU-jurisdiction VM in a German data centre. For users subject to EU data
+protection (GDPR), Danish Bogføringsloven, or any sector-specific confidentiality
+regime (`tavshedspligt`, attorney-client privilege, medical confidentiality),
+this matters: data does not transit US-jurisdiction infrastructure where
+Schrems II compliance is contested.
 
 This isn't a marketing claim — it's checked into our infrastructure config. See
 [`docker-compose.prod.yml`](docker-compose.prod.yml) and the deployment runbook in
