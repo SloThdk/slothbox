@@ -30,7 +30,7 @@ public certificate.
 
 Every receipt becomes a leaf in a Merkle tree. The tree's root is committed
 periodically (every 1000 receipts or every hour, whichever first) and published
-to a read-only endpoint at `https://slothbox.com/audit/anchors`.
+to a read-only endpoint at `https://slothbox.philipsloth.com/audit/anchors`.
 
 This means:
 
@@ -66,7 +66,7 @@ JSON, as small as possible:
     "leafIndex": 4827,
     "siblings": ["...", "...", "..."],
     "rootHash": "blake2b-256:9c47d8...",
-    "rootAnchorUrl": "https://slothbox.com/audit/anchors/2026-05-07T14"
+    "rootAnchorUrl": "https://slothbox.philipsloth.com/audit/anchors/2026-05-07T14"
   }
 }
 ```

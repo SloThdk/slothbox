@@ -40,7 +40,7 @@ sender browser:
                    key
                  )
   upload(shareId, chunkIndex, nonce_i, ciphertext_i)
-  shareUrl = "https://slothbox.com/s/" + shareId + "#" + base64url(key)
+  shareUrl = "https://slothbox.philipsloth.com/s/" + shareId + "#" + base64url(key)
 
 receiver browser:
   key = base64url_decode(window.location.hash.slice(1))

@@ -78,7 +78,7 @@ auditor:
     return "INVALID: root anchor mismatch"
 
   # 3. Verify the share is actually gone from the live service
-  liveStatus = fetch("https://slothbox.com/api/shares/" + shareId)
+  liveStatus = fetch("https://slothbox.philipsloth.com/api/shares/" + shareId)
   if liveStatus.status != "destroyed":
     return "INCONSISTENT: chain says destroyed, server still serves"
 
