@@ -224,11 +224,22 @@ services:
 
   # ─── Valkey ───────────────────────────────────────────────────────
   valkey:
-    read_only: true
-    tmpfs:
-      - /tmp:size=16M,mode=1777
+    # NOT read_only — Valkey image's start hook scans /data/appendonlydir
+    # via `find` which needs DAC_READ_SEARCH on traverse, plus the AOF
+    # writer needs to create rotated files in the same dir. Read-only
+    # would force us to either tmpfs the whole /data (loses persistence)
+    # or run with a wider capability set than is worth the trade.
     cap_drop:
       - ALL
+    cap_add:
+      # Image entrypoint runs as root, chowns /data, drops to valkey
+      # user. SETUID/SETGID/CHOWN/DAC_READ_SEARCH/FOWNER are the standard
+      # "drop to non-root" capability quintet.
+      - SETUID
+      - SETGID
+      - CHOWN
+      - DAC_READ_SEARCH
+      - FOWNER
     security_opt: *default-security
     logging: *default-logging
     deploy:
@@ -348,27 +359,47 @@ services:
       - ALL
     security_opt: *default-security
     logging: *default-logging
-    # Run the backup loop in-process: shell sleeps until 02:30 UTC each day,
-    # runs pg_dump, prunes old dumps. Simpler than installing cron and means
-    # the backup behaviour is auditable by reading this one block.
+    # In-process backup loop. The Alpine postgres image only ships busybox
+    # date (no GNU `date -d`), so we compute "next 02:30 UTC" via integer
+    # arithmetic on epoch seconds:
+    #   1. SECS_TODAY = (NOW % 86400) — seconds elapsed today since 00:00
+    #   2. TARGET_SECS_TODAY = 9000 (02:30:00 = 2*3600 + 30*60)
+    #   3. If we're past today's window, schedule tomorrow's; otherwise today
+    # First iteration also runs an immediate dump so a fresh deploy isn't
+    # left without a backup overnight.
+    #
+    # Backups land at /backups/<db>-<iso8601-utc>.sql.gz. Retention is
+    # `find -mtime +N` which on Alpine compares mtime in 24h chunks since
+    # the file was modified, exactly the prune-after-N-days semantic we want.
     entrypoint: >
       /bin/sh -c "
       set -eu;
       mkdir -p /backups;
-      while :; do
-        NOW=$$(date -u +%s);
-        TARGET=$$(date -u -d 'tomorrow 02:30' +%s 2>/dev/null || date -u -v+1d -v2H -v30M -v0S +%s);
-        SLEEP=$$((TARGET - NOW));
-        echo \"[backup] sleeping $${SLEEP}s until next run\";
-        sleep $$SLEEP;
+      run_dump() {
         TS=$$(date -u +%Y-%m-%dT%H-%M-%SZ);
         FILE=/backups/$${POSTGRES_DB}-$${TS}.sql.gz;
         echo \"[backup] starting dump -> $$FILE\";
-        pg_dump -h $$POSTGRES_HOST -U $$POSTGRES_USER -d $$POSTGRES_DB --no-owner --no-acl --clean --if-exists | gzip -9 > $$FILE.tmp && mv $$FILE.tmp $$FILE;
+        pg_dump -h $$POSTGRES_HOST -U $$POSTGRES_USER -d $$POSTGRES_DB --no-owner --no-acl --clean --if-exists | gzip -9 > $$FILE.tmp;
+        mv $$FILE.tmp $$FILE;
         echo \"[backup] dump complete: $$(du -h $$FILE | cut -f1)\";
         echo \"[backup] pruning dumps older than $${BACKUP_RETENTION_DAYS} days\";
         find /backups -name '*.sql.gz' -mtime +$${BACKUP_RETENTION_DAYS} -delete;
         echo \"[backup] done\";
+      };
+      echo '[backup] performing initial dump on container start';
+      run_dump || echo '[backup] initial dump failed; will retry at next slot';
+      while :; do
+        NOW=$$(date -u +%s);
+        SECS_TODAY=$$((NOW % 86400));
+        TARGET=9000;
+        if [ \"$$SECS_TODAY\" -lt \"$$TARGET\" ]; then
+          SLEEP=$$((TARGET - SECS_TODAY));
+        else
+          SLEEP=$$((86400 - SECS_TODAY + TARGET));
+        fi;
+        echo \"[backup] sleeping $${SLEEP}s until next 02:30 UTC slot\";
+        sleep $$SLEEP;
+        run_dump || echo '[backup] dump failed; will retry tomorrow';
       done
       "
     deploy:
