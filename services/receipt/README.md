@@ -10,13 +10,13 @@ The full RFC 3161 issuing + Merkle audit chain lands in **v0.5.0**. See the root
 
 ## What ships in v0.1
 
-| Endpoint | Method | v0.1 behaviour |
-|---|---|---|
-| `/healthz` | GET | 200 with `{ "status": "ok", "service": "receipt", "version": "0.1.0-alpha.1" }` when healthy. 503 if Postgres probe fails. |
-| `/metrics` | GET | Prometheus scrape (process + ASP.NET Core HTTP histograms). |
-| `/receipt/{shortId}` | GET | **501** with `{ error: "not_implemented", milestone: "v0.5.0", message: "..." }`. |
-| `/receipt/issue` | POST | **501** — same envelope. Internal endpoint that the api-gateway will call when a download completes. |
-| `/audit/anchors/{date}` | GET | **501** — same envelope. Public Merkle root anchor for a UTC date. |
+| Endpoint                | Method | v0.1 behaviour                                                                                                             |
+| ----------------------- | ------ | -------------------------------------------------------------------------------------------------------------------------- |
+| `/healthz`              | GET    | 200 with `{ "status": "ok", "service": "receipt", "version": "0.1.0-alpha.1" }` when healthy. 503 if Postgres probe fails. |
+| `/metrics`              | GET    | Prometheus scrape (process + ASP.NET Core HTTP histograms).                                                                |
+| `/receipt/{shortId}`    | GET    | **501** with `{ error: "not_implemented", milestone: "v0.5.0", message: "..." }`.                                          |
+| `/receipt/issue`        | POST   | **501** — same envelope. Internal endpoint that the api-gateway will call when a download completes.                       |
+| `/audit/anchors/{date}` | GET    | **501** — same envelope. Public Merkle root anchor for a UTC date.                                                         |
 
 `/receipt/*` and `/audit/anchors/*` return the same `{error,message,milestone}`
 shape so consumers can branch on `error == "not_implemented"` without parsing
@@ -82,13 +82,13 @@ All settings come from environment variables. They're bound to a
 [`ReceiptOptions`](Configuration/ReceiptOptions.cs) record at startup and
 validated via `DataAnnotations` — invalid env fails fast.
 
-| Variable | Default | Purpose |
-|---|---|---|
-| `RECEIPT_PORT` | `3024` | Kestrel listen port. |
-| `RECEIPT_TSA_URL` | `https://freetsa.org/tsr` | RFC 3161 TSA endpoint (used in v0.5). |
-| `RECEIPT_TSA_TIMEOUT_SECONDS` | `30` | TSA HTTP timeout (used in v0.5). |
-| `DATABASE_URL` | _(required)_ | libpq URI. v0.1 only uses it for `/healthz`. |
-| `LOG_LEVEL` | `Information` | Serilog minimum level. Tolerates `info`, `warn`, etc. |
+| Variable                      | Default                   | Purpose                                               |
+| ----------------------------- | ------------------------- | ----------------------------------------------------- |
+| `RECEIPT_PORT`                | `3024`                    | Kestrel listen port.                                  |
+| `RECEIPT_TSA_URL`             | `https://freetsa.org/tsr` | RFC 3161 TSA endpoint (used in v0.5).                 |
+| `RECEIPT_TSA_TIMEOUT_SECONDS` | `30`                      | TSA HTTP timeout (used in v0.5).                      |
+| `DATABASE_URL`                | _(required)_              | libpq URI. v0.1 only uses it for `/healthz`.          |
+| `LOG_LEVEL`                   | `Information`             | Serilog minimum level. Tolerates `info`, `warn`, etc. |
 
 ## File layout
 

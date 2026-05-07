@@ -152,7 +152,7 @@ slothbox-verify chain https://anchors.slothbox.com/4172.json
 ## Exit codes
 
 | Code | Meaning                                                            |
-|------|--------------------------------------------------------------------|
+| ---- | ------------------------------------------------------------------ |
 | 0    | Success / verified-valid (in v0.1, all skeleton runs return 0)     |
 | 1    | Verification failed: signature mismatch, proof invalid, or missing |
 | 2    | Usage / I/O / parse error                                          |

@@ -37,9 +37,7 @@ describe("symmetric encryption (XChaCha20-Poly1305)", () => {
     expect(ciphertext.length).toBe(plaintext.length + TAG_BYTES);
 
     const decrypted = await decryptChunk({ ciphertext, key, nonce, aad });
-    expect(new TextDecoder().decode(decrypted)).toBe(
-      "hello, world. this is a test message."
-    );
+    expect(new TextDecoder().decode(decrypted)).toBe("hello, world. this is a test message.");
   });
 
   it("fails to decrypt with wrong key", async () => {
@@ -61,9 +59,7 @@ describe("symmetric encryption (XChaCha20-Poly1305)", () => {
     const plaintext = new Uint8Array([1, 2, 3, 4]);
 
     const ciphertext = await encryptChunk({ plaintext, key, nonce: nonce1, aad });
-    await expect(
-      decryptChunk({ ciphertext, key, nonce: nonce2, aad })
-    ).rejects.toThrow();
+    await expect(decryptChunk({ ciphertext, key, nonce: nonce2, aad })).rejects.toThrow();
   });
 
   it("fails to decrypt with wrong AAD (binding to share+chunk works)", async () => {
@@ -74,9 +70,7 @@ describe("symmetric encryption (XChaCha20-Poly1305)", () => {
     const plaintext = new Uint8Array([1, 2, 3, 4]);
 
     const ciphertext = await encryptChunk({ plaintext, key, nonce, aad: aadCorrect });
-    await expect(
-      decryptChunk({ ciphertext, key, nonce, aad: aadWrong })
-    ).rejects.toThrow();
+    await expect(decryptChunk({ ciphertext, key, nonce, aad: aadWrong })).rejects.toThrow();
   });
 
   it("fails to decrypt tampered ciphertext", async () => {
