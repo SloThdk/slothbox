@@ -1,14 +1,18 @@
 // Root layout. Wraps every route with:
-//   - <html> + class wiring (dark by default, OS pref or `.light` toggles light)
-//   - Inter (sans), Playfair Display (display serif), JetBrains Mono (mono)
-//   - Sonner toaster
+//   - <html> dark-by-default with luminous off-white foreground
+//   - Inter (sans, the only display face) + JetBrains Mono (code/hashes)
+//   - Sonner toaster (themed to glass)
 //   - Header and Footer (shared chrome)
 //
 // `next/font/google` ships the fonts as CSS variables, which `globals.css`
 // surfaces to Tailwind via `@theme`'s `--font-family-*` tokens.
+//
+// NOTE: Playfair Display was loaded in earlier iterations but the visionOS
+// design language is sans-only — the serif italic mid-sentence read as
+// editorial-affectation rather than sleek. Removed for a tighter brand.
 
 import type { Metadata, Viewport } from "next";
-import { Inter, JetBrains_Mono, Playfair_Display } from "next/font/google";
+import { Inter, JetBrains_Mono } from "next/font/google";
 import { headers } from "next/headers";
 import { Toaster } from "sonner";
 import { Footer } from "@/components/Footer";
@@ -29,19 +33,16 @@ const inter = Inter({
   subsets: ["latin"],
   variable: "--font-inter",
   display: "swap",
-});
-
-const playfair = Playfair_Display({
-  subsets: ["latin"],
-  variable: "--font-playfair",
-  display: "swap",
-  weight: ["500", "600", "700"],
+  // Load multiple weights — visionOS uses light to medium across the board.
+  // 300 for body, 500 for UI, 600 for display. No bold (700+) anywhere.
+  weight: ["300", "400", "500", "600"],
 });
 
 const jetbrains = JetBrains_Mono({
   subsets: ["latin"],
   variable: "--font-jetbrains-mono",
   display: "swap",
+  weight: ["400", "500"],
 });
 
 export const metadata: Metadata = {
@@ -83,10 +84,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: [
-    { media: "(prefers-color-scheme: dark)", color: "#0a0a0a" },
-    { media: "(prefers-color-scheme: light)", color: "#fafafa" },
-  ],
+  themeColor: [{ media: "(prefers-color-scheme: dark)", color: "#0a0d14" }],
   width: "device-width",
   initialScale: 1,
 };
@@ -99,11 +97,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const nonce = (await headers()).get("x-nonce") ?? undefined;
 
   return (
-    <html
-      lang="en"
-      className={`${inter.variable} ${playfair.variable} ${jetbrains.variable}`}
-      suppressHydrationWarning
-    >
+    <html lang="en" className={`${inter.variable} ${jetbrains.variable}`} suppressHydrationWarning>
       <head>
         {/* Hint browsers that support h3 about HTTP/3 availability. */}
         <meta httpEquiv="x-dns-prefetch-control" content="on" />

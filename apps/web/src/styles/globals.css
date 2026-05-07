@@ -1,15 +1,23 @@
 /*
- * SlothBox global stylesheet.
+ * SlothBox global stylesheet — visionOS-inspired dark glass.
  *
- * Tailwind v4 entrypoint. Theme tokens live in the `@theme` block and are
- * exposed automatically as both CSS custom properties (`var(--color-bg)`)
- * and Tailwind utilities (`bg-bg`, `text-fg`, etc.).
+ * Tailwind v4 entrypoint. Theme tokens live in `@theme`; surfaces, motion,
+ * and ambient lighting live in @layer base / components below.
  *
- * Visual identity: editorial-security palette. Graphite + warm cream +
- * champagne gold. The point is to look like a Swiss bank vault meets a
- * literary magazine — NOT like the default emerald/indigo gradient that
- * every AI-generated SaaS template ships with. Cryptography products
- * earn trust through restraint and craft, not neon.
+ * Visual identity: deep cool slate base, frosted-glass surfaces with
+ * backdrop-blur, ambient overhead light, ONE soft accent (sky-blue) used
+ * sparingly. Direct lift of the visionOS panel aesthetic — translucent
+ * cards floating in space, lit from above, no decoration. The point is
+ * restraint: a security product earns trust through composure, not through
+ * gradient hero text and pulsing neon CTAs.
+ *
+ * What this design DELIBERATELY avoids:
+ *   - Gradient text (the giveaway sign of AI-template hero)
+ *   - Lucide icons in colored circles with glow
+ *   - Drop shadows on cards (real ambient light only)
+ *   - Decorative serif italics mid-sentence
+ *   - "Three-column features grid" with stock icons
+ *   - Centered-everything hero with one giant headline
  */
 
 @import "tailwindcss";
@@ -18,46 +26,55 @@
  * Theme tokens — CSS-first.
  * -------------------------------------------------------------------------- */
 @theme {
-  /* Backgrounds — warm graphite, slightly lifted from pure black so highlights
-     read as "ink" rather than "void". */
-  --color-bg: #0d0e10;
-  --color-card: #16171a;
-  --color-card-elevated: #1c1d21;
+  /* Base canvas — very deep slate with a subtle blue undertone. Pure black
+     reads as "void"; this colour reads as "darkened glass against the sky". */
+  --color-bg: #0a0d14;
 
-  /* Foreground — warm paper-cream, never stark white. Pure white on dark
-     reads as harsh and amateurish; cream feels intentional. */
-  --color-fg: #f4eee2;
-  --color-muted: #9b948a;
-  --color-muted-2: #6f6963;
+  /* Solid surfaces (used SPARINGLY — most cards are glass, see below). */
+  --color-card: #14181f;
+  --color-card-elevated: #1a1f29;
 
-  /* Borders — barely-there warm-gray, weighted toward the gold accent so
-     hover states feel like one continuous palette. */
-  --color-border: #2a2c33;
-  --color-border-strong: #3a3c44;
+  /* Foreground — luminous off-white, never #ffffff. Pure white on dark
+     reads as harsh; this is the colour of a frosted lightbulb. */
+  --color-fg: #f0f4fa;
+  --color-fg-2: #cdd5e2;
+  --color-muted: #8a93a5;
+  --color-muted-2: #5e6878;
 
-  /* Primary accent — champagne gold. Same hue as the favicon glyph so brand
-     identity propagates from a 32×32 ICO all the way up to hero headlines.
-     Used SPARINGLY: padlock mark, key links, highlights. Never as a giant
-     gradient — gold loses authority when it covers half the page. */
-  --color-accent: #c9a86a;
-  --color-accent-strong: #d4b676; /* hover variant */
-  --color-accent-soft: rgba(201, 168, 106, 0.12); /* subtle backgrounds */
-  --color-accent-tint: rgba(201, 168, 106, 0.25); /* borders, dividers */
+  /* Glass strokes — used as 1-pixel hairlines on every translucent surface
+     to give it edge definition. White at low alpha reads as "light reflecting
+     off a glass edge", which is exactly the vision OS panel signature. */
+  --color-glass-stroke: rgba(255, 255, 255, 0.08);
+  --color-glass-stroke-strong: rgba(255, 255, 255, 0.14);
+  --color-glass-fill: rgba(255, 255, 255, 0.04);
+  --color-glass-fill-elevated: rgba(255, 255, 255, 0.06);
 
-  /* Secondary accent — burgundy/oxblood. Reserved for destruction-warning
-     copy ("burn after read", "key destroyed", "share self-destructed").
-     The colour of a wax seal. Says "irreversible" without panicking. */
-  --color-danger: #a64a3a;
-  --color-danger-soft: rgba(166, 74, 58, 0.15);
+  /* Solid borders — when we genuinely need a non-translucent line. */
+  --color-border: #1f2531;
+  --color-border-strong: #2a3140;
 
-  /* Type stack — Playfair for hero / display, Inter for body, JetBrains
-     Mono for hashes + code samples. All loaded by next/font in layout.tsx. */
-  --font-family-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
-  --font-family-display: var(--font-playfair), Georgia, "Times New Roman", serif;
+  /* Accent — soft sky-blue. Used ONLY for: primary CTAs, the active link
+     state, and the upload zone hover. Never decorative. */
+  --color-accent: #5b9eff;
+  --color-accent-strong: #7eb3ff;
+  --color-accent-soft: rgba(91, 158, 255, 0.12);
+  --color-accent-tint: rgba(91, 158, 255, 0.22);
+  --color-accent-glow: rgba(91, 158, 255, 0.06);
+
+  /* Danger — warm coral, very sparingly used (burn-after-read warnings).
+     Cool palette overall + one warm signal makes the warning unmissable. */
+  --color-danger: #ff7a85;
+  --color-danger-soft: rgba(255, 122, 133, 0.12);
+
+  /* Type stack — Inter for everything. No Playfair. visionOS is sans-only;
+     the serif drop was the right call. JetBrains Mono kept for hashes/code. */
+  --font-family-sans: var(--font-inter), -apple-system, BlinkMacSystemFont, ui-sans-serif,
+    system-ui, sans-serif;
+  --font-family-display: var(--font-inter), -apple-system, BlinkMacSystemFont, ui-sans-serif,
+    system-ui, sans-serif;
   --font-family-mono: var(--font-jetbrains-mono), ui-monospace, "SF Mono", monospace;
 
-  /* Container widths — narrower than Tailwind defaults. Long-line copy
-     reads worse than well-set narrower text. Editorial sites are 60-75ch. */
+  /* Container widths. */
   --container-md: 720px;
   --container-lg: 960px;
   --container-xl: 1180px;
@@ -79,31 +96,35 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
+    /* Slightly tighter character spacing across the whole UI — Apple's
+       signature optical move. -0.011em is barely perceptible at body sizes
+       but stops headlines from looking lazy. */
+    letter-spacing: -0.011em;
     min-height: 100%;
   }
 
   body {
-    /* Subtle "candlelight from below" — a low-saturation gold glow at the
-       bottom-edge of the viewport, the kind a leather-bound book throws on
-       a desk. Never bright enough to feel decorative; just stops the page
-       from reading flat. */
+    /* Ambient overhead light. Two layered radial gradients simulate a window
+       above-and-behind the content area — a cool slightly-violet light
+       fading away. The result is the same "panel floating in a quiet room"
+       feel as a Vision Pro home screen. NO neon glow, NO brand-color bloom —
+       just real-light directionality. */
     background-image:
-      radial-gradient(ellipse 80% 40% at 50% 110%, rgba(201, 168, 106, 0.08), transparent 60%),
-      radial-gradient(ellipse 50% 30% at 100% 0%, rgba(166, 74, 58, 0.04), transparent 60%);
+      radial-gradient(ellipse 60% 40% at 50% -10%, rgba(91, 158, 255, 0.07), transparent 70%),
+      radial-gradient(ellipse 80% 50% at 100% 0%, rgba(140, 110, 255, 0.04), transparent 60%),
+      radial-gradient(ellipse 50% 30% at 0% 100%, rgba(91, 158, 255, 0.03), transparent 60%);
     background-attachment: fixed;
   }
 
   ::selection {
-    background-color: var(--color-accent);
-    color: var(--color-bg);
+    background-color: var(--color-accent-tint);
+    color: var(--color-fg);
   }
 
-  /* Default focus ring. Buttons / inputs may add to this ring but never
-     remove it — accessibility floor. */
   :focus-visible {
     outline: 2px solid var(--color-accent);
     outline-offset: 2px;
-    border-radius: 4px;
+    border-radius: 6px;
   }
 
   input,
@@ -112,94 +133,93 @@
   select {
     font: inherit;
     color: inherit;
+    letter-spacing: inherit;
   }
 
-  /* Editorial-feeling typography for body copy. Slightly looser leading
-     and a wider character spectrum than the Tailwind preset — feels less
-     "marketing landing page" and more "design publication". */
+  /* Body copy — looser leading than Tailwind's default. visionOS reads
+     more like a magazine than a SaaS dashboard. */
   p {
     line-height: 1.65;
+  }
+
+  /* Tighten leading on headlines. Apple-style display tracking. */
+  h1,
+  h2,
+  h3 {
+    letter-spacing: -0.02em;
+  }
+  h1 {
+    line-height: 1.05;
+  }
+  h2 {
+    line-height: 1.15;
   }
 }
 
 /* --------------------------------------------------------------------------
  * Component-scope helpers.
+ *
+ * The `.glass` family is the heart of the design language. Any "card" or
+ * "panel" surface uses one of these — not the solid --color-card. Glass
+ * surfaces are translucent, blurred, with a faint white edge highlight.
  * -------------------------------------------------------------------------- */
 @layer components {
-  /* Hero gold underline — used on headlines. Replaces the previous
-     `gradient-text` (emerald → indigo) with a discrete underline accent
-     beneath a single word. Less screaming, more composed. */
-  .hero-mark {
-    color: var(--color-accent);
-    position: relative;
-    display: inline-block;
-  }
-  .hero-mark::after {
-    content: "";
-    position: absolute;
-    left: 0;
-    right: 0;
-    bottom: 0.04em;
-    height: 0.18em;
-    background: linear-gradient(
-      90deg,
-      transparent 0%,
-      rgba(201, 168, 106, 0.35) 30%,
-      rgba(201, 168, 106, 0.35) 70%,
-      transparent 100%
-    );
-    z-index: -1;
+  /* Standard glass surface — used on cards, the upload zone, the header. */
+  .glass {
+    background-color: var(--color-glass-fill);
+    backdrop-filter: blur(40px) saturate(140%);
+    -webkit-backdrop-filter: blur(40px) saturate(140%);
+    border: 1px solid var(--color-glass-stroke);
+    border-radius: 16px;
+    /* Top-edge inner highlight — the same trick visionOS uses to make
+       glass panels feel lit from above. 1px inset white at low alpha,
+       fading to transparent on the bottom. */
+    box-shadow:
+      inset 0 1px 0 0 rgba(255, 255, 255, 0.06),
+      0 1px 0 0 rgba(0, 0, 0, 0.2);
   }
 
-  /* Card surface. Subtle warmth in the border so hover states feel like
-     the card was always supposed to glow that way. */
-  .surface {
-    background-color: var(--color-card);
-    border: 1px solid var(--color-border);
-    border-radius: 10px;
-    transition: border-color 200ms ease;
+  /* Elevated glass — for the most prominent panel on a page (e.g. the
+     upload widget on the hero). Stronger blur, brighter edge. */
+  .glass-elevated {
+    background-color: var(--color-glass-fill-elevated);
+    backdrop-filter: blur(60px) saturate(160%);
+    -webkit-backdrop-filter: blur(60px) saturate(160%);
+    border: 1px solid var(--color-glass-stroke-strong);
+    border-radius: 20px;
+    box-shadow:
+      inset 0 1px 0 0 rgba(255, 255, 255, 0.1),
+      0 4px 32px 0 rgba(0, 0, 0, 0.3);
   }
-  .surface-hover:hover {
+
+  /* Hover state for clickable glass — accent edge + faint accent fill. */
+  .glass-hover:hover {
     border-color: var(--color-accent-tint);
+    background-color: var(--color-accent-soft);
   }
 
-  /* Editorial divider — thin gold rule with a centred ornament. Used between
-     major sections instead of plain whitespace; says "this is a designed
-     document". */
-  .ornament {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.75rem;
-    color: var(--color-accent);
-    opacity: 0.7;
-    font-family: var(--font-family-display);
-    font-size: 0.75rem;
-    letter-spacing: 0.4em;
+  /* Eyebrow label — small mono caps above section headlines. visionOS
+     uses these everywhere as the "this is a chapter heading" cue. */
+  .eyebrow {
+    font-family: var(--font-family-mono);
+    font-size: 0.7rem;
+    font-weight: 500;
+    letter-spacing: 0.18em;
     text-transform: uppercase;
+    color: var(--color-muted);
   }
-  .ornament::before,
-  .ornament::after {
-    content: "";
-    flex: 1;
+
+  /* Hairline divider — 1px white at low alpha. Replaces decorated rules
+     and ornaments from the previous design language. */
+  .divider {
     height: 1px;
     background: linear-gradient(
       90deg,
       transparent 0%,
-      var(--color-border-strong) 50%,
+      var(--color-glass-stroke-strong) 30%,
+      var(--color-glass-stroke-strong) 70%,
       transparent 100%
     );
-    max-width: 6rem;
-  }
-
-  /* Eyebrow label — small caps tracking-wide labels above section
-     headlines. The visual cue that says "this is a chapter heading". */
-  .eyebrow {
-    font-family: var(--font-family-mono);
-    font-size: 0.7rem;
-    letter-spacing: 0.3em;
-    text-transform: uppercase;
-    color: var(--color-accent);
   }
 }
 
@@ -208,9 +228,8 @@
  * -------------------------------------------------------------------------- */
 @layer utilities {
   .animate-in-fade {
-    animation: fade-in 0.5s ease-out both;
+    animation: fade-in 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
   }
-
   @keyframes fade-in {
     from {
       opacity: 0;
@@ -222,17 +241,16 @@
     }
   }
 
-  /* Slow gold pulse — "live" indicator dot in the version pill.
-     2.4s period reads as deliberate rather than nervous. */
+  /* Soft pulse — the live-status dot. 2.4s period reads as deliberate. */
   @keyframes pulse-soft {
     0%,
     100% {
-      opacity: 0.5;
-      box-shadow: 0 0 0 0 rgba(201, 168, 106, 0.5);
+      opacity: 0.6;
+      box-shadow: 0 0 0 0 rgba(91, 158, 255, 0.4);
     }
     50% {
       opacity: 1;
-      box-shadow: 0 0 0 4px rgba(201, 168, 106, 0);
+      box-shadow: 0 0 0 5px rgba(91, 158, 255, 0);
     }
   }
   .animate-pulse-soft {
