@@ -38,7 +38,11 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: "20.18"
+          # "20" pulls the latest 20.x. We were pinned to 20.18.3 which
+          # tripped eslint-visitor-keys@5.0.1's engines requirement
+          # (^20.19.0 || ^22.13.0 || >=24). Floating to 20.x latest keeps
+          # us on Node 20 LTS while satisfying transitive deps.
+          node-version: "20"
           cache: "pnpm"
 
       - name: Install
@@ -134,7 +138,9 @@ jobs:
           version: 9.12.3
       - uses: actions/setup-node@v4
         with:
-          node-version: "20.18"
+          # See comment in `node` job — float to 20.x latest for engines
+          # compat with transitive deps (eslint-visitor-keys@5.0.1+).
+          node-version: "20"
           cache: "pnpm"
       - run: pnpm install --frozen-lockfile
       - run: pnpm format:check

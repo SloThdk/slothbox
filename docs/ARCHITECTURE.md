@@ -5,21 +5,21 @@ in production (one Hetzner box for v0.1, scale out later).
 
 ## Service map
 
-| Service | Language | Purpose |
-|---|---|---|
-| **web** | TypeScript / Next 15 | Frontend — drag-drop UI, encryption in browser, share link, decryption page |
-| **api-gateway** | TypeScript / Hono | Auth, share CRUD, WebSocket progress, rate limiting |
-| **ingest** | C# / ASP.NET Core 8 | Chunked encrypted-blob upload to MinIO |
-| **receipt** | C# / ASP.NET Core 8 | RFC 3161 timestamp client, Merkle log writer (v0.5+) |
-| **reaper** | Go | Expiry sweep, audit chain extension |
-| **postgres** | Postgres 16 | Metadata only (shares, audit log). Never plaintext. |
-| **minio** | MinIO | Encrypted blob storage |
-| **valkey** | Valkey | Cache + queue + sessions |
-| **nats** | NATS | Pub/sub for cross-service events and WebRTC signaling (v1.1) |
-| **caddy** | Caddy | Reverse proxy + auto-HTTPS |
-| **prometheus** | Prometheus | Metrics scraping |
-| **grafana** | Grafana | Dashboards |
-| **loki** | Loki + Promtail | Log aggregation |
+| Service         | Language             | Purpose                                                                     |
+| --------------- | -------------------- | --------------------------------------------------------------------------- |
+| **web**         | TypeScript / Next 15 | Frontend — drag-drop UI, encryption in browser, share link, decryption page |
+| **api-gateway** | TypeScript / Hono    | Auth, share CRUD, WebSocket progress, rate limiting                         |
+| **ingest**      | C# / ASP.NET Core 8  | Chunked encrypted-blob upload to MinIO                                      |
+| **receipt**     | C# / ASP.NET Core 8  | RFC 3161 timestamp client, Merkle log writer (v0.5+)                        |
+| **reaper**      | Go                   | Expiry sweep, audit chain extension                                         |
+| **postgres**    | Postgres 16          | Metadata only (shares, audit log). Never plaintext.                         |
+| **minio**       | MinIO                | Encrypted blob storage                                                      |
+| **valkey**      | Valkey               | Cache + queue + sessions                                                    |
+| **nats**        | NATS                 | Pub/sub for cross-service events and WebRTC signaling (v1.1)                |
+| **caddy**       | Caddy                | Reverse proxy + auto-HTTPS                                                  |
+| **prometheus**  | Prometheus           | Metrics scraping                                                            |
+| **grafana**     | Grafana              | Dashboards                                                                  |
+| **loki**        | Loki + Promtail      | Log aggregation                                                             |
 
 ## Data flow — uploading a file (v0.1)
 
@@ -93,19 +93,19 @@ See the README for the per-language justification. Highlights:
 
 ## Future scalability
 
-| Bottleneck at 10x users | Mitigation |
-|---|---|
-| Single Hetzner box CPU | Scale up to CCX23 / CCX33 |
-| Postgres write throughput | Read replica + tune connection pool |
-| MinIO disk capacity | Attach Hetzner Storage Box for cold storage |
-| WebSocket connections | Scale out api-gateway pods behind Caddy load-balancing |
+| Bottleneck at 10x users   | Mitigation                                             |
+| ------------------------- | ------------------------------------------------------ |
+| Single Hetzner box CPU    | Scale up to CCX23 / CCX33                              |
+| Postgres write throughput | Read replica + tune connection pool                    |
+| MinIO disk capacity       | Attach Hetzner Storage Box for cold storage            |
+| WebSocket connections     | Scale out api-gateway pods behind Caddy load-balancing |
 
-| Bottleneck at 100x users | Mitigation |
-|---|---|
-| Single-region latency | Add edge regions on Fly.io for the frontend, keep backend in EU |
-| Postgres single primary | Switch to managed (Neon, Supabase) or Patroni cluster |
-| Ingest disk bandwidth | Dedicated ingest box, chunked upload direct to S3 with presigned URLs |
-| Reaper coordination | Replace cron with NATS JetStream consumer groups |
+| Bottleneck at 100x users | Mitigation                                                            |
+| ------------------------ | --------------------------------------------------------------------- |
+| Single-region latency    | Add edge regions on Fly.io for the frontend, keep backend in EU       |
+| Postgres single primary  | Switch to managed (Neon, Supabase) or Patroni cluster                 |
+| Ingest disk bandwidth    | Dedicated ingest box, chunked upload direct to S3 with presigned URLs |
+| Reaper coordination      | Replace cron with NATS JetStream consumer groups                      |
 
 None of these are surprises. All known migration paths.
 

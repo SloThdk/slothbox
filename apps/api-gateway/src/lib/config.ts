@@ -24,9 +24,7 @@ import { z } from "zod";
  */
 const ConfigSchema = z.object({
   // ─── Runtime ───────────────────────────────────────────────────
-  NODE_ENV: z
-    .enum(["development", "production", "test"])
-    .default("development"),
+  NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
 
   // ─── HTTP server ───────────────────────────────────────────────
   /** Port the public-facing gateway binds. Caddy reverse-proxies to this. */
@@ -63,15 +61,11 @@ const ConfigSchema = z.object({
    * required at startup so that v0.5 auth can land without a config
    * migration. Must be at least 32 chars.
    */
-  AUTH_SECRET: z
-    .string()
-    .min(32, "AUTH_SECRET must be at least 32 characters"),
+  AUTH_SECRET: z.string().min(32, "AUTH_SECRET must be at least 32 characters"),
 
   // ─── Logging ───────────────────────────────────────────────────
   /** Pino log level. trace|debug|info|warn|error|fatal. */
-  LOG_LEVEL: z
-    .enum(["trace", "debug", "info", "warn", "error", "fatal"])
-    .default("info"),
+  LOG_LEVEL: z.enum(["trace", "debug", "info", "warn", "error", "fatal"]).default("info"),
 
   // ─── Rate limiting (sliding-window via Valkey) ─────────────────
   /** Anonymous: max share creates per IP per minute. */
@@ -87,10 +81,7 @@ const ConfigSchema = z.object({
    * Caddy strips /api when proxying — the gateway emits absolute URLs the
    * browser can fetch directly. Defaults are the local dev compose layout.
    */
-  INGEST_PUBLIC_URL: z
-    .string()
-    .url()
-    .default("http://localhost:3023"),
+  INGEST_PUBLIC_URL: z.string().url().default("http://localhost:3023"),
 
   // ─── Limits ────────────────────────────────────────────────────
   /** Maximum share lifetime (days) — enforced at create time. */

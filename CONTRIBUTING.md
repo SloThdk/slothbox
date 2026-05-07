@@ -84,7 +84,7 @@ is held to a higher bar.
 
 ### Soft rules
 
-- Document the *why* in the PR description, not just the *what*. Cryptographic
+- Document the _why_ in the PR description, not just the _what_. Cryptographic
   changes need their threat-model justification spelled out.
 - Reference the audited reference implementation you're following.
 - If the change affects the threat model, update [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md)
@@ -119,14 +119,15 @@ Pre-commit hook runs the formatters. CI fails on diff.
 
 ## Filing issues
 
-| Type | Use |
-|---|---|
-| Bug | Issue template `bug` |
-| Feature request | Issue template `feature` |
+| Type                   | Use                                                                                         |
+| ---------------------- | ------------------------------------------------------------------------------------------- |
+| Bug                    | Issue template `bug`                                                                        |
+| Feature request        | Issue template `feature`                                                                    |
 | Security vulnerability | **DO NOT** file an issue. Email security@philipsloth.com — see [`SECURITY.md`](SECURITY.md) |
-| Question | GitHub Discussions (when enabled) |
+| Question               | GitHub Discussions (when enabled)                                                           |
 
 When filing a bug, please include:
+
 - SlothBox version (commit SHA or tag)
 - Browser + OS (for frontend) or Docker version (for backend)
 - Steps to reproduce
@@ -155,4 +156,4 @@ agreement.
 
 Anyone whose PR is merged, or whose vulnerability report leads to a fix, gets
 listed in `CONTRIBUTORS.md` (with consent). For security reports, the standard
-"Reported by ___" credit is in the release notes.
+"Reported by \_\_\_" credit is in the release notes.

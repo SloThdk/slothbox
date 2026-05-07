@@ -27,6 +27,7 @@ even from our backups.
 ```
 
 After this:
+
 - MinIO no longer has the encrypted blob
 - Postgres no longer has the share row
 - The destruction chain has a permanent record

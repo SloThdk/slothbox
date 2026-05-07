@@ -24,9 +24,7 @@ const SECTIONS = [
     icon: ShieldCheck,
     title: "Threat model",
     body: "We protect content confidentiality from the SlothBox operator and from network observers. We do not protect against an endpoint compromise (sender or recipient). We document explicit non-goals so you can decide whether the model fits your use case.",
-    links: [
-      { href: `${GITHUB_URL}/blob/master/docs/THREAT_MODEL.md`, label: "THREAT_MODEL.md" },
-    ],
+    links: [{ href: `${GITHUB_URL}/blob/master/docs/THREAT_MODEL.md`, label: "THREAT_MODEL.md" }],
   },
   {
     icon: Code2,
@@ -52,16 +50,16 @@ export default function SecurityPage() {
   return (
     <article className="mx-auto w-full max-w-[var(--container-lg)] px-4 py-12 sm:px-6 sm:py-16">
       <header className="mb-10 max-w-2xl">
-        <p className="text-xs font-semibold uppercase tracking-wider text-[var(--color-accent)]">
+        <p className="text-xs font-semibold tracking-wider text-[var(--color-accent)] uppercase">
           Security
         </p>
-        <h1 className="mt-2 font-display text-4xl font-semibold tracking-tight text-[var(--color-fg)] sm:text-5xl">
+        <h1 className="font-display mt-2 text-4xl font-semibold tracking-tight text-[var(--color-fg)] sm:text-5xl">
           We don&apos;t ask you to trust us.
         </h1>
         <p className="mt-3 text-base leading-relaxed text-[var(--color-muted)]">
-          Below is a summary of how SlothBox enforces its trust guarantees. The
-          canonical documents — threat model, full crypto details, runbook —
-          live in the repository so they version with the code.
+          Below is a summary of how SlothBox enforces its trust guarantees. The canonical documents
+          — threat model, full crypto details, runbook — live in the repository so they version with
+          the code.
         </p>
       </header>
 
@@ -75,9 +73,7 @@ export default function SecurityPage() {
               <h2 className="font-display text-xl font-semibold text-[var(--color-fg)]">
                 {section.title}
               </h2>
-              <p className="text-sm leading-relaxed text-[var(--color-muted)]">
-                {section.body}
-              </p>
+              <p className="text-sm leading-relaxed text-[var(--color-muted)]">{section.body}</p>
               <div className="mt-2 flex flex-wrap gap-3 pt-1">
                 {section.links.map((link) => (
                   <a

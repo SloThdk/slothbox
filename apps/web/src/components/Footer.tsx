@@ -11,8 +11,8 @@ export function Footer() {
         <div>
           <p className="text-sm font-semibold text-[var(--color-fg)]">{APP_NAME}</p>
           <p className="mt-1 max-w-md text-sm text-[var(--color-muted)]">
-            End-to-end encrypted file transfer. Open source under the MIT
-            licence. Hosted in the EU (Hetzner DE / FI).
+            End-to-end encrypted file transfer. Open source under the MIT licence. Hosted in the EU
+            (Hetzner DE / FI).
           </p>
         </div>
 
@@ -73,9 +73,7 @@ export function Footer() {
             </a>{" "}
             · Made in Denmark.
           </span>
-          <span>
-            EU residency: data lives in Hetzner DE / FI. No US transit.
-          </span>
+          <span>EU residency: data lives in Hetzner DE / FI. No US transit.</span>
         </div>
       </div>
     </footer>
@@ -91,7 +89,7 @@ interface FooterLink {
 function FooterColumn({ title, links }: { title: string; links: FooterLink[] }) {
   return (
     <div>
-      <p className="text-xs font-semibold uppercase tracking-wider text-[var(--color-muted)]">
+      <p className="text-xs font-semibold tracking-wider text-[var(--color-muted)] uppercase">
         {title}
       </p>
       <ul className="mt-3 space-y-2">
@@ -116,7 +114,7 @@ function FooterColumn({ title, links }: { title: string; links: FooterLink[] }) 
                 {link.label}
               </Link>
             </li>
-          ),
+          )
         )}
       </ul>
     </div>

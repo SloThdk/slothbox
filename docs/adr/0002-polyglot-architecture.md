@@ -35,11 +35,11 @@ SlothBox is polyglot:
 Each non-default language has a 1-sentence justification that holds up in
 review:
 
-| Language | Justification |
-|---|---|
-| TypeScript | Default stack. Same shared types frontend ↔ backend. Expert work. |
-| C# / .NET | Kestrel's `PipeReader` for streaming uploads + ImageSharp for thumbnails — perf-critical I/O |
-| Go | Single static binary + low-memory footprint — right tool for daemons and CLIs |
+| Language   | Justification                                                                                |
+| ---------- | -------------------------------------------------------------------------------------------- |
+| TypeScript | Default stack. Same shared types frontend ↔ backend. Expert work.                            |
+| C# / .NET  | Kestrel's `PipeReader` for streaming uploads + ImageSharp for thumbnails — perf-critical I/O |
+| Go         | Single static binary + low-memory footprint — right tool for daemons and CLIs                |
 
 ## Consequences
 

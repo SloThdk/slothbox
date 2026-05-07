@@ -4,27 +4,30 @@ Steps to go from a fresh clone to running SlothBox locally.
 
 ## Prerequisites
 
-| Tool | Version | Why |
-|---|---|---|
-| Node.js | 20.18+ | Frontend + API gateway |
-| pnpm | 9.12.3 | Workspace manager |
-| .NET SDK | 8.0.x | Ingest + receipt services |
-| Go | 1.22+ | Reaper + verifier CLI |
-| Docker | 24+ | Postgres, MinIO, Valkey, NATS, observability |
-| Docker Compose | v2 | Stack orchestration |
-| `gitleaks` | latest | Secret scanning (pre-commit) |
+| Tool           | Version | Why                                          |
+| -------------- | ------- | -------------------------------------------- |
+| Node.js        | 20.18+  | Frontend + API gateway                       |
+| pnpm           | 9.12.3  | Workspace manager                            |
+| .NET SDK       | 8.0.x   | Ingest + receipt services                    |
+| Go             | 1.22+   | Reaper + verifier CLI                        |
+| Docker         | 24+     | Postgres, MinIO, Valkey, NATS, observability |
+| Docker Compose | v2      | Stack orchestration                          |
+| `gitleaks`     | latest  | Secret scanning (pre-commit)                 |
 
 On macOS:
+
 ```bash
 brew install node@20 pnpm dotnet@8 go docker gitleaks
 ```
 
 On Windows (with chocolatey):
+
 ```powershell
 choco install nodejs-lts pnpm dotnet-8.0-sdk golang docker-desktop gitleaks
 ```
 
 On Ubuntu/Debian:
+
 ```bash
 # Node 20 + pnpm
 curl -fsSL https://deb.nodesource.com/setup_20.x | sudo bash -

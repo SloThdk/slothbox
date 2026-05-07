@@ -168,10 +168,7 @@ export async function downloadFile(
     try {
       plaintext = await decryptChunk({ ciphertext, key, nonce, aad });
     } catch (err) {
-      throw new DownloadError(
-        `chunk ${i} failed integrity check — file may be tampered with`,
-        err
-      );
+      throw new DownloadError(`chunk ${i} failed integrity check — file may be tampered with`, err);
     }
 
     plaintextChunks[i] = plaintext;
@@ -238,18 +235,13 @@ export function triggerBlobDownload(blob: Blob, fileName: string): void {
 // Internals
 // ---------------------------------------------------------------------------
 
-async function decryptShareMeta(
-  descriptor: ShareDescriptor,
-  key: Uint8Array
-): Promise<ShareMeta> {
+async function decryptShareMeta(descriptor: ShareDescriptor, key: Uint8Array): Promise<ShareMeta> {
   let metaBytes: Uint8Array;
   try {
     const ciphertext = base64UrlToBytes(descriptor.encryptedMeta);
     const nonce = base64UrlToBytes(descriptor.nonceMeta);
     if (nonce.length !== 24) {
-      throw new DownloadError(
-        `unexpected metadata nonce length: ${nonce.length} (expected 24)`
-      );
+      throw new DownloadError(`unexpected metadata nonce length: ${nonce.length} (expected 24)`);
     }
     metaBytes = await decryptChunk({
       ciphertext,
@@ -258,10 +250,7 @@ async function decryptShareMeta(
       aad: buildChunkAad("meta", 0),
     });
   } catch (err) {
-    throw new DownloadError(
-      "could not decrypt share metadata — check the URL is complete",
-      err
-    );
+    throw new DownloadError("could not decrypt share metadata — check the URL is complete", err);
   }
 
   let parsed: unknown;
@@ -328,9 +317,7 @@ async function fetchChunk(args: FetchChunkArgs): Promise<FetchChunkResult> {
     throw new DownloadError("malformed nonce header", err);
   }
   if (nonce.length !== 24) {
-    throw new DownloadError(
-      `unexpected nonce length: ${nonce.length} (expected 24)`
-    );
+    throw new DownloadError(`unexpected nonce length: ${nonce.length} (expected 24)`);
   }
 
   const buffer = await response.arrayBuffer();

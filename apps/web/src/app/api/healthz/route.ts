@@ -24,6 +24,6 @@ export function GET() {
       headers: {
         "Cache-Control": "no-store",
       },
-    },
+    }
   );
 }

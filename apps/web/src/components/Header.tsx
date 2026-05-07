@@ -33,9 +33,7 @@ function Wordmark() {
           <circle cx={12} cy={15} r={1.4} fill="currentColor" />
         </svg>
       </span>
-      <span className="font-display text-lg font-semibold tracking-tight">
-        SlothBox
-      </span>
+      <span className="font-display text-lg font-semibold tracking-tight">SlothBox</span>
     </span>
   );
 }

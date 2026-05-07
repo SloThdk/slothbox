@@ -6,7 +6,7 @@ on:
   pull_request:
     branches: [master]
   schedule:
-    - cron: "23 6 * * 1"  # weekly Monday 06:23 UTC
+    - cron: "23 6 * * 1" # weekly Monday 06:23 UTC
 
 permissions:
   contents: read
@@ -45,7 +45,9 @@ jobs:
           version: 9.12.3
       - uses: actions/setup-node@v4
         with:
-          node-version: "20.18"
+          # See ci.yml — float to 20.x latest for engines compat with
+          # transitive deps that require >=20.19 (eslint-visitor-keys, etc.).
+          node-version: "20"
           cache: "pnpm"
       - run: pnpm install --frozen-lockfile --ignore-scripts
       - name: Audit (high+)
@@ -121,24 +123,31 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        # web + api-gateway use monorepo root as build context; .NET / Go
+        # services are self-contained. See deploy.yml for the same matrix.
         include:
           - image: web
-            context: ./apps/web
+            context: .
+            file: ./apps/web/Dockerfile
           - image: api-gateway
-            context: ./apps/api-gateway
+            context: .
+            file: ./apps/api-gateway/Dockerfile
           - image: ingest
             context: ./services/ingest
+            file: ./services/ingest/Dockerfile
           - image: receipt
             context: ./services/receipt
+            file: ./services/receipt/Dockerfile
           - image: reaper
             context: ./services/reaper
+            file: ./services/reaper/Dockerfile
     steps:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
 
       - name: Build image
-        run: docker build -t slothbox-${{ matrix.image }}:scan ${{ matrix.context }}
+        run: docker build -t slothbox-${{ matrix.image }}:scan -f ${{ matrix.file }} ${{ matrix.context }}
         continue-on-error: true # some images may not build until services are fleshed out
 
       - name: Scan
