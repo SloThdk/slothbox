@@ -5,14 +5,22 @@ REM ============================================================================
 REM  SlothBox - local dev launcher
 REM ----------------------------------------------------------------------------
 REM  Tier 2 from LESSONS.md (full-stack with DB + multi-service).
-REM    1. Free the dev port if a previous run left it occupied
-REM    2. docker compose up -d --build (rebuilds ANY changed image so source
-REM       changes propagate without manual `docker compose build`. Cache hits
-REM       are near-instant when nothing changed.)
-REM    3. Wait for Postgres + ingest healthy, then run idempotent migrations
-REM    4. Start Next.js frontend in dev mode (hot reload, bypasses dockerised
-REM       `web` container which only listens internally for the Caddy proxy)
-REM    5. Open browser when /healthz responds 200
+REM    1. Detect if we're running from a Sync.com cloud folder (broken!)
+REM    2. Free the dev port if a previous run left it occupied
+REM    3. docker compose up -d --build  (rebuilds changed images)
+REM    4. Wait for Postgres + ingest healthy, then run idempotent migrations
+REM    5. Start Next.js frontend in dev mode (hot reload)
+REM
+REM  KNOWN ISSUE: Sync.com folders.
+REM    Files inside C:\Users\phili\Sync\... carry the Windows ReparsePoint
+REM    attribute (0x400) even after they're fully hydrated locally. Docker
+REM    BuildKit refuses to include reparse points in build context, failing
+REM    every COPY with "invalid file request <path>". Sync.com's filesystem
+REM    driver immediately re-applies the flag if you try to strip it.
+REM
+REM    Fix: clone or mirror the project to a NON-Sync location. The script
+REM    detects this below and bails with a helpful pointer to scripts\
+REM    setup-local-dev.bat which creates the C:\dev\slothbox mirror.
 REM ============================================================================
 
 set FRONTEND_PORT=3021
@@ -22,6 +30,38 @@ set RECEIPT_PORT=3024
 set DASHBOARD_URL=http://localhost:%FRONTEND_PORT%
 
 cd /d "%~dp0"
+
+REM Detect Sync.com cloud folder via path substring.
+set CWD=%CD%
+echo %CWD% | findstr /I "\\Sync\\" >nul
+if %errorlevel% equ 0 (
+    echo.
+    echo ============================================================================
+    echo  ERROR: SlothBox cannot run docker compose from a Sync.com folder.
+    echo ============================================================================
+    echo.
+    echo  Current path: %CWD%
+    echo.
+    echo  Sync.com flags every file with the Windows ReparsePoint attribute as a
+    echo  cloud-storage placeholder. Docker BuildKit refuses to include reparse
+    echo  points in a build context, so every COPY in the Dockerfile fails with
+    echo  "invalid file request ^<path^>" and the stack never comes up.
+    echo.
+    echo  Fix:
+    echo    1. Open a fresh terminal at C:\dev\slothbox  (created by
+    echo       scripts\setup-local-dev.bat if it doesn't exist yet)
+    echo    2. Run start_local_server.bat from THERE.
+    echo.
+    echo  The Sync\Websites\slothbox copy stays as your canonical source - all
+    echo  git operations, edits, and Sync.com backup happen there. The mirror
+    echo  at C:\dev\slothbox is only used for `docker compose` runs.
+    echo.
+    echo  To create the mirror right now, run:
+    echo    scripts\setup-local-dev.bat
+    echo.
+    pause
+    exit /b 1
+)
 
 echo ============================================================================
 echo  SlothBox local dev - booting up
