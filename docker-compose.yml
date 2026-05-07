@@ -76,6 +76,11 @@ services:
       - API_PORT=3022
       - API_HOST=0.0.0.0
       - API_CORS_ORIGIN=${API_CORS_ORIGIN}
+      # Public URL the browser uses to reach the ingest service. The api-gateway
+      # bakes this into the uploadUrls returned by POST /api/shares. In prod this
+      # routes through Caddy at the same hostname; in dev it's the dev compose
+      # bind (localhost:3023).
+      - INGEST_PUBLIC_URL=${INGEST_PUBLIC_URL:-http://localhost:3023}
       - DATABASE_URL=${DATABASE_URL}
       - REDIS_URL=${REDIS_URL}
       - NATS_URL=${NATS_URL}
