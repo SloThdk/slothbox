@@ -44,11 +44,19 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- Override transitive System.Text.Json to a non-vulnerable version.
+         Several of our 8.0.x deps (Npgsql, AspNetCore.HealthChecks, etc.)
+         pull in System.Text.Json 8.0.4 transitively, which has a high-
+         severity stack-overflow advisory (GHSA-8g4q-xg66-9fp4 — large
+         JSON depth bypass of recursion guard). 8.0.5 ships the fix.
+         Pinning explicitly here forces NuGet's resolver to upgrade. -->
+    <PackageReference Include="System.Text.Json" Version="8.0.5" />
+
     <!-- Storage -->
     <PackageReference Include="Minio" Version="6.0.3" />
 
-    <!-- Postgres -->
-    <PackageReference Include="Npgsql" Version="8.0.4" />
+    <!-- Postgres. Bumped from 8.0.4 to 8.0.5 for the same advisory chain. -->
+    <PackageReference Include="Npgsql" Version="8.0.5" />
 
     <!-- Valkey / Redis -->
     <PackageReference Include="StackExchange.Redis" Version="2.8.16" />
