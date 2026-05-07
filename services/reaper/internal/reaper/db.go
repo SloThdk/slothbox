@@ -46,6 +46,12 @@ import (
 // NewPool builds a connection pool tuned for a low-throughput daemon.
 // One sweep usually needs at most two connections (the SELECT + a transaction)
 // so a max-pool of 4 leaves headroom without being wasteful.
+//
+// Retries the initial Ping for up to 60 seconds because Postgres takes a few
+// seconds to be authentication-ready after first compose-up (postgres_isready
+// returns OK on TCP accept before SASL handshake is fully wired). Without
+// retries, the reaper container restart-loops for 30s after every fresh
+// `docker compose up -d` until Postgres catches up.
 func NewPool(ctx context.Context, dsn string) (*pgxpool.Pool, error) {
 	cfg, err := pgxpool.ParseConfig(dsn)
 	if err != nil {
@@ -61,14 +67,39 @@ func NewPool(ctx context.Context, dsn string) (*pgxpool.Pool, error) {
 		return nil, fmt.Errorf("create pgxpool: %w", err)
 	}
 
-	// Eager ping so we fail fast at startup rather than on first sweep.
-	pingCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
-	defer cancel()
-	if err := pool.Ping(pingCtx); err != nil {
-		pool.Close()
-		return nil, fmt.Errorf("ping postgres: %w", err)
+	// Retry the initial Ping for up to 60 seconds. Backoff doubles from 1s,
+	// capped at 5s. We log every attempt at debug — operator running with
+	// LOG_LEVEL=debug sees the retry sequence; default info-level just sees
+	// success or final failure.
+	const maxWait = 60 * time.Second
+	const maxBackoff = 5 * time.Second
+	deadline := time.Now().Add(maxWait)
+	backoff := time.Second
+	for {
+		pingCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+		err = pool.Ping(pingCtx)
+		cancel()
+		if err == nil {
+			return pool, nil
+		}
+		if time.Now().After(deadline) {
+			pool.Close()
+			return nil, fmt.Errorf("ping postgres after %s: %w", maxWait, err)
+		}
+		// Sleep, but bail early if the parent ctx is cancelled (signal etc).
+		select {
+		case <-ctx.Done():
+			pool.Close()
+			return nil, fmt.Errorf("ping postgres cancelled: %w", ctx.Err())
+		case <-time.After(backoff):
+		}
+		if backoff < maxBackoff {
+			backoff *= 2
+			if backoff > maxBackoff {
+				backoff = maxBackoff
+			}
+		}
 	}
-	return pool, nil
 }
 
 // ----------------------------------------------------------------------------

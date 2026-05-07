@@ -1,23 +1,61 @@
-# SlothBox API gateway — minimal runtime image.
+# SlothBox API gateway — multi-stage Dockerfile
 #
-# IMPORTANT: this Dockerfile expects the tsup bundle to be pre-built locally,
-# NOT inside the container. Same reasoning as apps/web/Dockerfile — pnpm +
-# workspace deps + tsup interact badly inside multi-stage builds, and we
-# already do a local `pnpm install && pnpm --filter @slothbox/api-gateway
-# build` as part of the dev/CI workflow.
+# Build context is the monorepo root (compose passes `context: .`,
+# `dockerfile: apps/api-gateway/Dockerfile`).
 #
-# Pre-build steps (CI runs these):
-#   pnpm install
-#   pnpm --filter @slothbox/api-gateway build
-#   docker build -f apps/api-gateway/Dockerfile -t slothbox/api-gateway .
+# Builds the tsup ESM bundle inside Docker so the host doesn't need a Node
+# toolchain. Workspace packages (@slothbox/db, @slothbox/crypto-core) are
+# inlined into the bundle by tsup.config.ts (noExternal), so the runtime
+# image doesn't need pnpm or its symlinks to resolve them.
 #
-# The container ships the bundled dist/index.js and the root node_modules
-# tree. With node-linker=hoisted (.npmrc) the root tree is npm-style flat
-# and reusable as-is at runtime. Final image is ~250 MiB (node base + deps).
+# Three stages:
+#   1. base    — pnpm via corepack + dumb-init + wget
+#   2. builder — install all workspace deps, run tsup
+#   3. runner  — minimal Node 20 alpine, only the bundled dist + prod deps
 
+# --- Stage 1: base ----------------------------------------------------
+FROM node:20.18-alpine AS base
+ENV PNPM_HOME=/pnpm \
+    PATH="/pnpm:$PATH" \
+    NPM_CONFIG_UPDATE_NOTIFIER=false
+RUN corepack enable && apk add --no-cache libc6-compat dumb-init wget
+
+# --- Stage 2: build ----------------------------------------------------
+FROM base AS builder
+WORKDIR /repo
+
+# Hoisted layout fixes pnpm's strict node_modules issues with tsup binary
+# resolution and libsodium ESM packaging. Same workaround as apps/web.
+RUN printf 'node-linker=hoisted\nstrict-peer-dependencies=false\nauto-install-peers=true\n' > .npmrc
+
+# Manifests first for cache friendliness.
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY apps/api-gateway/package.json ./apps/api-gateway/
+COPY packages/db/package.json ./packages/db/
+COPY packages/crypto-core/package.json ./packages/crypto-core/
+
+# Filtered install — api-gateway + its workspace deps + dev deps for tsup.
+RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
+    pnpm install --no-frozen-lockfile --filter @slothbox/api-gateway...
+
+# Bring source in.
+COPY packages/db ./packages/db
+COPY packages/crypto-core ./packages/crypto-core
+COPY apps/api-gateway ./apps/api-gateway
+
+# Re-apply hoisted .npmrc in the builder stage layer.
+RUN printf 'node-linker=hoisted\nstrict-peer-dependencies=false\nauto-install-peers=true\n' > .npmrc
+
+# Bundle. tsup.config.ts inlines workspace packages so the runtime image
+# doesn't need them as separate symlinks.
+RUN pnpm --filter @slothbox/api-gateway build
+
+# Prune to production deps. `pnpm deploy --prod` materialises a self-contained
+# directory at /out with only the runtime deps that the bundle imports.
+RUN pnpm --filter @slothbox/api-gateway --prod deploy /out
+
+# --- Stage 3: runtime --------------------------------------------------
 FROM node:20.18-alpine AS runner
-
-WORKDIR /app
 
 ENV NODE_ENV=production \
     API_PORT=3022 \
@@ -31,15 +69,12 @@ RUN apk add --no-cache --update wget dumb-init \
 RUN addgroup -S slothbox && \
     adduser -S -G slothbox -u 10001 slothbox
 
-# Copy the bundled artefact and the (hoisted) production node_modules tree.
-# We bring the whole root node_modules; v0.5 will swap to `pnpm deploy --prod`
-# pruning to shrink the image.
-COPY --chown=slothbox:slothbox apps/api-gateway/dist ./dist
-COPY --chown=slothbox:slothbox apps/api-gateway/package.json ./package.json
-COPY --chown=slothbox:slothbox node_modules ./node_modules
+WORKDIR /app
+
+# Copy the pruned production bundle (dist + node_modules + package.json).
+COPY --from=builder --chown=slothbox:slothbox /out /app
 
 USER slothbox
-
 EXPOSE 3022
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
