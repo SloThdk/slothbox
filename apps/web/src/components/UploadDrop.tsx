@@ -14,42 +14,40 @@ import * as React from "react";
 import { Lock, RefreshCw, X } from "lucide-react";
 import { toast } from "sonner";
 
-// Custom inline SVG — sealed envelope with a wax-seal padlock medallion.
-// The "letter sealed by a credential only the sender + recipient share" is
-// a much sharper metaphor for end-to-end encryption than a generic
-// upload-arrow. Drawn in champagne gold + graphite to match the brand.
-function SealedEnvelope() {
+// Custom inline SVG — a vault box with a separated key floating above it.
+// This is the LITERAL design metaphor for what SlothBox actually does:
+// the lock and the key never travel together. The key sits above the box,
+// connected only by a hairline dotted line, suggesting "the key exists in
+// a different layer". Drawn in fine sky-blue lineart on glass — visionOS
+// precise, not figurative or decorative.
+function VaultMark() {
   return (
     <svg
-      width={56}
-      height={56}
+      width={64}
+      height={64}
       viewBox="0 0 64 64"
       fill="none"
-      stroke="currentColor"
+      stroke="var(--color-accent)"
+      strokeWidth={1.4}
+      strokeLinecap="round"
+      strokeLinejoin="round"
       aria-hidden
-      className="text-[var(--color-accent)]"
     >
-      {/* Envelope body — slightly tilted to feel handed-over, not just dropped. */}
-      <rect x={6} y={14} width={52} height={36} rx={2} stroke="currentColor" strokeWidth={1.6} />
-      {/* Flap fold — the diagonal that makes it read as an envelope. */}
-      <path d="M6 16 L32 36 L58 16" stroke="currentColor" strokeWidth={1.6} fill="none" />
-      {/* Wax-seal medallion — overlaps the flap, signals "sealed". */}
-      <circle cx={32} cy={36} r={8.5} fill="var(--color-accent)" stroke="none" />
-      {/* Padlock cutout inside the seal — same glyph as the favicon. */}
-      <path
-        d="M29 35 v-2 a3 3 0 0 1 6 0 v2"
-        stroke="var(--color-bg)"
-        strokeWidth={1.4}
-        fill="none"
-        strokeLinecap="round"
-      />
-      <rect x={28.2} y={34.6} width={7.6} height={5.6} rx={0.8} fill="var(--color-bg)" />
-      <circle cx={32} cy={37.4} r={0.7} fill="var(--color-accent)" />
+      {/* Floating key, top of frame. Bow + shaft + single tooth. */}
+      <circle cx={32} cy={12} r={3.5} />
+      <path d="M32 15.5 V 22" />
+      <path d="M30 20 H 33" />
+      {/* Dotted connection line — key reaches toward the box but never lands. */}
+      <line x1={32} y1={24} x2={32} y2={28} strokeDasharray="1 2" opacity={0.5} />
+      {/* Box body. */}
+      <rect x={14} y={28} width={36} height={28} rx={3} />
+      {/* Keyhole cut into the box — circle + descending slot. */}
+      <circle cx={32} cy={40} r={2.4} fill="var(--color-accent)" stroke="none" />
+      <rect x={31} y={40} width={2} height={6} rx={0.5} fill="var(--color-accent)" stroke="none" />
     </svg>
   );
 }
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import {
@@ -174,23 +172,21 @@ export function UploadDrop() {
 
   if (state.kind === "done") {
     return (
-      <Card className="w-full max-w-2xl">
-        <CardContent className="p-6 sm:p-8">
-          <ShareLink
-            url={state.result.shareUrl}
-            expiresAt={state.result.expiresAt}
-            fileName={state.file.name}
-            fileSize={state.file.size}
-            onSendAnother={reset}
-          />
-        </CardContent>
-      </Card>
+      <div className="glass-elevated w-full max-w-[480px] p-7 sm:p-8">
+        <ShareLink
+          url={state.result.shareUrl}
+          expiresAt={state.result.expiresAt}
+          fileName={state.file.name}
+          fileSize={state.file.size}
+          onSendAnother={reset}
+        />
+      </div>
     );
   }
 
   return (
-    <Card className="w-full max-w-2xl overflow-hidden">
-      <CardContent className="p-0">
+    <div className="glass-elevated w-full max-w-[480px] overflow-hidden">
+      <div className="p-0">
         {/* ------------------ Drop zone ------------------ */}
         <div
           role="button"
@@ -212,10 +208,8 @@ export function UploadDrop() {
             }
           }}
           className={cn(
-            "relative flex min-h-[260px] cursor-pointer flex-col items-center justify-center gap-4 border-b border-[var(--color-border)] p-8 text-center transition-colors",
-            isDragOver
-              ? "border-[var(--color-accent-tint)] bg-[var(--color-accent-soft)]"
-              : "bg-[var(--color-card)]",
+            "relative flex min-h-[280px] cursor-pointer flex-col items-center justify-center gap-5 border-b border-[var(--color-glass-stroke)] p-10 text-center transition-colors",
+            isDragOver && "bg-[var(--color-accent-soft)]",
             state.kind === "uploading" && "cursor-not-allowed"
           )}
         >
@@ -229,12 +223,12 @@ export function UploadDrop() {
 
           {state.kind === "idle" || state.kind === "error" ? (
             <>
-              <SealedEnvelope />
-              <div className="space-y-1.5">
-                <p className="font-display text-lg font-medium text-[var(--color-fg)]">
+              <VaultMark />
+              <div className="space-y-2">
+                <p className="text-[1.05rem] font-medium text-[var(--color-fg)]">
                   Drop a file, or click to choose
                 </p>
-                <p className="text-xs tracking-wide text-[var(--color-muted)]">
+                <p className="text-xs font-light text-[var(--color-muted)]">
                   Up to {formatBytes(MAX_FILE_SIZE_BYTES)} · sealed in your browser before upload
                 </p>
               </div>
@@ -289,12 +283,12 @@ export function UploadDrop() {
         </div>
 
         {/* ------------------ Trust footnote ------------------ */}
-        <div className="flex items-center gap-2 border-t border-[var(--color-border)] bg-[color-mix(in_srgb,var(--color-card)_70%,var(--color-bg))] px-6 py-3 text-xs text-[var(--color-muted)]">
-          <Lock className="h-3.5 w-3.5 text-[var(--color-accent)]" aria-hidden />
+        <div className="flex items-center gap-2.5 border-t border-[var(--color-glass-stroke)] px-6 py-3 text-xs font-light text-[var(--color-muted)]">
+          <Lock className="h-3.5 w-3.5 text-[var(--color-accent)]" aria-hidden strokeWidth={1.6} />
           <span>Encryption happens in your browser. The key never leaves this tab.</span>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }
 
