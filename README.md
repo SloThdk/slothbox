@@ -557,14 +557,16 @@ in [`docs/RUNBOOK.md`](docs/RUNBOOK.md).
 
 ## Security
 
-- See [`SECURITY.md`](SECURITY.md) for the threat model, disclosure policy, and
-  audit history.
-- Report vulnerabilities to **security@philipsloth.com** (PGP key fingerprint listed
-  in `SECURITY.md`).
-- All cryptographic code lives in [`packages/crypto-core/`](packages/crypto-core/) and
-  uses **only audited primitives**. PRs that introduce new primitives or alter
-  existing ones are auto-closed unless they reference an audited reference
-  implementation. See `CONTRIBUTING.md`.
+- See [`SECURITY.md`](SECURITY.md) for the threat model, disclosure policy,
+  and audit history.
+- **Report vulnerabilities** to the maintainer at <philipsloth1@gmail.com>,
+  or via the contact form at <https://philipsloth.com/contact>. PGP key
+  fingerprint will be published in `.well-known/security.txt` before v0.1
+  goes public; see `SECURITY.md` for the disclosure SLA.
+- All cryptographic code lives in [`packages/crypto-core/`](packages/crypto-core/)
+  and uses **only audited primitives**. PRs that introduce new primitives
+  or alter existing ones are auto-closed unless they reference an audited
+  reference implementation. See `CONTRIBUTING.md`.
 
 ---
 

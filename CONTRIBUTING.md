@@ -119,12 +119,12 @@ Pre-commit hook runs the formatters. CI fails on diff.
 
 ## Filing issues
 
-| Type                   | Use                                                                                         |
-| ---------------------- | ------------------------------------------------------------------------------------------- |
-| Bug                    | Issue template `bug`                                                                        |
-| Feature request        | Issue template `feature`                                                                    |
-| Security vulnerability | **DO NOT** file an issue. Email security@philipsloth.com — see [`SECURITY.md`](SECURITY.md) |
-| Question               | GitHub Discussions (when enabled)                                                           |
+| Type                   | Use                                                                                                                                                                                       |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Bug                    | Issue template `bug`                                                                                                                                                                      |
+| Feature request        | Issue template `feature`                                                                                                                                                                  |
+| Security vulnerability | **DO NOT** file an issue. Email <philipsloth1@gmail.com> or use the form at <https://philipsloth.com/contact> — see [`SECURITY.md`](SECURITY.md) for the disclosure SLA + PGP fingerprint |
+| Question               | GitHub Discussions (when enabled)                                                                                                                                                         |
 
 When filing a bug, please include:
 

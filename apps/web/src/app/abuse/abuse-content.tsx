@@ -10,11 +10,17 @@ import { AlertTriangle, Mail, ShieldX } from "lucide-react";
 import { GITHUB_URL } from "@/lib/config";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 
-// Single contact channel. Not parameterised because there is exactly one
-// abuse address; if it ever changes, callers updating it should also update
-// SECURITY.md and any docs/legal pages that reference it (search for the
-// literal address before editing).
-const ABUSE_EMAIL = "abuse@philipsloth.com";
+// Maintainer contact channels. Two paths offered so a reporter can pick
+// whichever they're set up to use:
+//   - direct mail to the maintainer's working inbox
+//   - the contact form on philipsloth.com, which routes to the same inbox
+//     and gives reporters who don't use email an alternative.
+//
+// If either ever changes, callers updating these constants should also
+// update SECURITY.md, README.md, CONTRIBUTING.md, and the GitHub issue
+// templates (grep for the literal values before editing).
+const MAINTAINER_EMAIL = "philipsloth1@gmail.com";
+const CONTACT_FORM_URL = "https://philipsloth.com/contact";
 
 export function AbuseContent() {
   const { t } = useLanguage();
@@ -41,8 +47,10 @@ export function AbuseContent() {
 
         {/*
           High-contrast contact callout. Pulled out of the prose so a reader
-          skimming the page can land here directly. The mailto link
-          pre-populates the subject so the operator can route automatically.
+          skimming the page can land here directly. Two routes offered: a
+          direct mailto with a pre-populated subject the operator can route
+          automatically, OR the contact form on philipsloth.com for reporters
+          who would rather not use email.
         */}
         <div className="rounded-xl border border-[var(--color-accent)]/40 bg-[color-mix(in_srgb,var(--color-accent)_8%,transparent)] p-6 sm:p-8">
           <h2 className="font-display text-xl font-semibold text-[var(--color-fg)]">
@@ -51,10 +59,22 @@ export function AbuseContent() {
           <p className="mt-2 text-sm leading-relaxed text-[var(--color-fg)]">
             {t("abuse.contact.body")}{" "}
             <a
-              href={`mailto:${ABUSE_EMAIL}?subject=SlothBox%20abuse%20report`}
+              href={`mailto:${MAINTAINER_EMAIL}?subject=SlothBox%20abuse%20report`}
               className="font-mono font-semibold text-[var(--color-accent)] underline-offset-4 hover:underline"
             >
-              {ABUSE_EMAIL}
+              {MAINTAINER_EMAIL}
+            </a>{" "}
+            —{" "}
+            {/* Inline "or" so a reporter can choose either path without
+                first reading the paragraph following the callout. */}
+            <span className="text-[var(--color-fg-2)]">{t("abuse.contact.or")}</span>{" "}
+            <a
+              href={CONTACT_FORM_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-semibold text-[var(--color-accent)] underline-offset-4 hover:underline"
+            >
+              philipsloth.com/contact
             </a>
             . {t("abuse.contact.body.tail")}
           </p>
