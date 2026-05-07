@@ -20,8 +20,14 @@
 FROM node:20.18-alpine AS base
 ENV PNPM_HOME=/pnpm \
     PATH="/pnpm:$PATH" \
-    NEXT_TELEMETRY_DISABLED=1
-RUN corepack enable && apk add --no-cache libc6-compat dumb-init wget
+    NEXT_TELEMETRY_DISABLED=1 \
+    COREPACK_INTEGRITY_KEYS=0
+# corepack's auto-fetch hits a "Cannot find matching keyid" verification bug
+# on Node 20.18. We pin pnpm 9.12.3 explicitly via `corepack prepare` to
+# skip the auto-fetch path. COREPACK_INTEGRITY_KEYS=0 is belt-and-braces.
+RUN apk add --no-cache libc6-compat dumb-init wget && \
+    corepack enable && \
+    corepack prepare pnpm@9.12.3 --activate
 
 # --- Stage 2: install deps -----------------------------------------------
 FROM base AS deps
