@@ -80,14 +80,46 @@ public sealed class IngestOptions
 
     /// <summary>
     /// Convert a libpq URL (postgresql://user:pass@host:port/db) to an Npgsql
-    /// keyword=value connection string. Npgsql accepts both forms in modern
-    /// versions but normalising avoids surprises with sslmode/Application Name etc.
+    /// keyword=value connection string. Despite occasional claims to the
+    /// contrary, Npgsql 8's NpgsqlConnectionStringBuilder routes through
+    /// DbConnectionStringBuilder.set_ConnectionString which throws
+    /// "Format of the initialization string does not conform to specification"
+    /// on any URI-form input. So we explicitly normalise here. Same logic
+    /// lives in services/receipt/Program.cs (ConvertToNpgsqlConnectionString)
+    /// — keep them in sync if either changes.
     /// </summary>
     public string GetNpgsqlConnectionString()
     {
-        // Npgsql 8 already accepts URI-style connection strings transparently,
-        // so we pass through. Method exists as a seam for v0.5 if we need to
-        // add Application Name / Pooling tuning.
-        return DatabaseUrl;
+        if (string.IsNullOrWhiteSpace(DatabaseUrl))
+        {
+            return string.Empty;
+        }
+
+        // Already a keyword=value;... string — pass through.
+        if (
+            !DatabaseUrl.StartsWith("postgresql://", StringComparison.OrdinalIgnoreCase)
+            && !DatabaseUrl.StartsWith("postgres://", StringComparison.OrdinalIgnoreCase)
+        )
+        {
+            return DatabaseUrl;
+        }
+
+        var uri = new Uri(DatabaseUrl);
+        var userInfo = uri.UserInfo;
+        var user = Uri.UnescapeDataString(userInfo.Split(':')[0]);
+        var password = userInfo.Contains(':', StringComparison.Ordinal)
+            ? Uri.UnescapeDataString(
+                userInfo[(userInfo.IndexOf(':', StringComparison.Ordinal) + 1)..]
+            )
+            : string.Empty;
+        var database = uri.AbsolutePath.TrimStart('/');
+        var port = uri.Port > 0 ? uri.Port : 5432;
+
+        // Pooling=true is the Npgsql default but stating it explicitly makes
+        // the runtime intent obvious to anyone reading logs / connection
+        // strings. Application Name surfaces in pg_stat_activity which makes
+        // troubleshooting noisy-tenant scenarios easier later.
+        return $"Host={uri.Host};Port={port};Username={user};Password={password};"
+            + $"Database={database};Pooling=true;Application Name=slothbox-ingest";
     }
 }
