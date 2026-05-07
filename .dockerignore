@@ -1,0 +1,70 @@
+# Root .dockerignore — applied to every Docker build whose context is the
+# monorepo root (i.e. apps/web and apps/api-gateway, which need access to
+# the workspace package.json files at root + packages/*).
+#
+# Why this file matters specifically for the workspace:
+#   pnpm creates symlinks at apps/<name>/node_modules/@slothbox/<pkg>
+#   pointing back into ../../../packages/<pkg>. When BuildKit transfers the
+#   build context to the daemon, walking through node_modules trips on
+#   those symlinks and aborts with "invalid file request" before any
+#   COPY runs. Excluding **/node_modules sidesteps the entire issue —
+#   the Dockerfiles re-create node_modules inside the image via their own
+#   `pnpm install` step anyway, so we never want the host's copy in the
+#   build context.
+
+# pnpm / yarn / npm lockstep
+**/node_modules
+
+# Build outputs from previous local runs
+**/.next
+**/.turbo
+**/.cache
+**/out
+**/dist
+**/coverage
+**/.next/cache
+
+# .NET intermediate / bin
+**/bin
+**/obj
+**/*.dll.config
+
+# Go build cache
+**/vendor
+
+# Editor + OS noise
+**/.vscode
+**/.idea
+**/.DS_Store
+**/Thumbs.db
+**/*.swp
+
+# Secrets — never go into a layer. .env.example is the public template.
+**/.env
+**/.env.*
+!**/.env.example
+
+# Logs
+**/npm-debug.log*
+**/yarn-debug.log*
+**/yarn-error.log*
+**/pnpm-debug.log*
+
+# Git internals (BuildKit can resolve refs from them, but it bloats context)
+.git
+.gitignore
+.github
+
+# Documentation that doesn't influence the runtime image. README is small
+# enough that some Dockerfiles intentionally COPY it for `--help` output;
+# keep it in by default.
+**/REVIEW_REPORT.md
+**/STATE.md
+
+# Test fixtures + recordings
+**/test-results
+**/playwright-report
+**/coverage
+
+# Local docker / compose state
+docker-compose.override.yml

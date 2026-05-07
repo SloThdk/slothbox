@@ -50,7 +50,11 @@ services:
     container_name: slothbox-web
     restart: unless-stopped
     environment:
-      - NODE_ENV=${NODE_ENV:-development}
+      # Hardcoded production for the same reason as api-gateway: this
+      # container ships the .next/standalone bundle (production-only).
+      # Dev hot-reload happens via `pnpm --filter @slothbox/web run dev`
+      # outside the docker container, where Next defaults to dev mode.
+      - NODE_ENV=production
       - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
       - NEXT_PUBLIC_WS_URL=${NEXT_PUBLIC_WS_URL}
       - NEXT_PUBLIC_INGEST_URL=${NEXT_PUBLIC_INGEST_URL}
@@ -72,7 +76,15 @@ services:
     container_name: slothbox-api-gateway
     restart: unless-stopped
     environment:
-      - NODE_ENV=${NODE_ENV:-development}
+      # Hardcoded production. The container ships the tsup-bundled
+      # apps/api-gateway/dist/index.js — devDependencies (including
+      # pino-pretty) are stripped by the Dockerfile's `pnpm deploy --prod`
+      # step. With NODE_ENV=development the logger crashes at startup
+      # trying to load the missing pretty-print transport.
+      # `pnpm --filter @slothbox/api-gateway run dev` (outside Docker)
+      # still reads .env's NODE_ENV directly via tsx, so dev workflows
+      # that don't go through Docker keep their pretty logs.
+      - NODE_ENV=production
       - API_PORT=3022
       - API_HOST=0.0.0.0
       - API_CORS_ORIGIN=${API_CORS_ORIGIN}
