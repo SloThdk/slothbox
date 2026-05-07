@@ -12,20 +12,29 @@ import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
   // Base — every variant inherits these.
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg)] disabled:pointer-events-none disabled:opacity-50",
+  // NOTE on `cursor-pointer`: Tailwind v4's preflight resets <button> to
+  // cursor: default. That's technically correct per the platform spec,
+  // but every web user expects pointer-cursor on clickable controls, so
+  // we restore it explicitly. `disabled:cursor-not-allowed` is added in
+  // case a disabled button somehow gets pointer-events back (defence in
+  // depth — `disabled:pointer-events-none` already short-circuits clicks).
+  "inline-flex cursor-pointer items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg)] disabled:cursor-not-allowed disabled:pointer-events-none disabled:opacity-50",
   {
     variants: {
       variant: {
+        // Primary CTA. Champagne gold on graphite text — matches the
+        // brand palette and stands out clearly against the warm-cream
+        // body copy. Subtle drop-shadow tinted with the same gold hue
+        // (was the old emerald rgba — that's what was bleeding through).
         primary:
-          "bg-[var(--color-accent)] text-[#04221b] hover:bg-[color-mix(in_srgb,var(--color-accent)_90%,white)] active:scale-[0.99] shadow-[0_4px_24px_-8px_rgba(16,185,129,0.5)]",
+          "bg-[var(--color-accent)] text-[var(--color-bg)] hover:bg-[var(--color-accent-strong)] active:scale-[0.99] shadow-[0_4px_24px_-10px_rgba(201,168,106,0.55)]",
         secondary:
-          "bg-[var(--color-card)] text-[var(--color-fg)] border border-[var(--color-border)] hover:border-[color-mix(in_srgb,var(--color-accent)_60%,var(--color-border))] hover:bg-[color-mix(in_srgb,var(--color-card)_90%,white)]",
-        ghost:
-          "bg-transparent text-[var(--color-fg)] hover:bg-[color-mix(in_srgb,var(--color-card)_60%,transparent)]",
+          "bg-[var(--color-card)] text-[var(--color-fg)] border border-[var(--color-border)] hover:border-[var(--color-accent-tint)] hover:bg-[var(--color-card-elevated)]",
+        ghost: "bg-transparent text-[var(--color-fg)] hover:bg-[var(--color-card)]",
         outline:
-          "border border-[var(--color-border)] bg-transparent text-[var(--color-fg)] hover:bg-[var(--color-card)]",
+          "border border-[var(--color-border)] bg-transparent text-[var(--color-fg)] hover:border-[var(--color-accent-tint)] hover:bg-[var(--color-card)]",
         destructive:
-          "bg-[var(--color-danger)] text-white hover:bg-[color-mix(in_srgb,var(--color-danger)_90%,black)]",
+          "bg-[var(--color-danger)] text-[var(--color-fg)] hover:bg-[color-mix(in_srgb,var(--color-danger)_90%,black)]",
         link: "underline-offset-4 hover:underline text-[var(--color-accent)]",
       },
       size: {

@@ -30,15 +30,7 @@ function SealedEnvelope() {
       className="text-[var(--color-accent)]"
     >
       {/* Envelope body — slightly tilted to feel handed-over, not just dropped. */}
-      <rect
-        x={6}
-        y={14}
-        width={52}
-        height={36}
-        rx={2}
-        stroke="currentColor"
-        strokeWidth={1.6}
-      />
+      <rect x={6} y={14} width={52} height={36} rx={2} stroke="currentColor" strokeWidth={1.6} />
       {/* Flap fold — the diagonal that makes it read as an envelope. */}
       <path d="M6 16 L32 36 L58 16" stroke="currentColor" strokeWidth={1.6} fill="none" />
       {/* Wax-seal medallion — overlaps the flap, signals "sealed". */}
