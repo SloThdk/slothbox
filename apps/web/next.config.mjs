@@ -52,38 +52,22 @@ const nextConfig = {
   // Disable the X-Powered-By header for parity with Caddy fingerprint stripping.
   poweredByHeader: false,
 
-  // Default-deny security headers. Tightened CSP is intentionally inline-script
-  // friendly only for the Next runtime ('unsafe-inline' on style-src is a
-  // deliberate trade-off Tailwind v4 + the Next dev runtime require; it does
-  // NOT apply to script-src).
+  // Defence-in-depth security headers.
+  //
+  // Important: Content-Security-Policy is NOT set here. The middleware at
+  // src/middleware.ts mints a per-request nonce and emits the full CSP
+  // there — setting CSP at both layers would emit two headers and cause
+  // browsers to enforce both, which dramatically restricts which inline
+  // scripts can run (Chrome takes the intersection, not the union).
+  //
+  // Caddy at the edge also applies HSTS / X-Frame-Options / etc. The Next
+  // layer repeats them so a future stack change (e.g. moving from Caddy to
+  // a different reverse proxy) doesn't silently regress security posture.
   async headers() {
-    const isDev = process.env.NODE_ENV !== "production";
-    const csp = [
-      "default-src 'self'",
-      // 'wasm-unsafe-eval' is what modern libsodium-wrappers actually needs
-      // for its WebAssembly bootstrap — full 'unsafe-eval' would let any
-      // injected script run arbitrary JS via Function().
-      // Dev also gets 'unsafe-eval' + 'unsafe-inline' for Next's hot-reload
-      // runtime, which is acceptable because dev never faces real users.
-      `script-src 'self' 'wasm-unsafe-eval'${isDev ? " 'unsafe-eval' 'unsafe-inline'" : ""}`,
-      "style-src 'self' 'unsafe-inline'",
-      "img-src 'self' data: blob:",
-      "font-src 'self' data:",
-      // Browser ↔ gateway (REST) + browser ↔ ingest (chunk PUTs) + WebSocket.
-      // The wildcards expand at build time from NEXT_PUBLIC_* env vars below.
-      `connect-src 'self' ${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3022"} ${process.env.NEXT_PUBLIC_WS_URL ?? "ws://localhost:3022"} ${process.env.NEXT_PUBLIC_INGEST_URL ?? "http://localhost:3023"}`,
-      "worker-src 'self' blob:",
-      "frame-ancestors 'none'",
-      "base-uri 'self'",
-      "form-action 'self'",
-      "object-src 'none'",
-    ].join("; ");
-
     return [
       {
         source: "/:path*",
         headers: [
-          { key: "Content-Security-Policy", value: csp },
           { key: "X-Frame-Options", value: "DENY" },
           { key: "X-Content-Type-Options", value: "nosniff" },
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
@@ -92,6 +76,14 @@ const nextConfig = {
             key: "Strict-Transport-Security",
             value: "max-age=63072000; includeSubDomains; preload",
           },
+          // COOP/COEP/CORP — required for SharedArrayBuffer access (libsodium
+          // can use SAB-backed wasm for parallel hashing in the future).
+          // Browsers IGNORE these headers on non-HTTPS origins, which is
+          // why production must be HTTPS — see the COOP warning that
+          // appears when you load the site over plain HTTP.
+          { key: "Cross-Origin-Embedder-Policy", value: "require-corp" },
+          { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
+          { key: "Cross-Origin-Resource-Policy", value: "same-origin" },
         ],
       },
     ];

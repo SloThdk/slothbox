@@ -14,8 +14,14 @@ services:
     container_name: slothbox-caddy
     restart: unless-stopped
     ports:
-      - "8080:80"
-      - "8443:443"
+      # Bind to the canonical HTTP/HTTPS ports. ACME HTTP-01 challenge
+      # needs :80 reachable from the public internet; HTTPS lives on :443.
+      # UDP/443 carries HTTP/3 traffic (Caddy negotiates h3 if the client
+      # supports it). Local-dev compose overrides these to high ports so
+      # a developer doesn't need root to bind 80.
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
     volumes:
       - ./infra/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
