@@ -171,11 +171,21 @@ echo       Ingest is ready.
 :skipingest
 
 echo [4/5] Running database migrations (idempotent) ...
-call pnpm db:migrate
-if errorlevel 1 (
-    echo.
-    echo  WARNING: migrations failed. Check db/migrations/ and DATABASE_URL.
-    echo.
+REM Run migrations via `docker compose exec` instead of `pnpm db:migrate`.
+REM The pnpm script reads DATABASE_URL from .env which uses the docker-
+REM internal hostname `postgres:5432` — that doesn't resolve from the
+REM host shell, so pnpm db:migrate silently no-ops on Windows. Piping
+REM each .sql file into psql inside the postgres container always works.
+REM Re-applying is safe: every migration is idempotent (CREATE IF NOT
+REM EXISTS, ON CONFLICT DO NOTHING, etc.).
+for %%M in (db\migrations\*.sql) do (
+    docker compose exec -T postgres psql -U slothbox -d slothbox -v ON_ERROR_STOP=1 -f - < "%%M" >nul 2>&1
+    if errorlevel 1 (
+        echo       WARNING: %%~nxM did not apply cleanly. Run it manually if needed:
+        echo         docker compose exec -T postgres psql -U slothbox -d slothbox -f - ^< "%%M"
+    ) else (
+        echo       applied %%~nxM
+    )
 )
 
 echo [5/5] Starting Next.js dev hot-reload (background) on :%FRONTEND_PORT% ...
