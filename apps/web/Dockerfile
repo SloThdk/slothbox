@@ -52,16 +52,23 @@ RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
 FROM base AS builder
 WORKDIR /repo
 
-# Bring the deps + sources together. node_modules from deps stage already
-# has the hoisted layout from its in-image .npmrc.
-COPY --from=deps /repo/node_modules ./node_modules
-COPY package.json pnpm-lock.yaml* pnpm-workspace.yaml* tsconfig*.json .npmrc ./
+# Re-apply hoisted .npmrc inside the builder stage too — needed for the
+# implicit pnpm install below. .npmrc must exist BEFORE manifests are
+# copied so pnpm picks it up at install time.
+RUN printf 'node-linker=hoisted\nstrict-peer-dependencies=false\nauto-install-peers=true\n' > .npmrc
+
+# Bring manifests + source. We re-install rather than COPYing the deps
+# stage's node_modules because pnpm's workspace symlinks don't survive a
+# COPY between stages (the symlinks point to relative paths that resolve
+# differently after the copy).
+COPY package.json pnpm-lock.yaml* pnpm-workspace.yaml* tsconfig*.json ./
 COPY packages/crypto-core ./packages/crypto-core
 COPY apps/web ./apps/web
 
-# Re-apply hoisted .npmrc inside the builder stage too — needed for any
-# implicit pnpm calls.
-RUN printf 'node-linker=hoisted\nstrict-peer-dependencies=false\nauto-install-peers=true\n' > .npmrc
+# Workspace install — this materialises the symlinks for @slothbox/crypto-core
+# inside apps/web/node_modules so Next webpack can resolve the import.
+RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
+    pnpm install --no-frozen-lockfile --filter @slothbox/web... --filter @slothbox/crypto-core
 
 RUN pnpm --filter @slothbox/web build
 
