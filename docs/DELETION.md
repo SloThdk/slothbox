@@ -4,10 +4,10 @@ How SlothBox proves a file is gone, not just promises it. **Lands in v1.0.**
 
 ## Goal
 
-When a file is destroyed (burn-after-read fires, or expiry hits, or sender
+When a file is destroyed (burn-after-read fires, expiry hits, or the sender
 manually revokes), the sender can verify cryptographically that the encryption
-key has been destroyed — meaning the ciphertext is mathematically unrecoverable,
-even from our backups.
+key has been destroyed — meaning the ciphertext is mathematically
+unrecoverable, even from server backups.
 
 ## How destruction works
 
@@ -32,7 +32,7 @@ After this:
 - Postgres no longer has the share row
 - The destruction chain has a permanent record
 
-## Why this is more than "we deleted it from our database"
+## Why this is more than "deleted from the database"
 
 A typical "delete" in a SaaS world means:
 
@@ -44,8 +44,8 @@ A typical "delete" in a SaaS world means:
   - Replication targets
   - Deleted-but-not-yet-overwritten disk sectors
 
-For SlothBox the verification target is different. We don't claim to overwrite
-disk sectors (that's hardware-dependent). We claim:
+For SlothBox the verification target is different. The system does not claim
+to overwrite disk sectors (that's hardware-dependent). It claims:
 
 - **The encryption key for this share is destroyed** (was never on the server
   to begin with — it was in the URL fragment)
@@ -53,9 +53,9 @@ disk sectors (that's hardware-dependent). We claim:
 - **Any future attempt to "undelete" by restoring backups would produce a
   contradiction** in the chain — the destruction record is already public
 
-In other words: even if a future attacker restores our entire backup, they get
-ciphertext without keys. The keys never existed on the server. The destruction
-record is public proof that the share was marked as destroyed.
+In other words: even if a future attacker restores the entire server backup,
+they get ciphertext without keys. The keys never existed on the server. The
+destruction record is public proof that the share was marked as destroyed.
 
 ## Verification flow
 
@@ -114,10 +114,12 @@ For everyone else, it's a nice-to-have transparency layer.
 
 ## Limits
 
-- Once we destroy a share, it's irreversible. We don't keep "soft-deleted" shares.
-- The destruction chain is append-only. Genuine bugs in the destruction process
-  (e.g. a chain entry for a share that wasn't actually destroyed) require a
-  follow-up "correction" entry — the chain history itself remains public.
-- The destruction chain depends on our service publishing the Merkle root. If
-  our service shuts down, the existing published roots remain verifiable as long
+- Destroy operations are irreversible. The system does not keep "soft-deleted"
+  shares.
+- The destruction chain is append-only. Genuine bugs in the destruction
+  process (e.g. a chain entry for a share that wasn't actually destroyed)
+  require a follow-up "correction" entry — the chain history itself remains
+  public.
+- The destruction chain depends on the service publishing Merkle roots. If
+  the service shuts down, existing published roots remain verifiable as long
   as snapshots survive (Wayback Machine, archived audit dumps, etc.).

@@ -1,9 +1,9 @@
 # Security Policy
 
-> **SlothBox is a security-critical project.** This file documents how I treat
-> security: the threat model, the disclosure process, what's audited, and what
-> isn't. Read this before deploying SlothBox or trusting it with anything
-> important.
+> **SlothBox is a security-critical project.** This file documents the
+> security policy: the threat model, the disclosure process, what's audited,
+> and what isn't. Read it before deploying SlothBox or trusting it with
+> anything important.
 
 ---
 
@@ -23,34 +23,68 @@ SlothBox is appropriate for portfolio review and personal experimentation only.*
 
 ---
 
+## v0.1 trust assumption (READ FIRST)
+
+**The `shortId` is the access secret in v0.1.** Anyone holding a share URL can:
+
+- destroy the share (`POST /api/shares/:shortId/destroy`)
+- trigger burn-after-read (`POST /api/shares/:shortId/downloaded`)
+- overwrite chunks during the upload window
+  (`PUT /chunk/:shortId/:chunkIndex`)
+
+There is no per-share owner token, no auth cookie, no signed timestamp on
+these calls in v0.1. The mitigation is a 12-character random shortId with
+~60 bits of entropy and aggressive rate limiting (120 destroy / 1000 burn
+calls per minute per IP).
+
+This is a **deliberate v0.1 trade-off**, not a bug. Per-share HMAC tokens
+generated at create time and bound to the destroy / burn / chunk-PUT routes
+land in **v0.5** alongside the Lucia auth + dashboard milestone (see
+[`MILESTONES.md`](MILESTONES.md)). Until then:
+
+- Treat share URLs the way you would treat a one-time-use door key: do not
+  paste them into shared chat history, public Slack channels, ticketing
+  comments, or anywhere else where a non-recipient might see them.
+- Prefer short expiry windows (1 h / 24 h) over long ones for sensitive
+  content — the smaller the time window in which a leaked URL is valid, the
+  smaller the destruction-by-anyone exposure.
+- Use burn-after-read sparingly — a leaked URL hitting the burn endpoint
+  before the legitimate recipient downloads creates a denial primitive.
+
+This section exists so a public reader can't confuse "shortId is the access
+secret in v0.1" with "we forgot to add auth". The design has owner tokens
+spec'd; v0.5 ships them.
+
+---
+
 ## Threat model
 
 What SlothBox **does** protect against:
 
-| Threat                                                   | Mitigation                                                                                                                                                                                          |
-| -------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Server operator reads your file                          | Files are encrypted in the browser before upload using libsodium's XChaCha20-Poly1305. The server only ever stores ciphertext. The decryption key never reaches the server (lives in URL fragment). |
-| Server operator's database is breached                   | Same — attacker gets a pile of ciphertext blobs, no keys                                                                                                                                            |
-| Network intercept (passive)                              | TLS 1.3 between every hop. URL fragments stay client-side regardless.                                                                                                                               |
-| Network intercept (active MitM with valid cert)          | E2E encryption is independent of TLS — the file remains encrypted with the key the _original sender's_ browser generated, which the attacker never sees                                             |
-| Stolen backup tape                                       | Backups contain only ciphertext + encryption-key metadata; no plaintext keys                                                                                                                        |
-| Subpoena / legal compulsion                              | I can hand over ciphertext. I do not have the keys. The system logs connection metadata only (IP, timestamp, share ID) — and that is documented explicitly in the privacy policy                    |
-| Malicious link click (phishing-style attack on receiver) | Receiver's browser still verifies the AEAD tag — tampered ciphertext fails to decrypt and produces an explicit error, not a wrong-but-plausible file                                                |
-| Cryptanalytic break of one primitive                     | I picked modern, well-vetted primitives (XChaCha20-Poly1305, Curve25519, BLAKE2b, Argon2id). If any single one is broken, well-defined upgrade paths exist.                                         |
+| Threat                                                   | Mitigation                                                                                                                                                                                           |
+| -------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Server operator reads your file                          | Files are encrypted in the browser before upload using libsodium's XChaCha20-Poly1305. The server only ever stores ciphertext. The decryption key never reaches the server (lives in URL fragment).  |
+| Server operator's database is breached                   | Same — attacker gets a pile of ciphertext blobs, no keys                                                                                                                                             |
+| Network intercept (passive)                              | TLS 1.3 between every hop. URL fragments stay client-side regardless.                                                                                                                                |
+| Network intercept (active MitM with valid cert)          | E2E encryption is independent of TLS — the file remains encrypted with the key the _original sender's_ browser generated, which the attacker never sees                                              |
+| Stolen backup tape                                       | Backups contain only ciphertext + encryption-key metadata; no plaintext keys                                                                                                                         |
+| Subpoena / legal compulsion                              | The operator can hand over ciphertext only — the keys never reach the server. Connection metadata is logged (IP, timestamp, share ID), and that scope is documented explicitly in the privacy policy |
+| Malicious link click (phishing-style attack on receiver) | Receiver's browser still verifies the AEAD tag — tampered ciphertext fails to decrypt and produces an explicit error, not a wrong-but-plausible file                                                 |
+| Cryptanalytic break of one primitive                     | The system uses modern, well-vetted primitives (XChaCha20-Poly1305, Curve25519, BLAKE2b, Argon2id). If any single one is broken, well-defined upgrade paths exist.                                   |
 
 What SlothBox **does not** protect against (read this carefully):
 
-| Out-of-scope threat                                             | Why                                                                                                                                                                                                                              |
-| --------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Compromised sender's device                                     | If your machine is rooted, your file is plaintext on it before encryption. SlothBox can't help.                                                                                                                                  |
-| Compromised receiver's device                                   | Same on the other side.                                                                                                                                                                                                          |
-| Malicious browser extension                                     | Extensions can read DOM and intercept the WebCrypto path. Treat browsers like any other untrusted environment.                                                                                                                   |
-| Side-channel attacks against libsodium primitives               | Best-effort: I use the constant-time primitives libsodium provides; full side-channel resistance requires hardware support I don't control                                                                                       |
-| Timing attacks against the server                               | I use `crypto.timingSafeEqual` for any token comparison; rate-limited; but a determined attacker with millions of probes could still extract some info. Not an attack vector for the threats this system _does_ protect against. |
-| State-level adversaries with court orders against your endpoint | If a Western intelligence agency wants your file and has compelled access to your laptop, you have a different problem than file transfer security.                                                                              |
-| Quantum computers (Shor's algorithm against Curve25519)         | When a CRQC exists, I will migrate to PQ primitives. I am not migrating now because no audited PQ KEM has the maturity of Curve25519.                                                                                            |
-| Social engineering                                              | "Please give me the link" is not a SlothBox vulnerability.                                                                                                                                                                       |
-| Recipient screenshots / leaks                                   | If a human receives the plaintext, they can screenshot it. SlothBox is delivery-confidentiality, not endpoint DRM.                                                                                                               |
+| Out-of-scope threat                                             | Why                                                                                                                                                                                                                        |
+| --------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Compromised sender's device                                     | If your machine is rooted, your file is plaintext on it before encryption. SlothBox can't help.                                                                                                                            |
+| Compromised receiver's device                                   | Same on the other side.                                                                                                                                                                                                    |
+| Malicious browser extension                                     | Extensions can read DOM and intercept the WebCrypto path. Treat browsers like any other untrusted environment.                                                                                                             |
+| Side-channel attacks against libsodium primitives               | Best-effort: the system uses the constant-time primitives libsodium provides; full side-channel resistance requires hardware support outside the operator's control                                                        |
+| Timing attacks against the server                               | Token comparisons use `crypto.timingSafeEqual` and are rate-limited; a determined attacker with millions of probes could still extract some info. Not an attack vector for the threats this system _does_ protect against. |
+| State-level adversaries with court orders against your endpoint | If a Western intelligence agency wants your file and has compelled access to your laptop, you have a different problem than file transfer security.                                                                        |
+| Quantum computers (Shor's algorithm against Curve25519)         | When a CRQC exists, the system will migrate to PQ primitives. The migration is deferred today because no audited PQ KEM has the maturity of Curve25519.                                                                    |
+| Social engineering                                              | "Please give me the link" is not a SlothBox vulnerability.                                                                                                                                                                 |
+| Recipient screenshots / leaks                                   | If a human receives the plaintext, they can screenshot it. SlothBox is delivery-confidentiality, not endpoint DRM.                                                                                                         |
 
 For a longer threat model with attack trees, see [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md).
 
@@ -95,14 +129,19 @@ In scope:
   `db/migrations/`, `infra/`, `tools/`)
 - The deployed services at `slothbox.philipsloth.com` (the production reference deployment)
 
-Out of scope:
+Out of scope for the **security** disclosure channel (different routes apply):
 
 - Bugs in upstream dependencies (`libsodium`, `age`, `next`, etc.) — report
-  those to the upstream project, not me
+  those to the upstream project, not this repo.
 - Denial-of-service attacks against the infrastructure (already rate-limited
-  at the gateway and the edge)
-- Social engineering attempts against the maintainer
-- Spam / abuse of the public service that doesn't compromise other users' files
+  at the gateway and the edge).
+- Social engineering attempts against the maintainer.
+- **Abuse of the public service** (illegal content, harassment, spam, IP
+  infringement) — these go through the **abuse** channel, not the security
+  channel. Report at <https://slothbox.philipsloth.com/abuse> or directly to
+  `abuse@philipsloth.com`. This is the EU DSA Article 16 notice mechanism;
+  reports are reviewed within 24 hours and high-severity (CSAM,
+  immediate-harm) prioritised same-day.
 
 ---
 

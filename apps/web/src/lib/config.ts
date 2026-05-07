@@ -48,5 +48,6 @@ export const GITHUB_URL = "https://github.com/SloThdk/slothbox";
  * App identity used in headings, copy, OG metadata.
  */
 export const APP_NAME = "SlothBox";
-export const APP_TAGLINE = "Send any file. We can't read it. Verify the math yourself.";
+export const APP_TAGLINE =
+  "Send any file. The server cannot read it. The full source code is open and auditable.";
 export const APP_VERSION = "0.1.0-alpha.1";

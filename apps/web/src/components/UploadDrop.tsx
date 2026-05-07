@@ -255,12 +255,22 @@ export function UploadDrop() {
         </div>
 
         {/* ------------------ Share options ------------------ */}
+        {/*
+          Share-options block. Each control gets a label + a small helper
+          paragraph that spells out exactly what the option does — picked
+          deliberately over a bare label-and-checkbox UI so a sender from a
+          regulated profession (lawyer, doctor, accountant) can read the
+          consequence of the toggle BEFORE clicking it. Stacks vertically on
+          mobile, two-column from `sm` upwards. Pointer events are killed
+          during upload so a mid-flight toggle can't trigger a re-upload.
+        */}
         <div
           className={cn(
-            "grid grid-cols-1 gap-4 p-6 sm:grid-cols-2 sm:p-6",
+            "grid grid-cols-1 gap-5 p-6 sm:grid-cols-2 sm:p-6",
             state.kind === "uploading" && "pointer-events-none opacity-60"
           )}
         >
+          {/* ── Expiry ───────────────────────────────────────────── */}
           <div className="space-y-2">
             <Label htmlFor="expiry">{t("upload.expires")}</Label>
             <Select
@@ -279,19 +289,32 @@ export function UploadDrop() {
                 ))}
               </SelectContent>
             </Select>
+            {/* Plain-language explanation. Caps at ~3 lines on mobile so the
+                control's hit-target stays primary. */}
+            <p className="text-[0.7rem] leading-snug font-light text-[var(--color-muted)]">
+              {t("upload.expires.help")}
+            </p>
           </div>
 
-          <div className="flex items-end justify-between gap-4">
-            <div className="space-y-1">
-              <Label htmlFor="burn">{t("upload.burn")}</Label>
-              <p className="text-xs text-[var(--color-muted)]">{t("upload.burn.help")}</p>
+          {/* ── Burn after read ─────────────────────────────────── */}
+          <div className="flex flex-col gap-2">
+            <div className="flex items-start justify-between gap-4">
+              <Label htmlFor="burn" className="leading-tight">
+                {t("upload.burn")}
+              </Label>
+              <Switch
+                id="burn"
+                checked={burnAfterRead}
+                onCheckedChange={setBurnAfterRead}
+                disabled={state.kind === "uploading"}
+              />
             </div>
-            <Switch
-              id="burn"
-              checked={burnAfterRead}
-              onCheckedChange={setBurnAfterRead}
-              disabled={state.kind === "uploading"}
-            />
+            {/* Same plain-language explanation pattern as the expiry helper.
+                Sits below the row instead of beside the switch so longer
+                copy doesn't squeeze the toggle's hit area. */}
+            <p className="text-[0.7rem] leading-snug font-light text-[var(--color-muted)]">
+              {t("upload.burn.help")}
+            </p>
           </div>
         </div>
 

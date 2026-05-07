@@ -1,6 +1,7 @@
 # Threat Model
 
-Adversaries we consider, what we protect against, and what's out of scope.
+Adversaries the system considers, what it protects against, and what's out
+of scope.
 
 ## Adversaries
 
@@ -19,7 +20,7 @@ Adversaries we consider, what we protect against, and what's out of scope.
 
 | Asset                                | Protection level                                                    |
 | ------------------------------------ | ------------------------------------------------------------------- |
-| File plaintext                       | Highest — never reaches our server                                  |
+| File plaintext                       | Highest — never reaches the server                                  |
 | Encryption keys                      | Highest — generated client-side, in URL fragment                    |
 | File metadata (filename, type, size) | High — encrypted alongside content                                  |
 | Share IDs                            | Medium — public knowledge of an ID alone is useless without the key |
@@ -47,13 +48,13 @@ Adversaries we consider, what we protect against, and what's out of scope.
 │   Postgres database                                     │
 │   MinIO blob storage                                    │
 │   Server backups                                        │
-│   The server operator (you, me, future maintainers)     │
+│   The server operator (current and future maintainers)  │
 └─────────────────────────────────────────────────────────┘
 ```
 
-The bottom layer is treated as compromised by design: even if our server is
-fully owned by an adversary, plaintext does not leak because plaintext was never
-there.
+The bottom layer is treated as compromised by design: even if the server is
+fully owned by an adversary, plaintext does not leak because plaintext was
+never there.
 
 ## Specific attack scenarios
 
@@ -81,11 +82,12 @@ Server provides:
 
 Server cannot provide:
 
-- Plaintext (we don't have it)
-- Encryption keys (we don't have them)
+- Plaintext (the operator does not have it)
+- Encryption keys (the server never receives them)
 - Recipient identities for anonymous shares
 
-This is a feature, not a bug. We document it explicitly in our privacy policy.
+This is a feature, not a bug, and is documented explicitly in the privacy
+policy.
 
 ### Scenario: tampered ciphertext
 
@@ -145,7 +147,7 @@ any web app — not just SlothBox.
 | Malware on sender's device               | Pre-encryption plaintext is on the sender's machine. We can't help.              |
 | Malicious browser extension              | Extensions run with full DOM access. Mitigation: use a hardened browser profile. |
 | Recipient screenshots                    | The receiver has plaintext by definition. DRM is not in scope.                   |
-| Side-channel attacks on libsodium        | Best-effort: we use the constant-time primitives the library provides.           |
+| Side-channel attacks on libsodium        | Best-effort: the system uses the constant-time primitives the library provides.  |
 | Hardware bus snooping                    | Out of scope for a web service.                                                  |
 | Endpoint correlation by traffic analysis | We don't claim anonymity. Use Tor + a VPN if you need network anonymity.         |
 

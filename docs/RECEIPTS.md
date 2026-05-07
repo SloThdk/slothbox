@@ -42,7 +42,7 @@ This means:
 ### Verifier CLI
 
 A standalone Go binary (`slothbox-verify`) verifies receipts offline, without
-contacting our servers. Install via brew/scoop/apt. The CLI:
+contacting any SlothBox server. Install via brew/scoop/apt. The CLI:
 
 - Takes a receipt file as input
 - Verifies the TSA signature against the bundled TSA public cert
@@ -77,39 +77,39 @@ JSON, as small as possible:
 | ----------------------------------------------- | ---------------------------------------------------- |
 | "A file with this hash was retrieved"           | The TSA signed over the hash                         |
 | "Retrieved at this time (within TSA precision)" | TSA timestamp                                        |
-| "From this IP region"                           | We log coarse region, sign it as part of the receipt |
+| "From this IP region"                           | Coarse region logged + signed as part of the receipt |
 | "The receipt was issued by SlothBox"            | TSA signature chains to the TSA's CA                 |
-| "The receipt is in our public audit chain"      | Merkle proof + published root anchor                 |
+| "The receipt is in the public audit chain"      | Merkle proof + published root anchor                 |
 
 What the receipt does NOT prove:
 
 - The file's content (the hash doesn't reveal it)
 - Who downloaded (just the IP region — for true identity, the v1.1 MitID
   integration adds verified-sender identity)
-- That the recipient actually read the file (we know it was downloaded; reading
-  is opaque to us)
+- That the recipient actually read the file (the system can prove the bytes
+  were retrieved; the act of reading is opaque to the server)
 
 ## Court admissibility
 
 Receipt admissibility depends on jurisdiction and case type. SlothBox provides
-the technical artifact. We do not provide legal certification.
+the technical artifact. The project does not provide legal certification.
 
 What helps the receipt's admissibility:
 
 - The TSA is an established RFC 3161 authority
 - The Merkle root is published to a public endpoint at issuance time
-- The verifier CLI is independent of our service
+- The verifier CLI is independent of any SlothBox server
 - The cryptographic primitives are audited and documented
 
-What may still be required by your jurisdiction:
+What may still be required by the relevant jurisdiction:
 
 - A notarized affidavit from the recipient that they downloaded
 - A separate signed confirmation (e.g. via DocuSign or MitID)
 - Expert testimony for novel technical evidence
 
-For Danish proceedings, pair SlothBox receipts with a Penneo-signed
-acknowledgment for the strongest case. We are not lawyers — consult one for
-your specific case.
+For Danish proceedings, pairing SlothBox receipts with a Penneo-signed
+acknowledgment makes the strongest case. **This document is not legal
+advice** — consult a lawyer for any specific case.
 
 ## Verification flow
 
@@ -154,7 +154,7 @@ and that root has been public since issuance.
 
 ## Open questions for v1.0
 
-- Should we anchor Merkle roots to a public blockchain (Bitcoin OP_RETURN) for
-  extra durability? Adds complexity. Decision deferred until real demand exists.
-- Should we offer a "private TSA" tier for clients who want their own TSA cert
-  in the chain? Considered. Probably v1.5+.
+- Anchoring Merkle roots to a public blockchain (Bitcoin OP_RETURN) for extra
+  durability adds complexity. Decision deferred until real demand exists.
+- A "private TSA" tier for clients who want their own TSA cert in the chain
+  is on the table. Probably v1.5+.

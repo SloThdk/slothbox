@@ -63,6 +63,10 @@ export function Footer() {
                 labelKey: "footer.link.crypto",
                 external: true,
               },
+              // EU DSA Article 16 notice mechanism. Internal route, not
+              // external — visitors should not have to leave the site to
+              // file a report.
+              { href: "/abuse", labelKey: "footer.link.abuse" },
             ]}
           />
         </div>
