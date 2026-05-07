@@ -1,7 +1,100 @@
 # Architecture
 
-SlothBox is a 13-service monorepo. Everything runs in Docker Compose locally and
-in production (one Hetzner box for v0.1, scale out later).
+SlothBox is a 14-service monorepo. Everything runs in Docker Compose locally and
+in production (one Hetzner cax11 ARM box in Falkenstein, DE for v0.1).
+
+## System diagram
+
+```mermaid
+%%{init: {'theme': 'dark', 'themeVariables': {'primaryColor':'#1a1f29','primaryTextColor':'#f0f4fa','primaryBorderColor':'#5b9eff','lineColor':'#5b9eff','secondaryColor':'#14181f','tertiaryColor':'#0a0d14'}}}%%
+flowchart TB
+    subgraph Internet
+        BROWSER[Sender browser<br/>libsodium WASM<br/>file gets sealed here]
+        RECV[Recipient browser<br/>libsodium WASM<br/>key from URL fragment]
+    end
+
+    subgraph "Hetzner cax11 ARM · Falkenstein DE · 4.49 EUR/mo"
+        CADDY[Caddy 2.8<br/>:443 TLS · :80 redirect<br/>Let's Encrypt auto-renew<br/>HTTP/3 · per-route body caps]
+
+        subgraph "Public surfaces"
+            WEB[web · Next.js 15<br/>:3021 internal<br/>nonce CSP · server components]
+            GW[api-gateway · Hono<br/>:3022 internal<br/>Zod validation · rate limit]
+            ING[ingest · ASP.NET 8<br/>:3023 internal<br/>chunked PUT · Pipe streaming]
+            REC[receipt · ASP.NET 8<br/>:3024 internal<br/>RFC 3161 client · v0.5+]
+        end
+
+        subgraph "Background"
+            REA[reaper · Go 1.24<br/>distroless static<br/>cron sweep · audit chain]
+            PGB[pg-backup<br/>nightly pg_dump<br/>28-day retention]
+        end
+
+        subgraph "State"
+            PG[(postgres 16<br/>shares · audit_chain<br/>RLS on every table)]
+            MIN[(MinIO<br/>encrypted blobs<br/>bucket per env)]
+            VAL[(Valkey<br/>rate limits<br/>session cache)]
+            NATS[(NATS<br/>cross-service events)]
+        end
+
+        subgraph "Observability"
+            PROM[Prometheus<br/>15s scrape<br/>11 alert rules]
+            GRAF[Grafana<br/>9-panel dashboard<br/>via /grafana]
+            LOKI[Loki + Promtail<br/>JSON log aggregation]
+        end
+    end
+
+    subgraph "External"
+        TSA[FreeTSA.org<br/>RFC 3161 TSA<br/>v0.5+ delivery receipts]
+        LE[Let's Encrypt<br/>cert authority]
+    end
+
+    BROWSER -->|HTTPS<br/>encrypted chunks| CADDY
+    RECV -->|HTTPS<br/>fetch + decrypt| CADDY
+    CADDY -->|/| WEB
+    CADDY -->|/api/*| GW
+    CADDY -->|/chunk/*| ING
+    CADDY -->|/receipt/*| REC
+    CADDY -->|/ws/*<br/>WebSocket| GW
+    CADDY <-->|ACME HTTP-01| LE
+
+    GW --> PG
+    GW --> VAL
+    GW --> NATS
+    ING --> PG
+    ING --> MIN
+    ING --> VAL
+    REC --> PG
+    REC -.->|v0.5+| TSA
+    REA --> PG
+    REA --> MIN
+    PGB --> PG
+
+    PROM --> GW
+    PROM --> ING
+    PROM --> REC
+    PROM --> CADDY
+    GRAF --> PROM
+    GRAF --> LOKI
+    LOKI -.->|tail logs| WEB
+    LOKI -.->|tail logs| GW
+    LOKI -.->|tail logs| ING
+
+    classDef external fill:#0d1117,stroke:#3a3c44,color:#9b948a
+    classDef public fill:#1a1f29,stroke:#5b9eff,color:#f0f4fa,stroke-width:2px
+    classDef state fill:#1a1f29,stroke:#a8b3cf,color:#f0f4fa
+    classDef obs fill:#1a1f29,stroke:#7e6cff,color:#f0f4fa
+    classDef edge fill:#5b9eff,stroke:#5b9eff,color:#0a0d14,font-weight:bold
+
+    class BROWSER,RECV,TSA,LE external
+    class WEB,GW,ING,REC,REA,PGB public
+    class PG,MIN,VAL,NATS state
+    class PROM,GRAF,LOKI obs
+    class CADDY edge
+```
+
+The trust property the architecture enforces: **the sender's key never reaches
+the server.** It's generated client-side via libsodium's `randombytes_buf`,
+embedded in the URL fragment, and the recipient's browser reads it via
+`window.location.hash` — which browsers never include in HTTP requests by spec.
 
 ## Service map
 
@@ -113,7 +206,7 @@ None of these are surprises. All known migration paths.
 
 ```
 ┌──────────────────────────────────────────────────────┐
-│  Hetzner CCX13 (Frankfurt or Helsinki)               │
+│  Hetzner cax11 ARM (Falkenstein DE) — 4.49 EUR/mo    │
 │  ┌────────────────────────────────────────────────┐  │
 │  │  docker-compose.prod.yml                       │  │
 │  │  ┌────────┐ ┌─────────┐ ┌──────┐ ┌──────────┐ │  │
