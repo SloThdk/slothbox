@@ -149,11 +149,51 @@ slothbox.philipsloth.com {
 	}
 }
 
-# ─── HTTP -> HTTPS redirect for the IP fallback ──────────────────────
-# Anyone hitting http://178.105.105.187 directly (or
-# http://slothbox.philipsloth.com) gets bounced to the canonical HTTPS
-# domain. This also acts as the holding pattern during ACME challenge
-# completion — Caddy keeps :80 open for the HTTP-01 challenge regardless.
+# ─── Local dev — same routing rules, plain HTTP, no TLS ──────────────
+# When developers run `docker compose up` on their laptop, they hit the
+# stack via http://localhost/. Without this block Caddy would 301 every
+# such request to https://slothbox.philipsloth.com (per the IP-fallback
+# rule below), which is the opposite of useful for local testing.
+http://localhost {
+	handle /healthz {
+		respond "ok" 200
+	}
+	handle /api/* {
+		reverse_proxy api-gateway:3022
+	}
+	@websocket_local {
+		header Connection *Upgrade*
+		header Upgrade websocket
+	}
+	handle /ws/* {
+		reverse_proxy @websocket_local api-gateway:3022 {
+			flush_interval -1
+		}
+		reverse_proxy api-gateway:3022 {
+			flush_interval -1
+		}
+	}
+	handle /chunk/* {
+		reverse_proxy ingest:3023 {
+			flush_interval -1
+		}
+	}
+	handle /receipt/* {
+		reverse_proxy receipt:3024
+	}
+	handle {
+		reverse_proxy web:3021
+	}
+	encode zstd gzip
+	# No HSTS / COOP / CSP here — those are production-only. Local dev
+	# uses Next's middleware-injected CSP straight through.
+}
+
+# ─── HTTP -> HTTPS redirect for production IP / wrong-host requests ──
+# Anyone hitting http://178.105.105.187 directly, or any other host
+# arriving on plain :80 (other than localhost handled above), gets
+# bounced to the canonical HTTPS domain. Also keeps :80 open for the
+# Let's Encrypt HTTP-01 challenge.
 :80 {
 	redir https://slothbox.philipsloth.com{uri} permanent
 }
