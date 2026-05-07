@@ -1,93 +1,76 @@
 /*
  * SlothBox global stylesheet.
  *
- * Tailwind v4 entrypoint. The single `@import "tailwindcss"` statement replaces
- * the v3 trio of `@tailwind base / components / utilities`. Theme tokens live in
- * the `@theme` block and are exposed automatically as both CSS custom
- * properties (`var(--color-bg)`) and Tailwind utilities (`bg-bg`, `text-fg`,
- * etc.).
+ * Tailwind v4 entrypoint. Theme tokens live in the `@theme` block and are
+ * exposed automatically as both CSS custom properties (`var(--color-bg)`)
+ * and Tailwind utilities (`bg-bg`, `text-fg`, etc.).
+ *
+ * Visual identity: editorial-security palette. Graphite + warm cream +
+ * champagne gold. The point is to look like a Swiss bank vault meets a
+ * literary magazine — NOT like the default emerald/indigo gradient that
+ * every cookie-cutter SaaS template ships with. Cryptography products
+ * earn trust through restraint and craft, not neon.
  */
 
 @import "tailwindcss";
 
 /* --------------------------------------------------------------------------
  * Theme tokens — CSS-first.
- *
- * v4 derives Tailwind utilities from these custom properties. Adding a new
- * token to `@theme` is the only thing required to make `bg-<name>` and
- * friends work in JSX.
  * -------------------------------------------------------------------------- */
 @theme {
-  --color-bg: #0a0a0a;
-  --color-fg: #ededed;
-  --color-accent: #10b981; /* emerald — primary CTA */
-  --color-accent-2: #6366f1; /* indigo — secondary accent / gradients */
-  --color-border: #262626;
-  --color-muted: #737373;
-  --color-card: #111111;
-  --color-card-fg: #f5f5f5;
-  --color-danger: #ef4444;
+  /* Backgrounds — warm graphite, slightly lifted from pure black so highlights
+     read as "ink" rather than "void". */
+  --color-bg: #0d0e10;
+  --color-card: #16171a;
+  --color-card-elevated: #1c1d21;
 
-  /* Type scale.
-   *
-   * The default UI font is Inter (loaded by `next/font/google` in
-   * `app/layout.tsx`). The serif display face for the hero is Playfair
-   * Display, also loaded via `next/font/google`. JetBrains Mono powers the
-   * monospaced share-key display.
-   *
-   * Each font is exposed by next/font as a CSS variable; we surface them as
-   * Tailwind tokens here so JSX can use `font-sans`, `font-display`,
-   * `font-mono` directly.
-   */
+  /* Foreground — warm paper-cream, never stark white. Pure white on dark
+     reads as harsh and amateurish; cream feels intentional. */
+  --color-fg: #f4eee2;
+  --color-muted: #9b948a;
+  --color-muted-2: #6f6963;
+
+  /* Borders — barely-there warm-gray, weighted toward the gold accent so
+     hover states feel like one continuous palette. */
+  --color-border: #2a2c33;
+  --color-border-strong: #3a3c44;
+
+  /* Primary accent — champagne gold. Same hue as the favicon glyph so brand
+     identity propagates from a 32×32 ICO all the way up to hero headlines.
+     Used SPARINGLY: padlock mark, key links, highlights. Never as a giant
+     gradient — gold loses authority when it covers half the page. */
+  --color-accent: #c9a86a;
+  --color-accent-strong: #d4b676; /* hover variant */
+  --color-accent-soft: rgba(201, 168, 106, 0.12); /* subtle backgrounds */
+  --color-accent-tint: rgba(201, 168, 106, 0.25); /* borders, dividers */
+
+  /* Secondary accent — burgundy/oxblood. Reserved for destruction-warning
+     copy ("burn after read", "key destroyed", "share self-destructed").
+     The colour of a wax seal. Says "irreversible" without panicking. */
+  --color-danger: #a64a3a;
+  --color-danger-soft: rgba(166, 74, 58, 0.15);
+
+  /* Type stack — Playfair for hero / display, Inter for body, JetBrains
+     Mono for hashes + code samples. All loaded by next/font in layout.tsx. */
   --font-family-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
-  --font-family-display:
-    var(--font-playfair), Georgia, "Times New Roman", serif;
-  --font-family-mono:
-    var(--font-jetbrains-mono), ui-monospace, "SF Mono", monospace;
+  --font-family-display: var(--font-playfair), Georgia, "Times New Roman", serif;
+  --font-family-mono: var(--font-jetbrains-mono), ui-monospace, "SF Mono", monospace;
 
-  /* Container max-widths — tuned a bit narrower than Tailwind defaults so the
-   * dense, opinionated landing copy doesn't sprawl on ultrawide displays. */
+  /* Container widths — narrower than Tailwind defaults. Long-line copy
+     reads worse than well-set narrower text. Editorial sites are 60-75ch. */
   --container-md: 720px;
   --container-lg: 960px;
   --container-xl: 1180px;
 }
 
 /* --------------------------------------------------------------------------
- * Light-mode override.
- *
- * The product is dark-by-default. The class-based `.light` toggle is wired so
- * a future theme switch can opt out, and the `prefers-color-scheme: light`
- * query mirrors that for visitors who prefer light by default.
+ * Base layer.
  * -------------------------------------------------------------------------- */
 @layer base {
   :root {
     color-scheme: dark;
   }
 
-  html.light {
-    color-scheme: light;
-    --color-bg: #fafafa;
-    --color-fg: #0a0a0a;
-    --color-border: #e5e5e5;
-    --color-muted: #525252;
-    --color-card: #ffffff;
-    --color-card-fg: #0a0a0a;
-  }
-
-  /* Respect OS preference only when no explicit class is set. */
-  @media (prefers-color-scheme: light) {
-    html:not(.dark):not(.light) {
-      color-scheme: light;
-      --color-bg: #fafafa;
-      --color-fg: #0a0a0a;
-      --color-border: #e5e5e5;
-      --color-muted: #525252;
-      --color-card: #ffffff;
-      --color-card-fg: #0a0a0a;
-    }
-  }
-
-  /* Resets and base typography. */
   html,
   body {
     background-color: var(--color-bg);
@@ -100,20 +83,13 @@
   }
 
   body {
-    /* Subtle radial glow under the hero. The colours match accent / accent-2
-     * tokens at very low alpha so a future theme swap does not need to touch
-     * this file. */
+    /* Subtle "candlelight from below" — a low-saturation gold glow at the
+       bottom-edge of the viewport, the kind a leather-bound book throws on
+       a desk. Never bright enough to feel decorative; just stops the page
+       from reading flat. */
     background-image:
-      radial-gradient(
-        ellipse 80% 50% at 50% -20%,
-        rgba(16, 185, 129, 0.15),
-        transparent 70%
-      ),
-      radial-gradient(
-        ellipse 60% 40% at 80% 10%,
-        rgba(99, 102, 241, 0.08),
-        transparent 60%
-      );
+      radial-gradient(ellipse 80% 40% at 50% 110%, rgba(201, 168, 106, 0.08), transparent 60%),
+      radial-gradient(ellipse 50% 30% at 100% 0%, rgba(166, 74, 58, 0.04), transparent 60%);
     background-attachment: fixed;
   }
 
@@ -122,15 +98,14 @@
     color: var(--color-bg);
   }
 
-  /* Default focus ring across the app. Buttons / inputs may override but only
-   * to add — never to remove (accessibility floor). */
+  /* Default focus ring. Buttons / inputs may add to this ring but never
+     remove it — accessibility floor. */
   :focus-visible {
     outline: 2px solid var(--color-accent);
     outline-offset: 2px;
     border-radius: 4px;
   }
 
-  /* Native form-controls inherit colours. */
   input,
   button,
   textarea,
@@ -138,32 +113,93 @@
     font: inherit;
     color: inherit;
   }
+
+  /* Editorial-feeling typography for body copy. Slightly looser leading
+     and a wider character spectrum than the Tailwind preset — feels less
+     "marketing landing page" and more "design publication". */
+  p {
+    line-height: 1.65;
+  }
 }
 
 /* --------------------------------------------------------------------------
- * Component-scope helpers. Kept tiny on purpose — utilities first.
+ * Component-scope helpers.
  * -------------------------------------------------------------------------- */
 @layer components {
-  .gradient-text {
+  /* Hero gold underline — used on headlines. Replaces the previous
+     `gradient-text` (emerald → indigo) with a discrete underline accent
+     beneath a single word. Less screaming, more composed. */
+  .hero-mark {
+    color: var(--color-accent);
+    position: relative;
+    display: inline-block;
+  }
+  .hero-mark::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0.04em;
+    height: 0.18em;
     background: linear-gradient(
-      135deg,
-      var(--color-accent) 0%,
-      var(--color-accent-2) 100%
+      90deg,
+      transparent 0%,
+      rgba(201, 168, 106, 0.35) 30%,
+      rgba(201, 168, 106, 0.35) 70%,
+      transparent 100%
     );
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
-    color: transparent;
+    z-index: -1;
   }
 
+  /* Card surface. Subtle warmth in the border so hover states feel like
+     the card was always supposed to glow that way. */
   .surface {
     background-color: var(--color-card);
     border: 1px solid var(--color-border);
-    border-radius: 12px;
+    border-radius: 10px;
+    transition: border-color 200ms ease;
+  }
+  .surface-hover:hover {
+    border-color: var(--color-accent-tint);
   }
 
-  .surface-hover:hover {
-    border-color: color-mix(in srgb, var(--color-accent) 40%, var(--color-border));
+  /* Editorial divider — thin gold rule with a centred ornament. Used between
+     major sections instead of plain whitespace; says "this is a designed
+     document". */
+  .ornament {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    color: var(--color-accent);
+    opacity: 0.7;
+    font-family: var(--font-family-display);
+    font-size: 0.75rem;
+    letter-spacing: 0.4em;
+    text-transform: uppercase;
+  }
+  .ornament::before,
+  .ornament::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      var(--color-border-strong) 50%,
+      transparent 100%
+    );
+    max-width: 6rem;
+  }
+
+  /* Eyebrow label — small caps tracking-wide labels above section
+     headlines. The visual cue that says "this is a chapter heading". */
+  .eyebrow {
+    font-family: var(--font-family-mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--color-accent);
   }
 }
 
@@ -186,17 +222,20 @@
     }
   }
 
-  @keyframes pulse-glow {
+  /* Slow gold pulse — "live" indicator dot in the version pill.
+     2.4s period reads as deliberate rather than nervous. */
+  @keyframes pulse-soft {
     0%,
     100% {
-      box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4);
+      opacity: 0.5;
+      box-shadow: 0 0 0 0 rgba(201, 168, 106, 0.5);
     }
     50% {
-      box-shadow: 0 0 0 8px rgba(16, 185, 129, 0);
+      opacity: 1;
+      box-shadow: 0 0 0 4px rgba(201, 168, 106, 0);
     }
   }
-
-  .animate-pulse-glow {
-    animation: pulse-glow 2s ease-out infinite;
+  .animate-pulse-soft {
+    animation: pulse-soft 2.4s ease-out infinite;
   }
 }
