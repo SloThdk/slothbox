@@ -111,9 +111,10 @@ jobs:
     # OR the workflow was triggered manually. Without this gate the job
     # would fail on every push for any fork that hasn't configured the
     # 3 production secrets (HETZNER_HOST / HETZNER_USER / HETZNER_SSH_KEY).
-    if: |
-      (github.event_name == 'workflow_dispatch') ||
-      (vars.AUTO_DEPLOY == 'true' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v')))
+    # Note: GitHub Actions does not allow `secrets.*` in `if:` clauses, so
+    # gating on a repo *variable* (vars.AUTO_DEPLOY) is the canonical
+    # workaround. The single-line form avoids YAML block-scalar quirks.
+    if: github.event_name == 'workflow_dispatch' || (vars.AUTO_DEPLOY == 'true' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v')))
     steps:
       - uses: actions/checkout@v4
         with:
@@ -139,10 +140,16 @@ jobs:
         # Skip if PRODUCTION_DOMAIN isn't configured yet — the project starts
         # life on a bare IP (no HTTPS). Once a real domain + Caddy TLS are in
         # place, set the secret and this guard auto-enables the check.
-        if: ${{ secrets.PRODUCTION_DOMAIN != '' }}
+        # `secrets.*` cannot be used in `if:`, so gate inside the script.
+        env:
+          PROD_DOMAIN: ${{ secrets.PRODUCTION_DOMAIN }}
         run: |
+          if [ -z "$PROD_DOMAIN" ]; then
+            echo "PRODUCTION_DOMAIN secret not set; skipping smoke test"
+            exit 0
+          fi
           for i in {1..30}; do
-            if curl -fsS https://${{ secrets.PRODUCTION_DOMAIN }}/healthz; then
+            if curl -fsS "https://$PROD_DOMAIN/healthz"; then
               echo "deployment healthy"
               exit 0
             fi
