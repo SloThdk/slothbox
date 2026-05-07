@@ -14,7 +14,7 @@
 #   3. runner  — minimal Node 20 alpine, only the bundled dist + prod deps
 
 # --- Stage 1: base ----------------------------------------------------
-FROM node:20-alpine AS base
+FROM node:26-alpine AS base
 # Float to 20.x latest — see apps/web/Dockerfile for the engines-compat
 # explanation (eslint-visitor-keys@5.0.1 needs >=20.19).
 ENV PNPM_HOME=/pnpm \
@@ -62,7 +62,7 @@ RUN pnpm --filter @slothbox/api-gateway build
 RUN pnpm --filter @slothbox/api-gateway --prod deploy /out
 
 # --- Stage 3: runtime --------------------------------------------------
-FROM node:20-alpine AS runner
+FROM node:26-alpine AS runner
 
 ENV NODE_ENV=production \
     API_PORT=3022 \
