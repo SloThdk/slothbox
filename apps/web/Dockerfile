@@ -55,6 +55,28 @@ RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
 FROM base AS builder
 WORKDIR /repo
 
+# NEXT_PUBLIC_* build args.
+#
+# Next.js inlines NEXT_PUBLIC_* variables into the client JS bundle AT
+# BUILD TIME — they get baked into the .next/static/chunks/*.js as literal
+# strings. Setting them via `environment:` in docker-compose only
+# propagates at RUNTIME, which is too late for the bundle. The values
+# must be ARG-ed in the Dockerfile and ENV-exported during the build
+# step so Webpack picks them up.
+#
+# docker-compose passes these via build.args; defaults below match
+# bare-localhost-via-Caddy so an ad-hoc `docker build .` still works.
+ARG NEXT_PUBLIC_API_URL=http://localhost
+ARG NEXT_PUBLIC_WS_URL=ws://localhost
+ARG NEXT_PUBLIC_INGEST_URL=http://localhost
+ARG NEXT_PUBLIC_PUBLIC_URL=http://localhost
+ARG NEXT_PUBLIC_MAX_FILE_SIZE_MB=4096
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL \
+    NEXT_PUBLIC_WS_URL=$NEXT_PUBLIC_WS_URL \
+    NEXT_PUBLIC_INGEST_URL=$NEXT_PUBLIC_INGEST_URL \
+    NEXT_PUBLIC_PUBLIC_URL=$NEXT_PUBLIC_PUBLIC_URL \
+    NEXT_PUBLIC_MAX_FILE_SIZE_MB=$NEXT_PUBLIC_MAX_FILE_SIZE_MB
+
 # Re-apply hoisted .npmrc inside the builder stage too — needed for the
 # implicit pnpm install below. .npmrc must exist BEFORE manifests are
 # copied so pnpm picks it up at install time.

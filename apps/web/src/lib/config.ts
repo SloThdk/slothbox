@@ -1,15 +1,23 @@
 // Single source of truth for runtime URLs.
 //
-// `NEXT_PUBLIC_*` vars are inlined at build time by Next.js. The fallbacks here
-// match the docker-compose defaults so a dev who forgets to copy `.env.example`
-// to `.env` still gets a working local stack.
+// `NEXT_PUBLIC_*` vars are inlined at build time by Next.js. The Dockerfile
+// passes them through as ARG + ENV so docker compose's build.args block can
+// inject the correct values for each environment (localhost in dev, the
+// real domain in prod).
+//
+// Fallbacks default to bare `http://localhost` (no port) — that's the
+// production-shape URL via Caddy reverse proxy, which works in BOTH local
+// dev (Caddy on :80) and production (Caddy on :443 with HSTS upgrade). The
+// internal service ports (:3022 api-gateway, :3023 ingest) are NEVER bound
+// to the host and must NOT appear in browser-side URLs — every browser
+// request flows through Caddy at /api/*, /chunk/*, /ws/*.
 
 import { publicEnv } from "./utils";
 
-export const API_URL = publicEnv("NEXT_PUBLIC_API_URL", "http://localhost:3022");
-export const WS_URL = publicEnv("NEXT_PUBLIC_WS_URL", "ws://localhost:3022");
-export const INGEST_URL = publicEnv("NEXT_PUBLIC_INGEST_URL", "http://localhost:3023");
-export const PUBLIC_URL = publicEnv("NEXT_PUBLIC_PUBLIC_URL", "http://localhost:3021");
+export const API_URL = publicEnv("NEXT_PUBLIC_API_URL", "http://localhost");
+export const WS_URL = publicEnv("NEXT_PUBLIC_WS_URL", "ws://localhost");
+export const INGEST_URL = publicEnv("NEXT_PUBLIC_INGEST_URL", "http://localhost");
+export const PUBLIC_URL = publicEnv("NEXT_PUBLIC_PUBLIC_URL", "http://localhost");
 
 export const MAX_FILE_SIZE_MB = Number.parseInt(
   publicEnv("NEXT_PUBLIC_MAX_FILE_SIZE_MB", "4096"),
