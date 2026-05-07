@@ -1,0 +1,206 @@
+# Prometheus alert rules for SlothBox.
+#
+# Alerts here fire on real outages and severe degradation only — we
+# avoid noisy "metric drift" alerts because nobody pages on those.
+#
+# Severity convention (matches PagerDuty + on-call rotations):
+#   critical — wake someone up. Stack is down for users.
+#   warning  — investigate during business hours. Symptom of decay.
+#   info     — informational, dashboards only, no paging.
+#
+# Loaded by prometheus.yml's `rule_files: ["/etc/prometheus/alerts.yml"]`.
+
+groups:
+  # ─── Service availability ─────────────────────────────────────────
+  - name: slothbox.availability
+    interval: 30s
+    rules:
+      - alert: ServiceDown
+        # The `up` metric is 1 when Prometheus could scrape the target,
+        # 0 otherwise. for: 2m gates against transient blips during a
+        # rolling restart but catches real downtime fast.
+        expr: up == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "{{ $labels.job }} is down"
+          description: |
+            Prometheus has been unable to scrape {{ $labels.job }}
+            ({{ $labels.instance }}) for at least 2 minutes. Check
+            `docker compose logs {{ $labels.job }}` and `docker compose ps`.
+
+      - alert: HighErrorRate
+        # 5xx rate above 5% over 5 minutes on api-gateway. Hono exposes
+        # request totals via prom-client; we compare 5xx / all.
+        expr: |
+          (
+            sum(rate(http_requests_total{status=~"5..", job="api-gateway"}[5m]))
+            /
+            sum(rate(http_requests_total{job="api-gateway"}[5m]))
+          ) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "api-gateway 5xx rate above 5%"
+          description: |
+            More than 5% of api-gateway responses are 5xx over the last 5
+            minutes. This usually means a downstream (postgres / valkey /
+            nats / minio) is failing or the service itself crashed mid-handler.
+
+      - alert: SlowResponses
+        # p95 above 2s for api-gateway. Encrypted-share creation should
+        # comfortably stay under 200ms; 2s p95 means something is wrong.
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(http_request_duration_seconds_bucket{job="api-gateway"}[5m]))
+            by (le)
+          ) > 2
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "api-gateway p95 latency above 2s"
+          description: |
+            api-gateway's 95th percentile request latency is over 2s for the
+            past 10 minutes. Check postgres slow-query log and valkey memory.
+
+  # ─── Resource exhaustion ──────────────────────────────────────────
+  - name: slothbox.resources
+    interval: 1m
+    rules:
+      - alert: ContainerMemoryHigh
+        # Memory utilisation above 90% of the configured cap for 10 minutes.
+        # 90% leaves a buffer before OOMKill (cgroup hard limit at 100%).
+        expr: |
+          (
+            container_memory_working_set_bytes{name=~"slothbox-.+"}
+            /
+            container_spec_memory_limit_bytes{name=~"slothbox-.+"}
+          ) > 0.90
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.name }} memory above 90% of limit"
+          description: |
+            {{ $labels.name }} is using more than 90% of its configured
+            memory limit. OOMKill at 100%. Either tune the workload, or
+            raise the memory ceiling in docker-compose.prod.yml.
+
+      - alert: ContainerOOMKilled
+        # cAdvisor's restart counter increases when a container is killed.
+        # Combined with low last-seen memory we can guess OOM but we just
+        # alert on any restart > 0 in last 15m for now.
+        expr: |
+          increase(container_last_seen{name=~"slothbox-.+"}[15m]) == 0
+          and on (name)
+          changes(container_start_time_seconds{name=~"slothbox-.+"}[15m]) > 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "{{ $labels.name }} restarted in last 15 minutes"
+          description: |
+            {{ $labels.name }} has been restarted within the last 15 minutes.
+            Check `docker compose logs {{ $labels.name }}` for the cause —
+            could be OOMKill, panic, or healthcheck failure.
+
+      - alert: DiskSpaceLow
+        # Hetzner cax11 has 40 GB. Postgres + MinIO + container logs can
+        # gnaw through that fast. Alert at 85% so we have time to react.
+        expr: |
+          (
+            (node_filesystem_size_bytes{mountpoint="/", fstype!="tmpfs"} - node_filesystem_avail_bytes{mountpoint="/", fstype!="tmpfs"})
+            /
+            node_filesystem_size_bytes{mountpoint="/", fstype!="tmpfs"}
+          ) > 0.85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Disk usage above 85%"
+          description: |
+            Root filesystem is more than 85% full. Likely culprits:
+            container logs (`docker system prune`), Postgres data
+            (`pg_dump + DROP TABLE bloat`), MinIO blobs (run reaper).
+
+  # ─── Storage layer ────────────────────────────────────────────────
+  - name: slothbox.storage
+    interval: 1m
+    rules:
+      - alert: PostgresConnectionsHigh
+        # Postgres has max_connections=100 by default. Sustained > 80
+        # means we're either leaking pool connections or the gateway
+        # isn't releasing them.
+        expr: pg_stat_database_numbackends{datname="slothbox"} > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Postgres has > 80 active connections"
+          description: |
+            slothbox database has more than 80 active connections for 5m.
+            Check api-gateway pool config and look for missing release()
+            calls in the postgres-js client.
+
+      - alert: ValkeyDown
+        # valkey-exporter / our own redis_up custom metric. If absent,
+        # falls back to the up{job="valkey"} we already alert on.
+        expr: redis_up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Valkey is unreachable"
+          description: |
+            Valkey is down. Rate-limiting, sessions, and progress channels
+            are all backed by Valkey — this will cascade quickly.
+
+      - alert: MinIOErrorBudget
+        # MinIO 5xx errors over the last 10 minutes.
+        expr: |
+          sum(rate(minio_s3_requests_5xx_errors_total[10m])) > 0.5
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "MinIO returning 5xx errors"
+          description: |
+            MinIO is returning 5xx at > 0.5 req/s over the last 10 minutes.
+            Check `docker compose logs minio` for the underlying error.
+
+  # ─── Application layer ────────────────────────────────────────────
+  - name: slothbox.application
+    interval: 1m
+    rules:
+      - alert: ReaperBacklog
+        # Reaper should reap expired shares within minutes of expiry.
+        # If the count of expired-but-not-reaped shares grows above 100,
+        # reaper is stuck or DB constraints are wrong.
+        expr: slothbox_reaper_expired_unreaped_shares > 100
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Reaper backlog above 100 expired shares"
+          description: |
+            More than 100 shares are past their expiry timestamp but not
+            yet reaped. Check `docker compose logs reaper` and verify the
+            reaper interval / batch size config.
+
+      - alert: AuditChainBroken
+        # If audit_chain has a hash mismatch on any row, the chain is
+        # broken. This is a critical security event — possible tamper
+        # or replication corruption.
+        expr: slothbox_audit_chain_broken_count > 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Audit chain integrity broken"
+          description: |
+            One or more rows in the audit_chain table have hash mismatches.
+            This is either silent disk corruption or active tampering.
+            Run `slothbox-verify` to identify the broken row range.

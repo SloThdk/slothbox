@@ -1,7 +1,12 @@
 apiVersion: 1
 
+# Stable UIDs are required so dashboard JSON can reference these via
+# `datasource: { uid: "prometheus" }`. Without a fixed UID, Grafana
+# generates a random one per install and dashboard panels show "datasource
+# not found" until manually re-bound.
 datasources:
   - name: Prometheus
+    uid: prometheus
     type: prometheus
     access: proxy
     url: http://prometheus:9090
@@ -9,6 +14,7 @@ datasources:
     editable: false
 
   - name: Loki
+    uid: loki
     type: loki
     access: proxy
     url: http://loki:3100
