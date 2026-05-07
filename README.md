@@ -6,7 +6,7 @@
 [![CI](https://img.shields.io/badge/CI-pending-lightgrey)](https://github.com/SloThdk/slothbox/actions)
 [![Crypto: libsodium + age](https://img.shields.io/badge/crypto-libsodium%20%2B%20age-brightgreen)](docs/CRYPTO.md)
 [![Status: v0.1.0-alpha](https://img.shields.io/badge/status-v0.1.0--alpha-orange)](MILESTONES.md)
-[![EU-hosted: Hetzner DE](https://img.shields.io/badge/region-EU%20(Hetzner%20DE)-blue)](#why-eu-hosted)
+[![EU-hosted: Hetzner DE](<https://img.shields.io/badge/region-EU%20(Hetzner%20DE)-blue>)](#why-eu-hosted)
 
 > [!WARNING]
 > **v0.1.0-alpha is a portfolio reference build.** The underlying cryptographic primitives
@@ -33,14 +33,14 @@ fallback, MitID for verified senders) is built on top.
 
 ## Why this exists
 
-| Existing service | Issue |
-|---|---|
-| WeTransfer | Scans your file, keeps a copy, monetises via ads |
-| Dropbox Transfer | Reads your content; US-cloud (Schrems II problem for EU users) |
-| Google Drive share | Same |
-| Wormhole.app | E2E encrypted but closed-source; no delivery proof |
-| ProtonDrive | E2E encrypted but paid, account-only, no quick-share, no court-admissible receipt |
-| Registered mail | Paper, days, no encryption inside the envelope |
+| Existing service   | Issue                                                                             |
+| ------------------ | --------------------------------------------------------------------------------- |
+| WeTransfer         | Scans your file, keeps a copy, monetises via ads                                  |
+| Dropbox Transfer   | Reads your content; US-cloud (Schrems II problem for EU users)                    |
+| Google Drive share | Same                                                                              |
+| Wormhole.app       | E2E encrypted but closed-source; no delivery proof                                |
+| ProtonDrive        | E2E encrypted but paid, account-only, no quick-share, no court-admissible receipt |
+| Registered mail    | Paper, days, no encryption inside the envelope                                    |
 
 There is no **EU-hosted, open-source, end-to-end encrypted file transfer with
 cryptographic delivery receipts** product. SlothBox aims at that gap, with a focus on
@@ -58,26 +58,26 @@ marketing copy:
 1. **The server cannot decrypt your files.** All encryption happens in the sender's
    browser using audited libsodium primitives before upload. The decryption key
    travels in the URL fragment (`#key=…`), which is never sent to any server.
-   *(v0.1.0-alpha: implemented for symmetric / single-recipient. Per-recipient
-   asymmetric encryption via `age` lands in v1.0.)*
+   _(v0.1.0-alpha: implemented for symmetric / single-recipient. Per-recipient
+   asymmetric encryption via `age` lands in v1.0.)_
 
 2. **Delivery is cryptographically provable without revealing content.** When your
    recipient downloads, we issue an **RFC 3161** signed timestamp receipt
-   over the file's hash. You get a court-admissible proof that *something with this
-   hash was retrieved at this time*, without revealing what it was. *(Lands in
-   v0.5.)*
+   over the file's hash. You get a court-admissible proof that _something with this
+   hash was retrieved at this time_, without revealing what it was. _(Lands in
+   v0.5.)_
 
 3. **Burn-after-read is verifiable, not just promised.** When a file is destroyed,
    the destruction event is committed to a public hash chain anyone can audit. You
    get a cryptographic receipt that the encryption key is gone — meaning the
-   ciphertext is mathematically unrecoverable, even from our backups. *(Lands in
-   v1.0.)*
+   ciphertext is mathematically unrecoverable, even from our backups. _(Lands in
+   v1.0.)_
 
 4. **The architecture is verifiable.** This repository is everything we run.
    `docker compose up -d` brings the entire production stack online on your own
    machine. A standalone offline verifier CLI (`slothbox-verify`) lets you check
-   any receipt or deletion proof without contacting our service. *(CLI skeleton
-   in v0.1, full verification in v1.0.)*
+   any receipt or deletion proof without contacting our service. _(CLI skeleton
+   in v0.1, full verification in v1.0.)_
 
 For the threat model and what we explicitly do **not** protect against, see
 [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md).
@@ -129,14 +129,14 @@ Detailed service boundaries, data flow, and ADRs in
 
 Polyglot for honest reasons. If you ask "why X?" in interview the answer holds up:
 
-| Service | Language | Reason |
-|---|---|---|
-| **Frontend + API gateway** | TypeScript (Next 15, Hono) | Same shared types frontend ↔ backend; React expert stack; fast iteration |
-| **Ingest service** | C# (ASP.NET Core 8) | Kestrel + `PipeReader` handles 10GB+ chunked uploads with proper backpressure better than Node streams; ImageSharp is best-in-class for thumbnail generation; .NET earns its place on the perf-critical I/O path |
-| **Receipt service** | C# (ASP.NET Core 8) | Strong cryptographic library ecosystem (Bouncy Castle for RFC 3161); shares serialization contracts with ingest |
-| **Reaper daemon** | Go | Single static binary, ~8MB RAM footprint — right tool for cron-style worker. A Node version would be 80MB RAM for the same job |
-| **Verifier CLI** | Go | Cross-platform single-binary distribution (brew/scoop/apt) without runtime deps |
-| **Database** | SQL (Postgres 16) | RLS + triggers + audit chain belong in the database, not in app code — same trust-as-architecture discipline as [SlothCV](https://slothcv.pages.dev) |
+| Service                    | Language                   | Reason                                                                                                                                                                                                           |
+| -------------------------- | -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Frontend + API gateway** | TypeScript (Next 15, Hono) | Same shared types frontend ↔ backend; React expert stack; fast iteration                                                                                                                                         |
+| **Ingest service**         | C# (ASP.NET Core 8)        | Kestrel + `PipeReader` handles 10GB+ chunked uploads with proper backpressure better than Node streams; ImageSharp is best-in-class for thumbnail generation; .NET earns its place on the perf-critical I/O path |
+| **Receipt service**        | C# (ASP.NET Core 8)        | Strong cryptographic library ecosystem (Bouncy Castle for RFC 3161); shares serialization contracts with ingest                                                                                                  |
+| **Reaper daemon**          | Go                         | Single static binary, ~8MB RAM footprint — right tool for cron-style worker. A Node version would be 80MB RAM for the same job                                                                                   |
+| **Verifier CLI**           | Go                         | Cross-platform single-binary distribution (brew/scoop/apt) without runtime deps                                                                                                                                  |
+| **Database**               | SQL (Postgres 16)          | RLS + triggers + audit chain belong in the database, not in app code — same trust-as-architecture discipline as [SlothCV](https://slothcv.pages.dev)                                                             |
 
 ---
 
@@ -186,12 +186,12 @@ Or on Windows just double-click `start_local_server.bat`.
 
 ## Roadmap
 
-| Version | Status | Highlights |
-|---|---|---|
+| Version          | Status         | Highlights                                                                                                                                                    |
+| ---------------- | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **v0.1.0-alpha** | 🟡 in progress | Drag-drop encrypted upload · symmetric key in URL · burn-after-read · expiry · MinIO storage · WebSocket progress · full GitHub repo polish · security gating |
-| **v0.5.0** | 🔜 next | Lucia auth + dashboard · share history · RFC 3161 receipts · audit chain extension |
-| **v1.0.0** | planned | Per-recipient encryption (`age`) · verifiable deletion proofs · standalone verifier CLI · external cryptographer review |
-| **v1.1.0** | planned | WebRTC P2P file transfer · MitID OIDC integration · time-locked shares |
+| **v0.5.0**       | 🔜 next        | Lucia auth + dashboard · share history · RFC 3161 receipts · audit chain extension                                                                            |
+| **v1.0.0**       | planned        | Per-recipient encryption (`age`) · verifiable deletion proofs · standalone verifier CLI · external cryptographer review                                       |
+| **v1.1.0**       | planned        | WebRTC P2P file transfer · MitID OIDC integration · time-locked shares                                                                                        |
 
 Detailed scope per release in [`MILESTONES.md`](MILESTONES.md).
 

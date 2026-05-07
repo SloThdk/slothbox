@@ -10,19 +10,19 @@ Last updated: 2026-05-07 by the autonomous build session.
 
 ## Verified working (locally, automated)
 
-| Check | Command | Result |
-|---|---|---|
-| Crypto tests | `pnpm --filter @slothbox/crypto-core test` | **10/10 pass** (XChaCha20-Poly1305 round-trip + tamper + AAD-binding + key/nonce mismatch + BLAKE2b determinism) |
-| TS typecheck | `pnpm typecheck` | **Green across 4 workspaces**: web, api-gateway, crypto-core, db |
-| TS lint | `pnpm lint` | Green (web `next lint` reports 0 errors; library packages use tsc strict) |
-| Next.js build | `pnpm --filter @slothbox/web build` | Green — 6 routes, ~102 KB First-Load JS shared |
-| api-gateway build | `pnpm --filter @slothbox/api-gateway build` | Green — 37 KB ESM bundle (workspace deps inlined via tsup config) |
-| .NET ingest | `dotnet build` (in `services/ingest/`) | Green — 0 warnings, 0 errors, .NET 8 SDK |
-| .NET receipt | `dotnet build` (in `services/receipt/`) | Green — 0 warnings, 0 errors |
-| Go reaper | `go build ./...` (in `services/reaper/`) | Green — daemon compiles |
-| Go verifier | `go build ./...` (in `tools/verify/`) | Green — CLI compiles |
-| Docker images | `docker compose build` | **5/5 image build**: web, api-gateway, ingest, receipt, reaper |
-| Gitleaks | `gitleaks detect` (whole git history) | **0 leaks found** (6 commits, 927 KB scanned) |
+| Check             | Command                                     | Result                                                                                                           |
+| ----------------- | ------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| Crypto tests      | `pnpm --filter @slothbox/crypto-core test`  | **10/10 pass** (XChaCha20-Poly1305 round-trip + tamper + AAD-binding + key/nonce mismatch + BLAKE2b determinism) |
+| TS typecheck      | `pnpm typecheck`                            | **Green across 4 workspaces**: web, api-gateway, crypto-core, db                                                 |
+| TS lint           | `pnpm lint`                                 | Green (web `next lint` reports 0 errors; library packages use tsc strict)                                        |
+| Next.js build     | `pnpm --filter @slothbox/web build`         | Green — 6 routes, ~102 KB First-Load JS shared                                                                   |
+| api-gateway build | `pnpm --filter @slothbox/api-gateway build` | Green — 37 KB ESM bundle (workspace deps inlined via tsup config)                                                |
+| .NET ingest       | `dotnet build` (in `services/ingest/`)      | Green — 0 warnings, 0 errors, .NET 8 SDK                                                                         |
+| .NET receipt      | `dotnet build` (in `services/receipt/`)     | Green — 0 warnings, 0 errors                                                                                     |
+| Go reaper         | `go build ./...` (in `services/reaper/`)    | Green — daemon compiles                                                                                          |
+| Go verifier       | `go build ./...` (in `tools/verify/`)       | Green — CLI compiles                                                                                             |
+| Docker images     | `docker compose build`                      | **5/5 image build**: web, api-gateway, ingest, receipt, reaper                                                   |
+| Gitleaks          | `gitleaks detect` (whole git history)       | **0 leaks found** (6 commits, 927 KB scanned)                                                                    |
 
 ## Reviewer-flagged criticals fixed (12/12)
 
@@ -43,6 +43,7 @@ scaffold. All 12 are fixed:
 - [x] Web + api-gateway Dockerfiles use monorepo-root context
 
 Additional fixes from the same review pass:
+
 - [x] `buildChunkAad` u16-BE-prefixes shareId for non-injective input safety (high #1)
 - [x] README "verify my claims" grep commands rewritten to match real identifiers
 - [x] README brew/scoop install commands removed (not yet shipped)
@@ -51,22 +52,22 @@ Additional fixes from the same review pass:
 
 `docker compose up -d` from a clean machine brings up **10 of 13 services healthy** on the first try.
 
-| Service | State | Notes |
-|---|---|---|
-| **web** | ✅ healthy | Next standalone bundle, 3021 |
-| **api-gateway** | ✅ healthy | Hono, 3022 |
-| **postgres** | ✅ healthy | Migrations auto-apply on first init via `/docker-entrypoint-initdb.d` |
-| **minio** | ✅ healthy | S3 API + console |
-| **valkey** | ✅ healthy | Cache + queue + sessions |
-| **prometheus** | ✅ healthy | Metrics scraping |
-| **grafana** | ✅ up | Default `admin/admin`, loopback-bound |
-| **loki** | ✅ up | Log storage |
-| **promtail** | ✅ up | Log shipper |
-| **receipt** | ✅ healthy | .NET stub, returns 501 for v0.1 endpoints by design |
-| **ingest** | 🟡 unhealthy | Container running; healthcheck reports 503 because the bucket-existence probe runs on every health call and MinIO bucket isn't pre-created. **Fix**: add a one-shot `mc mb` step in compose OR have ingest skip the bucket check until first write. ~30 min. |
-| **reaper** | 🟡 restart loop | DB password mismatch on first volume init unless you `docker compose down -v` before first `up -d`. Once volumes are clean, reaper boots. |
-| **nats** | 🟡 unhealthy | Healthcheck command in docker-compose.yml uses wget against `:8222/varz`, but the container's wget rejects that. **Fix**: switch healthcheck to `nats-server --healthz` or curl. |
-| **caddy** | 🟡 created (not started) | Caddy `depends_on: ingest service_healthy`. When ingest is yellow, Caddy stays in `Created`. Once ingest healthcheck is fixed, Caddy starts automatically. |
+| Service         | State                    | Notes                                                                                                                                                                                                                                                        |
+| --------------- | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **web**         | ✅ healthy               | Next standalone bundle, 3021                                                                                                                                                                                                                                 |
+| **api-gateway** | ✅ healthy               | Hono, 3022                                                                                                                                                                                                                                                   |
+| **postgres**    | ✅ healthy               | Migrations auto-apply on first init via `/docker-entrypoint-initdb.d`                                                                                                                                                                                        |
+| **minio**       | ✅ healthy               | S3 API + console                                                                                                                                                                                                                                             |
+| **valkey**      | ✅ healthy               | Cache + queue + sessions                                                                                                                                                                                                                                     |
+| **prometheus**  | ✅ healthy               | Metrics scraping                                                                                                                                                                                                                                             |
+| **grafana**     | ✅ up                    | Default `admin/admin`, loopback-bound                                                                                                                                                                                                                        |
+| **loki**        | ✅ up                    | Log storage                                                                                                                                                                                                                                                  |
+| **promtail**    | ✅ up                    | Log shipper                                                                                                                                                                                                                                                  |
+| **receipt**     | ✅ healthy               | .NET stub, returns 501 for v0.1 endpoints by design                                                                                                                                                                                                          |
+| **ingest**      | 🟡 unhealthy             | Container running; healthcheck reports 503 because the bucket-existence probe runs on every health call and MinIO bucket isn't pre-created. **Fix**: add a one-shot `mc mb` step in compose OR have ingest skip the bucket check until first write. ~30 min. |
+| **reaper**      | 🟡 restart loop          | DB password mismatch on first volume init unless you `docker compose down -v` before first `up -d`. Once volumes are clean, reaper boots.                                                                                                                    |
+| **nats**        | 🟡 unhealthy             | Healthcheck command in docker-compose.yml uses wget against `:8222/varz`, but the container's wget rejects that. **Fix**: switch healthcheck to `nats-server --healthz` or curl.                                                                             |
+| **caddy**       | 🟡 created (not started) | Caddy `depends_on: ingest service_healthy`. When ingest is yellow, Caddy stays in `Created`. Once ingest healthcheck is fixed, Caddy starts automatically.                                                                                                   |
 
 ## What this means for the user-facing flow
 
