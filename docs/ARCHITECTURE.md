@@ -128,7 +128,7 @@ embedded in the URL fragment, and the recipient's browser reads it via
 4. Browser POSTs metadata to api-gateway → gets share ID + upload URL
 5. Browser uploads chunks to ingest service → ingest streams to MinIO
 6. Browser receives confirmation
-7. Browser generates share URL: https://slothbox.com/s/{shareId}#{base64Key}
+7. Browser generates share URL: https://slothbox.philipsloth.com/s/{shareId}#{base64Key}
 8. User copies and shares the URL
 ```
 
@@ -139,7 +139,7 @@ recipient clicks the link.
 ## Data flow — downloading
 
 ```
-1. Recipient opens https://slothbox.com/s/{shareId}#{base64Key}
+1. Recipient opens https://slothbox.philipsloth.com/s/{shareId}#{base64Key}
 2. Browser fetches metadata from api-gateway using shareId only
 3. Browser fetches encrypted chunks from ingest service
 4. Browser extracts key from URL fragment (window.location.hash)

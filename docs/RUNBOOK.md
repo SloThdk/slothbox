@@ -39,14 +39,14 @@ sudo -u slothbox docker compose -f docker-compose.yml -f docker-compose.prod.yml
 ## Initial DNS + TLS setup
 
 Caddy auto-issues Let's Encrypt certs. The only requirement: A and AAAA records
-for `slothbox.com`, `www.slothbox.com`, and `*.slothbox.com` pointing to the
+for `slothbox.philipsloth.com`, `www.slothbox.philipsloth.com`, and `*.slothbox.philipsloth.com` pointing to the
 box's IPv4 / IPv6.
 
 ```
-A     slothbox.com         <ipv4>
-AAAA  slothbox.com         <ipv6>
-A     www.slothbox.com     <ipv4>
-AAAA  www.slothbox.com     <ipv6>
+A     slothbox.philipsloth.com         <ipv4>
+AAAA  slothbox.philipsloth.com         <ipv6>
+A     www.slothbox.philipsloth.com     <ipv4>
+AAAA  www.slothbox.philipsloth.com     <ipv6>
 ```
 
 After DNS propagation, Caddy's first run picks up certs automatically.
@@ -66,8 +66,8 @@ docker compose logs --tail=200 -f
 docker compose logs -f api-gateway
 
 # Health endpoints
-curl https://slothbox.com/api/health
-curl https://slothbox.com/ingest/health
+curl https://slothbox.philipsloth.com/api/health
+curl https://slothbox.philipsloth.com/ingest/health
 ```
 
 ### Roll a new release
@@ -193,7 +193,7 @@ Check `docker compose logs postgres`. Common issues:
 
 ## Monitoring
 
-Grafana at `https://slothbox.com:3030` (behind basic auth — you'll set that up).
+Grafana at `https://slothbox.philipsloth.com:3030` (behind basic auth — you'll set that up).
 Default dashboards:
 
 - **Overview** — uptime per service, request rate, error rate
