@@ -30,8 +30,9 @@ Examples of unacceptable behavior:
 ## Enforcement
 
 Instances of unacceptable behavior may be reported to the maintainer at
-**conduct@philipsloth.com**. All complaints will be reviewed and investigated
-promptly and fairly.
+**<philipsloth1@gmail.com>** or via the contact form at
+<https://philipsloth.com/contact> — both routes reach the same inbox. All
+complaints will be reviewed and investigated promptly and fairly.
 
 The maintainer is obligated to respect the privacy and security of the reporter
 of any incident.
