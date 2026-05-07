@@ -1,12 +1,17 @@
 // Landing page.
 //
-// Server component (no `use client`) — only the upload widget reaches across
-// the client boundary. The hero copy is opinionated by design; we want the
-// trust pitch to be the first thing every visitor reads.
+// Server component (no `use client`). Only the upload widget reaches across
+// the client boundary; everything else is statically rendered.
+//
+// Design language: visionOS-inspired dark glass. Layout is intentionally
+// asymmetric (left-aligned hero, right-floated widget) and uses negative
+// space generously. Typography is Inter at multiple weights — no serif,
+// no italic mid-sentence, no gradient text. Accent (#5b9eff sky-blue) is
+// used SPARINGLY: one CTA, one focal element. Iconography is custom inline
+// SVG at 1.2pt stroke weight, not Lucide stock.
 
 import Link from "next/link";
-import { Code2, EarthLock, FileCheck2, KeyRound, Server, ShieldCheck } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
+import { ArrowRight } from "lucide-react";
 import { UploadDrop } from "@/components/UploadDrop";
 import { GITHUB_URL } from "@/lib/config";
 
@@ -16,126 +21,125 @@ import { GITHUB_URL } from "@/lib/config";
 
 function Hero() {
   return (
-    <section className="mx-auto flex w-full max-w-[var(--container-xl)] flex-col items-center gap-10 px-4 pt-14 pb-20 sm:px-6 sm:pt-24 lg:flex-row lg:gap-16">
-      <div className="flex max-w-2xl flex-1 flex-col gap-7 lg:max-w-none lg:basis-1/2">
-        {/* Status pill — moved to a serif-rendered "edition" line. Reads like
-            the masthead of a periodical, not a SaaS toast. */}
-        <span className="inline-flex w-fit items-center gap-2.5 border-y border-[var(--color-border-strong)] py-1.5 font-mono text-[0.65rem] tracking-[0.3em] text-[var(--color-muted)] uppercase">
-          <span className="animate-pulse-soft inline-flex h-1.5 w-1.5 rounded-full bg-[var(--color-accent)]" />
-          v0.1.0-alpha · public source · EU-hosted
-        </span>
-
-        {/* Hero headline. Serif Playfair Display, looser leading, italicised
-            mid-sentence for editorial cadence. The gold underline sits behind
-            the key claim ("we can't read it"). */}
-        <h1 className="font-display text-[2.5rem] leading-[1.05] font-medium tracking-tight text-[var(--color-fg)] sm:text-[3.25rem] md:text-[3.75rem]">
-          Send any file.
-          <br />
-          <span className="hero-mark">We can&apos;t read it.</span>
-          <br />
-          <span className="font-display text-[var(--color-muted)] italic">
-            Verify the math yourself.
+    <section className="mx-auto w-full max-w-[var(--container-xl)] px-4 pt-20 pb-24 sm:px-6 sm:pt-28 sm:pb-32">
+      <div className="grid grid-cols-1 items-start gap-14 lg:grid-cols-[minmax(0,1fr)_minmax(0,520px)] lg:gap-20">
+        {/* Left column — copy block */}
+        <div className="flex flex-col gap-8 pt-2">
+          {/* Status pill — minimal mono caps, glass background */}
+          <span className="glass inline-flex w-fit items-center gap-2.5 rounded-full px-3.5 py-1.5">
+            <span className="animate-pulse-soft inline-flex h-1.5 w-1.5 rounded-full bg-[var(--color-accent)]" />
+            <span className="font-mono text-[0.7rem] tracking-[0.18em] text-[var(--color-fg-2)] uppercase">
+              v0.1.0-alpha · public source
+            </span>
           </span>
-        </h1>
 
-        <p className="max-w-xl text-[0.95rem] leading-relaxed text-[var(--color-muted)] sm:text-[1.05rem]">
-          SlothBox seals your file in your browser before it leaves your machine. The unlock key
-          lives in the part of the URL after{" "}
-          <code className="rounded border border-[var(--color-border)] bg-[var(--color-card)] px-1.5 py-0.5 font-mono text-[0.85em] text-[var(--color-accent)]">
-            #
-          </code>{" "}
-          — which browsers <em className="text-[var(--color-fg)] not-italic">never</em> send to any
-          server. Audited libsodium primitives only. No telemetry. No accounts required.
-        </p>
+          {/* Hero headline. Three lines, single sans typeface, weight gradient
+              from light (display) to medium. NO gradient text. The visual
+              weight comes from line break composition + tracking, not from
+              colour effects. */}
+          <h1 className="text-[2.75rem] leading-[1.02] font-light text-[var(--color-fg)] sm:text-[3.5rem] md:text-[4rem]">
+            Send any file.
+            <br />
+            <span className="font-medium">We can&apos;t read it.</span>
+            <br />
+            <span className="text-[var(--color-muted)]">Verify the math.</span>
+          </h1>
 
-        <div className="flex flex-wrap items-center gap-x-5 gap-y-2 pt-1 text-sm">
-          <Link
-            href="/security"
-            className="group inline-flex items-center gap-1.5 font-medium text-[var(--color-accent)] underline-offset-4 hover:underline"
-          >
-            How the trust model works
-            <span aria-hidden className="transition-transform group-hover:translate-x-0.5">
-              →
-            </span>
-          </Link>
-          <span className="hidden text-[var(--color-border-strong)] sm:inline">·</span>
-          <a
-            href={GITHUB_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="group inline-flex items-center gap-1.5 font-medium text-[var(--color-fg)] underline-offset-4 hover:underline"
-          >
-            Read the source on GitHub
-            <span aria-hidden className="transition-transform group-hover:translate-x-0.5">
-              →
-            </span>
-          </a>
+          <p className="max-w-[42ch] text-[1.05rem] leading-[1.65] font-light text-[var(--color-fg-2)]">
+            SlothBox seals your file in your browser before it leaves your machine. The unlock key
+            lives in the part of the URL after{" "}
+            <code className="rounded-md border border-[var(--color-glass-stroke)] bg-[var(--color-glass-fill)] px-1.5 py-0.5 font-mono text-[0.85em] text-[var(--color-accent)]">
+              #
+            </code>{" "}
+            — which browsers never send to any server. Audited libsodium primitives only. No
+            telemetry. No accounts.
+          </p>
+
+          {/* CTAs — primary uses accent fill, secondary is plain underline.
+              The contrast is intentional: only ONE accent-coloured button on
+              the page. Everything else is text + glass. */}
+          <div className="flex flex-wrap items-center gap-4 pt-2">
+            <Link
+              href="/security"
+              className="group inline-flex h-11 cursor-pointer items-center gap-2 rounded-full bg-[var(--color-accent)] px-5 text-sm font-medium text-[var(--color-bg)] transition-colors hover:bg-[var(--color-accent-strong)]"
+            >
+              How the trust model works
+              <ArrowRight
+                className="h-4 w-4 transition-transform group-hover:translate-x-0.5"
+                aria-hidden
+                strokeWidth={2}
+              />
+            </Link>
+            <a
+              href={GITHUB_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm font-medium text-[var(--color-fg-2)] underline-offset-[5px] transition-colors hover:text-[var(--color-fg)] hover:underline"
+            >
+              Read the source ↗
+            </a>
+          </div>
         </div>
-      </div>
 
-      <div className="flex w-full flex-1 justify-center lg:basis-1/2 lg:justify-end">
-        <UploadDrop />
+        {/* Right column — upload widget, glass-elevated, floats slightly above
+            the rest of the page. */}
+        <div className="flex w-full justify-center lg:justify-end">
+          <UploadDrop />
+        </div>
       </div>
     </section>
   );
 }
 
 // ---------------------------------------------------------------------------
-// Guarantees grid — 4 cards that map 1:1 to the README's trust pillars.
+// Guarantees — four restraint-driven trust claims.
 // ---------------------------------------------------------------------------
 
 const GUARANTEES = [
   {
-    icon: KeyRound,
-    title: "The server can't decrypt your files",
-    body: "Your file is locked in your browser using libsodium's XChaCha20-Poly1305 before any byte leaves the machine. The decryption key lives in the URL fragment — browsers never send fragments in HTTP requests.",
+    title: "We can't decrypt your files",
+    body: "XChaCha20-Poly1305 in your browser, before any byte leaves your device. The key lives in the URL fragment — browsers never send it to any server.",
   },
   {
-    icon: EarthLock,
-    title: "EU-hosted, no US transit",
-    body: "Containers run on Hetzner Germany and Finland. Data does not transit US-jurisdiction infrastructure where Schrems II compliance is contested. Important if you are subject to GDPR, Bogføringsloven or any tavshedspligt regime.",
+    title: "EU only. No US transit.",
+    body: "Hetzner Germany. No CloudFront. No Vercel edge. Schrems II is not a concern because no part of the data path crosses US jurisdiction.",
   },
   {
-    icon: Code2,
-    title: "Open source, every line",
-    body: "This repository is the entire production stack. `docker compose up -d` brings the whole thing online on your own machine. No closed components, no black boxes, no marketing-only claims.",
+    title: "Open source, every line.",
+    body: "This repository is the entire production stack. `docker compose up -d` brings the whole thing online on your own machine. Every claim is auditable.",
   },
   {
-    icon: ShieldCheck,
-    title: "Verifiable, not just promised",
-    body: "v0.5 ships RFC 3161 timestamped delivery receipts. v1.0 adds verifiable burn-after-read via a public hash chain and an offline `slothbox-verify` CLI. Every claim above is checkable without contacting our service.",
+    title: "Verifiable, not just promised.",
+    body: "v0.5 ships RFC 3161 timestamped delivery receipts. v1.0 adds verifiable burn-after-read via a public hash chain and an offline `slothbox-verify` CLI.",
   },
 ] as const;
 
 function Guarantees() {
   return (
-    <section className="mx-auto w-full max-w-[var(--container-xl)] px-4 py-20 sm:px-6">
-      <div className="mb-12 max-w-2xl">
-        <p className="eyebrow">Four guarantees</p>
-        <h2 className="font-display mt-3 text-3xl leading-[1.15] font-medium text-[var(--color-fg)] sm:text-[2.4rem]">
-          Trust comes from <em className="text-[var(--color-accent)]">architecture</em> — not
-          marketing copy.
+    <section className="mx-auto w-full max-w-[var(--container-xl)] px-4 py-24 sm:px-6">
+      <div className="divider mb-20" aria-hidden />
+
+      <div className="mb-14 max-w-2xl">
+        <p className="eyebrow">Trust comes from architecture</p>
+        <h2 className="mt-4 text-[2rem] leading-[1.15] font-light text-[var(--color-fg)] sm:text-[2.5rem]">
+          Four guarantees, each enforced at the code or infrastructure layer.
         </h2>
-        <p className="mt-4 text-[var(--color-muted)]">
-          Every claim below is enforced at the code or infrastructure layer. You can read the source
-          yourself.
-        </p>
       </div>
 
-      <div className="grid grid-cols-1 gap-px overflow-hidden rounded-lg border border-[var(--color-border)] bg-[var(--color-border)] sm:grid-cols-2">
-        {GUARANTEES.map((item) => (
-          <div
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        {GUARANTEES.map((item, i) => (
+          <article
             key={item.title}
-            className="surface-hover flex flex-col gap-3 bg-[var(--color-card)] p-7"
+            className="glass flex flex-col gap-3 p-7 transition-colors hover:border-[var(--color-glass-stroke-strong)]"
           >
-            <span className="flex h-9 w-9 items-center justify-center rounded-md border border-[var(--color-accent-tint)] bg-[var(--color-accent-soft)] text-[var(--color-accent)]">
-              <item.icon className="h-4.5 w-4.5" aria-hidden strokeWidth={1.6} />
+            <span className="font-mono text-[0.7rem] tracking-[0.18em] text-[var(--color-muted-2)]">
+              {String(i + 1).padStart(2, "0")}
             </span>
-            <h3 className="font-display text-[1.15rem] font-medium text-[var(--color-fg)]">
-              {item.title}
-            </h3>
-            <p className="text-sm leading-relaxed text-[var(--color-muted)]">{item.body}</p>
-          </div>
+            <h3 className="text-[1.1rem] font-medium text-[var(--color-fg)]">{item.title}</h3>
+            <p className="text-[0.95rem] leading-[1.6] font-light text-[var(--color-fg-2)]">
+              {item.body}
+            </p>
+          </article>
         ))}
       </div>
     </section>
@@ -143,25 +147,22 @@ function Guarantees() {
 }
 
 // ---------------------------------------------------------------------------
-// How it works — 3 steps, code-feel.
+// How it works — three steps, sparse layout.
 // ---------------------------------------------------------------------------
 
 const STEPS = [
   {
     n: "01",
-    icon: FileCheck2,
     title: "Drop a file",
     body: "Pick or drag a file. Up to 4 GiB per share in this alpha. Nothing has left your machine yet.",
   },
   {
     n: "02",
-    icon: KeyRound,
     title: "Encrypted locally",
-    body: "Your browser generates a 256-bit key, slices the file into 5 MiB chunks, and seals each chunk with XChaCha20-Poly1305. The server only ever sees ciphertext.",
+    body: "Your browser generates a 256-bit key, slices the file into 5 MiB chunks, and seals each chunk with XChaCha20-Poly1305.",
   },
   {
     n: "03",
-    icon: Server,
     title: "Share the link",
     body: "Send the share link over any channel you trust. The decryption key rides in the URL fragment — your recipient's browser unlocks the file on their side.",
   },
@@ -169,62 +170,67 @@ const STEPS = [
 
 function HowItWorks() {
   return (
-    <section className="mx-auto w-full max-w-[var(--container-xl)] px-4 py-20 sm:px-6">
-      <div className="ornament mb-14">three steps</div>
+    <section className="mx-auto w-full max-w-[var(--container-xl)] px-4 py-24 sm:px-6">
+      <div className="divider mb-20" aria-hidden />
 
-      <div className="mb-12 max-w-2xl">
+      <div className="mb-14 max-w-2xl">
         <p className="eyebrow">How it works</p>
-        <h2 className="font-display mt-3 text-3xl leading-[1.15] font-medium text-[var(--color-fg)] sm:text-[2.4rem]">
-          Three steps. <em className="text-[var(--color-accent)]">Zero</em> secrets shared with us.
+        <h2 className="mt-4 text-[2rem] leading-[1.15] font-light text-[var(--color-fg)] sm:text-[2.5rem]">
+          Three steps. No secrets shared with us.
         </h2>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+      <ol className="grid grid-cols-1 gap-px overflow-hidden rounded-2xl bg-[var(--color-glass-stroke)] md:grid-cols-3">
         {STEPS.map((step) => (
-          <div key={step.n} className="surface surface-hover relative flex flex-col gap-4 p-7">
-            <div className="flex items-center justify-between border-b border-[var(--color-border)] pb-3">
-              <span className="font-display text-3xl text-[var(--color-accent)]">{step.n}</span>
-              <step.icon
-                className="h-5 w-5 text-[var(--color-muted)]"
-                aria-hidden
-                strokeWidth={1.6}
-              />
+          <li key={step.n} className="flex flex-col gap-4 bg-[var(--color-bg)] p-8">
+            <div className="flex items-baseline justify-between">
+              <span className="font-mono text-[1.6rem] font-light text-[var(--color-accent)]">
+                {step.n}
+              </span>
+              <span className="font-mono text-[0.65rem] tracking-[0.18em] text-[var(--color-muted-2)] uppercase">
+                step
+              </span>
             </div>
-            <h3 className="font-display text-[1.15rem] font-medium text-[var(--color-fg)]">
-              {step.title}
-            </h3>
-            <p className="text-sm leading-relaxed text-[var(--color-muted)]">{step.body}</p>
-          </div>
+            <h3 className="text-[1.1rem] font-medium text-[var(--color-fg)]">{step.title}</h3>
+            <p className="text-[0.95rem] leading-[1.6] font-light text-[var(--color-fg-2)]">
+              {step.body}
+            </p>
+          </li>
         ))}
-      </div>
+      </ol>
     </section>
   );
 }
 
 // ---------------------------------------------------------------------------
-// CTA strip
+// CTA — closing
 // ---------------------------------------------------------------------------
 
 function FooterCta() {
   return (
-    <section className="mx-auto w-full max-w-[var(--container-xl)] px-4 pt-8 pb-16 sm:px-6">
-      <div className="surface flex flex-col items-start gap-5 p-8 sm:flex-row sm:items-center sm:justify-between sm:p-10">
+    <section className="mx-auto w-full max-w-[var(--container-xl)] px-4 pt-12 pb-24 sm:px-6">
+      <div className="divider mb-20" aria-hidden />
+      <div className="glass-elevated flex flex-col items-start gap-6 p-10 sm:flex-row sm:items-center sm:justify-between sm:p-12">
         <div className="max-w-xl">
-          <p className="eyebrow">For regulated work</p>
-          <h3 className="font-display mt-2 text-[1.6rem] leading-[1.2] font-medium text-[var(--color-fg)]">
-            Lawyers, accountants, journalists, doctors.
+          <p className="eyebrow">Built for regulated work</p>
+          <h3 className="mt-4 text-[1.5rem] leading-[1.2] font-light text-[var(--color-fg)] sm:text-[1.75rem]">
+            Lawyers. Accountants. Journalists. Doctors.
           </h3>
-          <p className="mt-3 text-sm leading-relaxed text-[var(--color-muted)]">
-            Anyone bound by tavshedspligt, GDPR, Bogføringsloven, or audit-trail requirements.{" "}
-            <span className="text-[var(--color-fg)]">v0.5</span> ships court-admissible RFC 3161
-            delivery receipts.
+          <p className="mt-4 max-w-lg text-[0.95rem] leading-[1.6] font-light text-[var(--color-fg-2)]">
+            Anyone bound by tavshedspligt, GDPR, Bogføringsloven, or audit-trail requirements. v0.5
+            ships court-admissible RFC 3161 delivery receipts.
           </p>
         </div>
         <Link
           href="/security"
-          className="inline-flex h-11 shrink-0 items-center gap-2 rounded-md border border-[var(--color-accent-tint)] bg-[var(--color-accent-soft)] px-5 text-sm font-medium text-[var(--color-accent)] transition-colors hover:border-[var(--color-accent)] hover:bg-[var(--color-accent-soft)]"
+          className="group inline-flex h-11 shrink-0 cursor-pointer items-center gap-2 rounded-full border border-[var(--color-glass-stroke-strong)] bg-[var(--color-glass-fill)] px-5 text-sm font-medium text-[var(--color-fg)] backdrop-blur-md transition-colors hover:border-[var(--color-accent-tint)] hover:text-[var(--color-accent)]"
         >
-          Read the security docs →
+          Read the security docs
+          <ArrowRight
+            className="h-4 w-4 transition-transform group-hover:translate-x-0.5"
+            aria-hidden
+            strokeWidth={2}
+          />
         </Link>
       </div>
     </section>
