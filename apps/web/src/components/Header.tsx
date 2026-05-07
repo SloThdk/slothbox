@@ -1,45 +1,45 @@
-// Sticky top navigation — kept minimal on purpose. Wordmark, two text links,
-// the GitHub badge. Theme switcher lands in v0.5+ once accounts settle.
-//
-// The wordmark glyph mirrors the favicon (app/icon.svg): a graphite rounded
-// square with a champagne-gold padlock, shackle open at the top-right. The
-// inline SVG is identical to the favicon so the brand mark scales from a
-// 16-pixel browser tab to a hero-sized illustration without redrawing.
+// Sticky top navigation — translucent glass strip with a hairline bottom
+// border, exactly the visionOS / macOS-Tahoe sheet aesthetic. Wordmark on
+// the left, two minimal nav links + GitHub button on the right.
 
 import Link from "next/link";
 import { Github } from "lucide-react";
 import { GITHUB_URL } from "@/lib/config";
 
 /**
- * SlothBox padlock-glyph wordmark. SVG inline to avoid an extra HTTP
- * request on first paint. Matches app/icon.svg byte-for-byte (modulo
- * sizing) so the brand identity is consistent end-to-end.
+ * SlothBox wordmark. Inline SVG so we don't ship an extra HTTP request on
+ * first paint. Visual: a 9×9 box rendered in the brand sky-blue accent
+ * with a single keyhole cut from its centre. The shape encodes "the box"
+ * directly — no animal, no decoration. The keyhole is also a stylised
+ * lowercase "s" if you squint, doubling as a monogram. Same glyph as the
+ * favicon (kept in sync there).
  */
 function Wordmark() {
   return (
     <span className="flex items-center gap-2.5">
       <span
-        className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--color-accent-tint)] bg-[var(--color-bg)]"
+        className="glass inline-flex h-9 w-9 items-center justify-center rounded-lg"
         aria-hidden
       >
-        <svg viewBox="0 0 32 32" width={22} height={22}>
-          {/* Padlock shackle — open at the top-right, hinting that the
-              recipient (not the platform) holds the key to unlock. */}
-          <path
-            d="M11 14 V11 a5 5 0 0 1 10 0 v3"
+        <svg viewBox="0 0 32 32" width={20} height={20}>
+          {/* Box outline — square with rounded corners. */}
+          <rect
+            x={6}
+            y={6}
+            width={20}
+            height={20}
+            rx={3.5}
             stroke="var(--color-accent)"
-            strokeWidth={2.4}
+            strokeWidth={1.6}
             fill="none"
-            strokeLinecap="round"
           />
-          {/* Padlock body — solid champagne against the graphite frame. */}
-          <rect x={8.5} y={13.5} width={15} height={11} rx={1.6} fill="var(--color-accent)" />
-          {/* Keyhole — cut from the body in the bg colour. */}
-          <circle cx={16} cy={18.5} r={1.6} fill="var(--color-bg)" />
-          <rect x={15.25} y={18.5} width={1.5} height={3.2} fill="var(--color-bg)" />
+          {/* Keyhole — circle + descending notch, centred. The icon reads
+              first as "secured box", second as a small letterform. */}
+          <circle cx={16} cy={14.5} r={2} fill="var(--color-accent)" />
+          <rect x={15} y={14.5} width={2} height={5} fill="var(--color-accent)" />
         </svg>
       </span>
-      <span className="font-display text-[1.35rem] leading-none font-semibold tracking-tight">
+      <span className="text-[1.15rem] leading-none font-medium tracking-tight text-[var(--color-fg)]">
         SlothBox
       </span>
     </span>
@@ -48,11 +48,11 @@ function Wordmark() {
 
 export function Header() {
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-[var(--color-border)]/60 bg-[var(--color-bg)]/85 backdrop-blur-md supports-[backdrop-filter]:bg-[var(--color-bg)]/65">
+    <header className="sticky top-0 z-40 w-full border-b border-[var(--color-glass-stroke)] bg-[var(--color-bg)]/70 backdrop-blur-xl">
       <div className="mx-auto flex h-16 w-full max-w-[var(--container-xl)] items-center justify-between px-4 sm:px-6">
         <Link
           href="/"
-          className="flex items-center gap-2 transition-opacity hover:opacity-85"
+          className="flex items-center gap-2 transition-opacity hover:opacity-90"
           aria-label="SlothBox — home"
         >
           <Wordmark />
@@ -61,13 +61,13 @@ export function Header() {
         <nav className="flex items-center gap-1 sm:gap-2">
           <Link
             href="/about"
-            className="rounded-md px-3 py-2 text-sm text-[var(--color-muted)] transition-colors hover:text-[var(--color-fg)]"
+            className="rounded-full px-3.5 py-2 text-[0.85rem] font-medium text-[var(--color-muted)] transition-colors hover:bg-[var(--color-glass-fill)] hover:text-[var(--color-fg)]"
           >
             About
           </Link>
           <Link
             href="/security"
-            className="rounded-md px-3 py-2 text-sm text-[var(--color-muted)] transition-colors hover:text-[var(--color-fg)]"
+            className="rounded-full px-3.5 py-2 text-[0.85rem] font-medium text-[var(--color-muted)] transition-colors hover:bg-[var(--color-glass-fill)] hover:text-[var(--color-fg)]"
           >
             Security
           </Link>
@@ -75,9 +75,9 @@ export function Header() {
             href={GITHUB_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="ml-1 inline-flex h-9 items-center gap-2 rounded-md border border-[var(--color-border)] px-3 text-sm text-[var(--color-fg)] transition-colors hover:border-[var(--color-accent-tint)] hover:bg-[var(--color-card)]"
+            className="ml-1 inline-flex h-9 cursor-pointer items-center gap-2 rounded-full border border-[var(--color-glass-stroke)] bg-[var(--color-glass-fill)] px-3.5 text-[0.85rem] font-medium text-[var(--color-fg)] backdrop-blur-md transition-colors hover:border-[var(--color-accent-tint)]"
           >
-            <Github className="h-4 w-4" aria-hidden />
+            <Github className="h-3.5 w-3.5" aria-hidden strokeWidth={1.8} />
             <span className="hidden sm:inline">GitHub</span>
           </a>
         </nav>
