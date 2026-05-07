@@ -194,7 +194,12 @@ BEGIN
 END;
 $$;
 
+-- Trigger-only path: revoke from every public role, grant only to
+-- service_role (the elevated server-side hat). On Supabase the canonical
+-- superuser is `postgres`; on vanilla self-hosted it's whatever the
+-- POSTGRES_USER env points at (here: slothbox). Targeting the abstract
+-- service_role keeps the same DDL working in both environments.
 REVOKE ALL ON FUNCTION increment_download(TEXT) FROM PUBLIC, anon, authenticated;
-GRANT EXECUTE ON FUNCTION increment_download(TEXT) TO postgres;
+GRANT EXECUTE ON FUNCTION increment_download(TEXT) TO service_role;
 
 COMMIT;
