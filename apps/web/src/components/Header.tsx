@@ -1,10 +1,20 @@
 // Sticky top navigation — translucent glass strip with a hairline bottom
 // border, exactly the visionOS / macOS-Tahoe sheet aesthetic. Wordmark on
-// the left, two minimal nav links + GitHub button on the right.
+// the left, two minimal nav links + GitHub button + language toggle on
+// the right.
+//
+// Marked "use client" because the language toggle and the t() calls for
+// nav labels both need the LanguageContext, which is client-only. The
+// header itself doesn't render any data that benefits from SSR — it's
+// pure chrome — so the cost of going client-side is zero.
+
+"use client";
 
 import Link from "next/link";
 import { Github } from "lucide-react";
 import { GITHUB_URL } from "@/lib/config";
+import { useLanguage } from "@/lib/i18n/LanguageContext";
+import { LanguageToggle } from "@/components/LanguageToggle";
 
 /**
  * SlothBox wordmark. Inline SVG so we don't ship an extra HTTP request on
@@ -47,13 +57,15 @@ function Wordmark() {
 }
 
 export function Header() {
+  const { t } = useLanguage();
+
   return (
     <header className="sticky top-0 z-40 w-full border-b border-[var(--color-glass-stroke)] bg-[var(--color-bg)]/70 backdrop-blur-xl">
       <div className="mx-auto flex h-16 w-full max-w-[var(--container-xl)] items-center justify-between px-4 sm:px-6">
         <Link
           href="/"
           className="flex items-center gap-2 transition-opacity hover:opacity-90"
-          aria-label="SlothBox — home"
+          aria-label={t("nav.homeAria")}
         >
           <Wordmark />
         </Link>
@@ -63,14 +75,20 @@ export function Header() {
             href="/about"
             className="rounded-full px-3.5 py-2 text-[0.85rem] font-medium text-[var(--color-muted)] transition-colors hover:bg-[var(--color-glass-fill)] hover:text-[var(--color-fg)]"
           >
-            About
+            {t("nav.about")}
           </Link>
           <Link
             href="/security"
             className="rounded-full px-3.5 py-2 text-[0.85rem] font-medium text-[var(--color-muted)] transition-colors hover:bg-[var(--color-glass-fill)] hover:text-[var(--color-fg)]"
           >
-            Security
+            {t("nav.security")}
           </Link>
+          {/* Language toggle. Sits between the text nav and the GitHub
+              button so it reads as part of the "site chrome" cluster
+              rather than as a primary action. */}
+          <div className="ml-1">
+            <LanguageToggle compact />
+          </div>
           <a
             href={GITHUB_URL}
             target="_blank"
@@ -78,7 +96,7 @@ export function Header() {
             className="ml-1 inline-flex h-9 cursor-pointer items-center gap-2 rounded-full border border-[var(--color-glass-stroke)] bg-[var(--color-glass-fill)] px-3.5 text-[0.85rem] font-medium text-[var(--color-fg)] backdrop-blur-md transition-colors hover:border-[var(--color-accent-tint)]"
           >
             <Github className="h-3.5 w-3.5" aria-hidden strokeWidth={1.8} />
-            <span className="hidden sm:inline">GitHub</span>
+            <span className="hidden sm:inline">{t("nav.github")}</span>
           </a>
         </nav>
       </div>

@@ -1,57 +1,66 @@
-// Footer — license, GitHub, EU residency, version. Kept tight; the landing
-// page is the loud part.
+// Footer — license, GitHub, EU residency, version. Kept tight; the
+// landing page is the loud part.
+//
+// Marked "use client" because every visible string runs through the
+// LanguageContext. The static link URLs themselves are server-friendly,
+// but separating them into a sibling server component just to save a
+// few KB of client JS would break the per-link translation pattern —
+// not worth the complexity for chrome that lives below the fold.
+
+"use client";
 
 import Link from "next/link";
 import { APP_NAME, APP_VERSION, GITHUB_URL } from "@/lib/config";
+import { useLanguage } from "@/lib/i18n/LanguageContext";
+import type { TranslationKey } from "@/lib/i18n/translations";
 
 export function Footer() {
+  const { t } = useLanguage();
+
   return (
     <footer className="mt-24 border-t border-[var(--color-border)]/60 bg-[var(--color-bg)]">
       <div className="mx-auto flex w-full max-w-[var(--container-xl)] flex-col gap-6 px-4 py-10 sm:px-6 md:flex-row md:items-start md:justify-between">
         <div>
           <p className="text-sm font-semibold text-[var(--color-fg)]">{APP_NAME}</p>
-          <p className="mt-1 max-w-md text-sm text-[var(--color-muted)]">
-            End-to-end encrypted file transfer. Open source under the MIT licence. Hosted in the EU
-            — German data centre, no US transit.
-          </p>
+          <p className="mt-1 max-w-md text-sm text-[var(--color-muted)]">{t("footer.tagline")}</p>
         </div>
 
         <div className="grid grid-cols-2 gap-x-12 gap-y-2 text-sm md:grid-cols-3">
           <FooterColumn
-            title="Product"
+            titleKey="footer.col.product"
             links={[
-              { href: "/", label: "Send a file" },
-              { href: "/about", label: "About" },
-              { href: "/security", label: "Security" },
+              { href: "/", labelKey: "footer.link.send" },
+              { href: "/about", labelKey: "footer.link.about" },
+              { href: "/security", labelKey: "footer.link.security" },
             ]}
           />
           <FooterColumn
-            title="Open source"
+            titleKey="footer.col.openSource"
             links={[
-              { href: GITHUB_URL, label: "GitHub", external: true },
+              { href: GITHUB_URL, labelKey: "footer.link.github", external: true },
               {
                 href: `${GITHUB_URL}/blob/master/LICENSE`,
-                label: "MIT licence",
+                labelKey: "footer.link.licence",
                 external: true,
               },
               {
                 href: `${GITHUB_URL}/blob/master/SECURITY.md`,
-                label: "Security policy",
+                labelKey: "footer.link.securityPolicy",
                 external: true,
               },
             ]}
           />
           <FooterColumn
-            title="Legal"
+            titleKey="footer.col.legal"
             links={[
               {
                 href: `${GITHUB_URL}/blob/master/docs/THREAT_MODEL.md`,
-                label: "Threat model",
+                labelKey: "footer.link.threatModel",
                 external: true,
               },
               {
                 href: `${GITHUB_URL}/blob/master/docs/CRYPTO.md`,
-                label: "Crypto details",
+                labelKey: "footer.link.crypto",
                 external: true,
               },
             ]}
@@ -62,7 +71,7 @@ export function Footer() {
       <div className="border-t border-[var(--color-border)]/60">
         <div className="mx-auto flex w-full max-w-[var(--container-xl)] flex-col items-start justify-between gap-2 px-4 py-4 text-xs text-[var(--color-muted)] sm:flex-row sm:items-center sm:px-6">
           <span>
-            v{APP_VERSION} · Built by{" "}
+            v{APP_VERSION} · {t("footer.builtBy")}{" "}
             <a
               href="https://philipsloth.com"
               target="_blank"
@@ -71,9 +80,9 @@ export function Footer() {
             >
               Philip Sloth
             </a>{" "}
-            · Made in Denmark.
+            · {t("footer.madeIn")}
           </span>
-          <span>EU residency: data lives in a German data centre. No US transit.</span>
+          <span>{t("footer.residency")}</span>
         </div>
       </div>
     </footer>
@@ -82,15 +91,16 @@ export function Footer() {
 
 interface FooterLink {
   href: string;
-  label: string;
+  labelKey: TranslationKey;
   external?: boolean;
 }
 
-function FooterColumn({ title, links }: { title: string; links: FooterLink[] }) {
+function FooterColumn({ titleKey, links }: { titleKey: TranslationKey; links: FooterLink[] }) {
+  const { t } = useLanguage();
   return (
     <div>
       <p className="text-xs font-semibold tracking-wider text-[var(--color-muted)] uppercase">
-        {title}
+        {t(titleKey)}
       </p>
       <ul className="mt-3 space-y-2">
         {links.map((link) =>
@@ -102,7 +112,7 @@ function FooterColumn({ title, links }: { title: string; links: FooterLink[] }) 
                 rel="noopener noreferrer"
                 className="text-[var(--color-fg)] transition-colors hover:text-[var(--color-accent)]"
               >
-                {link.label}
+                {t(link.labelKey)}
               </a>
             </li>
           ) : (
@@ -111,7 +121,7 @@ function FooterColumn({ title, links }: { title: string; links: FooterLink[] }) 
                 href={link.href}
                 className="text-[var(--color-fg)] transition-colors hover:text-[var(--color-accent)]"
               >
-                {link.label}
+                {t(link.labelKey)}
               </Link>
             </li>
           )
