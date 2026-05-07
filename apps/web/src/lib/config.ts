@@ -1,6 +1,13 @@
 // Single source of truth for runtime URLs.
 //
-// `NEXT_PUBLIC_*` vars are inlined at build time by Next.js. The Dockerfile
+// CRITICAL: these reads MUST be literal `process.env.NEXT_PUBLIC_*` accesses,
+// NOT dynamic indexing like `process.env[name]`. Next.js's webpack inliner
+// only replaces static accesses at parse time — dynamic indexing falls
+// through to a runtime read of process.env, which is empty in browser-side
+// code, so the fallback always wins. We had a `publicEnv(name, fallback)`
+// helper before that broke the inliner; do not re-introduce it.
+//
+// `NEXT_PUBLIC_*` vars are baked at BUILD TIME by Next.js. The Dockerfile
 // passes them through as ARG + ENV so docker compose's build.args block can
 // inject the correct values for each environment (localhost in dev, the
 // real domain in prod).
@@ -12,15 +19,13 @@
 // to the host and must NOT appear in browser-side URLs — every browser
 // request flows through Caddy at /api/*, /chunk/*, /ws/*.
 
-import { publicEnv } from "./utils";
-
-export const API_URL = publicEnv("NEXT_PUBLIC_API_URL", "http://localhost");
-export const WS_URL = publicEnv("NEXT_PUBLIC_WS_URL", "ws://localhost");
-export const INGEST_URL = publicEnv("NEXT_PUBLIC_INGEST_URL", "http://localhost");
-export const PUBLIC_URL = publicEnv("NEXT_PUBLIC_PUBLIC_URL", "http://localhost");
+export const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost";
+export const WS_URL = process.env.NEXT_PUBLIC_WS_URL || "ws://localhost";
+export const INGEST_URL = process.env.NEXT_PUBLIC_INGEST_URL || "http://localhost";
+export const PUBLIC_URL = process.env.NEXT_PUBLIC_PUBLIC_URL || "http://localhost";
 
 export const MAX_FILE_SIZE_MB = Number.parseInt(
-  publicEnv("NEXT_PUBLIC_MAX_FILE_SIZE_MB", "4096"),
+  process.env.NEXT_PUBLIC_MAX_FILE_SIZE_MB || "4096",
   10
 );
 export const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
