@@ -9,11 +9,21 @@
 
 import type { Metadata, Viewport } from "next";
 import { Inter, JetBrains_Mono, Playfair_Display } from "next/font/google";
+import { headers } from "next/headers";
 import { Toaster } from "sonner";
 import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
 import { APP_NAME, APP_TAGLINE, PUBLIC_URL } from "@/lib/config";
 import "@/styles/globals.css";
+
+// Force every route through the runtime so the per-request nonce minted
+// in middleware.ts gets stamped onto Next's emitted <script> tags. With
+// the default static prerender, build-time HTML has no nonce attributes,
+// CSP rejects every inline script, the page never hydrates, and the
+// console fills up with violations. This trade — losing CDN-cacheable
+// static HTML in exchange for a strict CSP that actually enforces — is
+// the right call for a security-focused product.
+export const dynamic = "force-dynamic";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -81,14 +91,24 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  // Pull the per-request nonce from the request headers. Middleware
+  // sets x-nonce; we forward it to the React tree so any custom <Script>
+  // components can attach the same nonce attribute. Next 15 also reads
+  // this header to nonce its own framework scripts during SSR.
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
+
   return (
     <html
       lang="en"
       className={`${inter.variable} ${playfair.variable} ${jetbrains.variable}`}
       suppressHydrationWarning
     >
-      <body className="flex min-h-screen flex-col font-sans antialiased">
+      <head>
+        {/* Hint browsers that support h3 about HTTP/3 availability. */}
+        <meta httpEquiv="x-dns-prefetch-control" content="on" />
+      </head>
+      <body className="flex min-h-screen flex-col font-sans antialiased" data-nonce={nonce}>
         <Header />
         <main className="flex-1">{children}</main>
         <Footer />
