@@ -17,8 +17,13 @@
 FROM node:20.18-alpine AS base
 ENV PNPM_HOME=/pnpm \
     PATH="/pnpm:$PATH" \
-    NPM_CONFIG_UPDATE_NOTIFIER=false
-RUN corepack enable && apk add --no-cache libc6-compat dumb-init wget
+    NPM_CONFIG_UPDATE_NOTIFIER=false \
+    COREPACK_INTEGRITY_KEYS=0
+# Pin pnpm explicitly. corepack's auto-fetch hits a key-verification bug on
+# this Node version. See apps/web/Dockerfile for the same workaround.
+RUN apk add --no-cache libc6-compat dumb-init wget && \
+    corepack enable && \
+    corepack prepare pnpm@9.12.3 --activate
 
 # --- Stage 2: build ----------------------------------------------------
 FROM base AS builder
