@@ -21,7 +21,7 @@ export const SelectTrigger = React.forwardRef<
   <SelectPrimitive.Trigger
     ref={ref}
     className={cn(
-      "flex h-10 w-full items-center justify-between rounded-lg border border-[var(--color-border)] bg-[var(--color-card)] px-3 py-2 text-sm text-[var(--color-fg)] focus:ring-2 focus:ring-[var(--color-accent)] focus:ring-offset-2 focus:ring-offset-[var(--color-bg)] focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 data-[placeholder]:text-[var(--color-muted)]",
+      "flex h-10 w-full cursor-pointer items-center justify-between rounded-md border border-[var(--color-border)] bg-[var(--color-card)] px-3 py-2 text-sm text-[var(--color-fg)] transition-colors hover:border-[var(--color-accent-tint)] focus:ring-2 focus:ring-[var(--color-accent)] focus:ring-offset-2 focus:ring-offset-[var(--color-bg)] focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 data-[placeholder]:text-[var(--color-muted)]",
       className
     )}
     {...props}
@@ -70,7 +70,10 @@ export const SelectItem = React.forwardRef<
   <SelectPrimitive.Item
     ref={ref}
     className={cn(
-      "relative flex w-full cursor-default items-center rounded-md py-1.5 pr-2 pl-8 text-sm outline-none select-none focus:bg-[color-mix(in_srgb,var(--color-accent)_15%,transparent)] focus:text-[var(--color-fg)] data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
+      // cursor-pointer instead of the default cursor-default — these are
+      // clickable rows; the platform-default I-beam cursor on a select-item
+      // confuses users into thinking the row is text instead of a control.
+      "relative flex w-full cursor-pointer items-center rounded-md py-1.5 pr-2 pl-8 text-sm outline-none select-none focus:bg-[var(--color-accent-soft)] focus:text-[var(--color-fg)] data-[disabled]:pointer-events-none data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50",
       className
     )}
     {...props}

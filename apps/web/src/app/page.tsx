@@ -33,7 +33,7 @@ function Hero() {
           <br />
           <span className="hero-mark">We can&apos;t read it.</span>
           <br />
-          <span className="font-display italic text-[var(--color-muted)]">
+          <span className="font-display text-[var(--color-muted)] italic">
             Verify the math yourself.
           </span>
         </h1>
@@ -181,10 +181,7 @@ function HowItWorks() {
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
         {STEPS.map((step) => (
-          <div
-            key={step.n}
-            className="surface surface-hover relative flex flex-col gap-4 p-7"
-          >
+          <div key={step.n} className="surface surface-hover relative flex flex-col gap-4 p-7">
             <div className="flex items-center justify-between border-b border-[var(--color-border)] pb-3">
               <span className="font-display text-3xl text-[var(--color-accent)]">{step.n}</span>
               <step.icon
