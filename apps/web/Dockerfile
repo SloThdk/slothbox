@@ -57,25 +57,29 @@ WORKDIR /repo
 
 # NEXT_PUBLIC_* build args.
 #
-# Next.js inlines NEXT_PUBLIC_* variables into the client JS bundle AT
-# BUILD TIME — they get baked into the .next/static/chunks/*.js as literal
-# strings. Setting them via `environment:` in docker-compose only
-# propagates at RUNTIME, which is too late for the bundle. The values
-# must be ARG-ed in the Dockerfile and ENV-exported during the build
-# step so Webpack picks them up.
+# Next.js inlines NEXT_PUBLIC_* into the client JS bundle AT BUILD TIME.
+# The values must be ARG-ed in the Dockerfile and exposed during the
+# `next build` step so Webpack picks them up.
 #
-# docker-compose passes these via build.args; defaults below match
-# bare-localhost-via-Caddy so an ad-hoc `docker build .` still works.
-ARG NEXT_PUBLIC_API_URL=http://localhost
-ARG NEXT_PUBLIC_WS_URL=ws://localhost
-ARG NEXT_PUBLIC_INGEST_URL=http://localhost
-ARG NEXT_PUBLIC_PUBLIC_URL=http://localhost
+# Defaults match the PRODUCTION URLs because that's the canonical
+# deployment. Local dev overrides via docker-compose `build.args` ->
+# bare http://localhost (Caddy proxy on :80). An ad-hoc `docker build .`
+# without args produces a prod-shaped image — fewer footguns than the
+# other way round.
+ARG NEXT_PUBLIC_API_URL=https://slothbox.philipsloth.com
+ARG NEXT_PUBLIC_WS_URL=wss://slothbox.philipsloth.com
+ARG NEXT_PUBLIC_INGEST_URL=https://slothbox.philipsloth.com
+ARG NEXT_PUBLIC_PUBLIC_URL=https://slothbox.philipsloth.com
 ARG NEXT_PUBLIC_MAX_FILE_SIZE_MB=4096
-ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL \
-    NEXT_PUBLIC_WS_URL=$NEXT_PUBLIC_WS_URL \
-    NEXT_PUBLIC_INGEST_URL=$NEXT_PUBLIC_INGEST_URL \
-    NEXT_PUBLIC_PUBLIC_URL=$NEXT_PUBLIC_PUBLIC_URL \
-    NEXT_PUBLIC_MAX_FILE_SIZE_MB=$NEXT_PUBLIC_MAX_FILE_SIZE_MB
+
+# Promote ARGs to ENV so Next's webpack inliner sees them as
+# process.env.NEXT_PUBLIC_*. Note: ARG -> ENV bridge is necessary
+# because Next reads process.env, not Dockerfile ARGs.
+ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL} \
+    NEXT_PUBLIC_WS_URL=${NEXT_PUBLIC_WS_URL} \
+    NEXT_PUBLIC_INGEST_URL=${NEXT_PUBLIC_INGEST_URL} \
+    NEXT_PUBLIC_PUBLIC_URL=${NEXT_PUBLIC_PUBLIC_URL} \
+    NEXT_PUBLIC_MAX_FILE_SIZE_MB=${NEXT_PUBLIC_MAX_FILE_SIZE_MB}
 
 # Re-apply hoisted .npmrc inside the builder stage too — needed for the
 # implicit pnpm install below. .npmrc must exist BEFORE manifests are
@@ -95,7 +99,16 @@ COPY apps/web ./apps/web
 RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
     pnpm install --no-frozen-lockfile --filter @slothbox/web... --filter @slothbox/crypto-core
 
-RUN pnpm --filter @slothbox/web build
+# Explicit env on the build line — belt-and-braces. ENV directives above
+# already propagate to RUN, but inlining the same values here removes any
+# doubt about whether buildkit's layer-cache short-circuited ARG resolution
+# on a previous run.
+RUN NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL} \
+    NEXT_PUBLIC_WS_URL=${NEXT_PUBLIC_WS_URL} \
+    NEXT_PUBLIC_INGEST_URL=${NEXT_PUBLIC_INGEST_URL} \
+    NEXT_PUBLIC_PUBLIC_URL=${NEXT_PUBLIC_PUBLIC_URL} \
+    NEXT_PUBLIC_MAX_FILE_SIZE_MB=${NEXT_PUBLIC_MAX_FILE_SIZE_MB} \
+    pnpm --filter @slothbox/web build
 
 # --- Stage 4: minimal runtime image -------------------------------------
 FROM node:20-alpine AS runner
