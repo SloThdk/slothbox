@@ -106,13 +106,17 @@ Pinned in `pnpm-lock.yaml`:
 Security patches via Dependabot. Major upgrades reviewed manually with re-running
 of all test vectors.
 
-## What we do NOT do
+## What this design does NOT do
 
-- We do not encrypt URL fragments server-side ("forwarding" them through us).
-  The whole point is that we never see them.
-- We do not log share URLs. We log share IDs.
-- We do not implement "key escrow" or "lawful access". The architecture
-  forbids it.
-- We do not use deprecated primitives (MD5, SHA-1, RC4, DES, 3DES, RSA-PKCS1v15).
-- We do not use random numbers from `Math.random()`.
-- We do not concatenate strings to build cryptographic inputs (use proper KDFs).
+- The system does not encrypt URL fragments server-side ("forwarding" them
+  through the operator). The entire point is that the operator never sees
+  them.
+- The system does not log share URLs. It logs share IDs only.
+- The system does not implement "key escrow" or "lawful access". The
+  architecture forbids it — keys are not on the server to escrow.
+- The system does not use deprecated primitives (MD5, SHA-1, RC4, DES, 3DES,
+  RSA-PKCS1v15).
+- The system does not use random numbers from `Math.random()` for any
+  security-relevant value.
+- The system does not concatenate strings to build cryptographic inputs —
+  proper KDFs and length-prefixed AAD only.
