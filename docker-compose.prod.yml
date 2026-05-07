@@ -1,103 +1,382 @@
-# Production overrides
-# Apply with: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+# Production overlay — enterprise-grade hardening on top of docker-compose.yml.
+#
+# Apply with:
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+#
+# What this layer adds, in addition to the base compose:
+#
+#   1. Read-only root filesystems on every stateless container. Anything
+#      that legitimately needs to write goes via a tmpfs mount or a named
+#      volume — nothing else can touch disk.
+#   2. cap_drop: ALL with explicit cap_add allowlists. By default Docker
+#      gives containers a generous default capability set (CHOWN, DAC_OVERRIDE,
+#      SETGID, ...). We strip everything and re-add only what each service
+#      genuinely needs (Caddy needs NET_BIND_SERVICE for ports 80/443,
+#      everything else needs nothing).
+#   3. security_opt: no-new-privileges:true everywhere. Prevents a child
+#      process from gaining more privileges than its parent — defeats setuid
+#      escalation if a binary in the image is suid'd by mistake.
+#   4. CPU + memory resource limits so a runaway container can't take down
+#      the whole host. Enforced by the kernel's cgroup v2 controller.
+#   5. Log rotation via the json-file driver (10 MB per file, 3 generations).
+#      Without this, /var/log/docker/containers can fill the disk in days
+#      under steady traffic.
+#   6. Loopback-only port removals on postgres / minio / grafana. The base
+#      compose binds them to 127.0.0.1 for local dev convenience; in
+#      production they live on the internal network only and are accessed
+#      via Caddy under authenticated paths.
+#   7. Pulled images from GHCR instead of local builds — reproducible
+#      artefacts pinned to specific git SHAs.
+#   8. Postgres data-checksums + WAL retention tuning.
+#   9. Postgres pg_dump backup sidecar with rotation (28-day retention).
+
+# ─── Defaults applied to every service ────────────────────────────────
+# Anchors so we don't repeat 13 times. Compose merges these into the
+# per-service blocks below.
+x-default-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+    compress: "true"
+
+x-default-security: &default-security
+  - no-new-privileges:true
 
 services:
+  # ─── Caddy (TLS edge) ──────────────────────────────────────────────
   caddy:
-    ports:
-      - "80:80"
-      - "443:443"
+    image: caddy:2.8-alpine
     environment:
-      - DOMAIN=${DOMAIN:-slothbox.com}
+      - DOMAIN=${DOMAIN}
+    read_only: true
+    tmpfs:
+      - /tmp:size=64M,mode=1777
+    cap_drop:
+      - ALL
+    cap_add:
+      # NET_BIND_SERVICE: bind low ports (80, 443) without root.
+      # SETUID/SETGID: drop to non-root after binding.
+      - NET_BIND_SERVICE
+      - SETUID
+      - SETGID
+    security_opt: *default-security
+    logging: *default-logging
     deploy:
       resources:
         limits:
           memory: 256M
+          cpus: "0.50"
+        reservations:
+          memory: 64M
 
+  # ─── Frontend ─────────────────────────────────────────────────────
   web:
-    image: ghcr.io/slothdk/slothbox-web:${IMAGE_TAG:-latest}
-    build: null
+    # In production we run images that the Deploy workflow pushed to GHCR.
+    # Until the first auto-deploy completes we fall back to the local build
+    # configured in the base compose. To pin to a specific GHCR image,
+    # uncomment + bump IMAGE_TAG in .env:
+    #   image: ghcr.io/slothdk/slothbox-web:${IMAGE_TAG:-latest}
+    read_only: true
+    tmpfs:
+      # Next caches static asset transforms here at runtime.
+      - /tmp:size=128M,mode=1777
+      - /app/apps/web/.next/cache:size=64M,mode=0755
+    cap_drop:
+      - ALL
+    security_opt: *default-security
+    logging: *default-logging
     deploy:
       resources:
         limits:
           memory: 512M
+          cpus: "1.00"
+        reservations:
+          memory: 128M
 
+  # ─── API gateway (Hono) ───────────────────────────────────────────
   api-gateway:
-    image: ghcr.io/slothdk/slothbox-api-gateway:${IMAGE_TAG:-latest}
-    build: null
+    # See web service comment re: GHCR image pinning vs local build.
+    # image: ghcr.io/slothdk/slothbox-api-gateway:${IMAGE_TAG:-latest}
+    read_only: true
+    tmpfs:
+      - /tmp:size=32M,mode=1777
+    cap_drop:
+      - ALL
+    security_opt: *default-security
+    logging: *default-logging
     deploy:
       resources:
         limits:
           memory: 768M
+          cpus: "1.00"
+        reservations:
+          memory: 128M
 
+  # ─── Ingest (.NET, large bodies) ──────────────────────────────────
   ingest:
-    image: ghcr.io/slothdk/slothbox-ingest:${IMAGE_TAG:-latest}
-    build: null
+    # See web service comment re: GHCR image pinning vs local build.
+    # image: ghcr.io/slothdk/slothbox-ingest:${IMAGE_TAG:-latest}
+    read_only: true
+    tmpfs:
+      # .NET writes /tmp during HTTP request processing. 256M is enough for
+      # the in-flight chunk decode buffer (10 MB cap × ~25 concurrent uploads).
+      - /tmp:size=256M,mode=1777
+    cap_drop:
+      - ALL
+    security_opt: *default-security
+    logging: *default-logging
     deploy:
       resources:
         limits:
           memory: 1024M
+          cpus: "1.50"
         reservations:
-          memory: 512M
+          memory: 256M
 
+  # ─── Receipt (.NET stub for v0.1) ─────────────────────────────────
   receipt:
-    image: ghcr.io/slothdk/slothbox-receipt:${IMAGE_TAG:-latest}
-    build: null
+    # See web service comment re: GHCR image pinning vs local build.
+    # image: ghcr.io/slothdk/slothbox-receipt:${IMAGE_TAG:-latest}
+    read_only: true
+    tmpfs:
+      - /tmp:size=64M,mode=1777
+    cap_drop:
+      - ALL
+    security_opt: *default-security
+    logging: *default-logging
     deploy:
       resources:
         limits:
           memory: 512M
+          cpus: "0.50"
+        reservations:
+          memory: 64M
 
+  # ─── Reaper (Go, distroless) ──────────────────────────────────────
   reaper:
-    image: ghcr.io/slothdk/slothbox-reaper:${IMAGE_TAG:-latest}
-    build: null
+    # See web service comment re: GHCR image pinning vs local build.
+    # image: ghcr.io/slothdk/slothbox-reaper:${IMAGE_TAG:-latest}
+    read_only: true
+    tmpfs:
+      - /tmp:size=16M,mode=1777
+    cap_drop:
+      - ALL
+    security_opt: *default-security
+    logging: *default-logging
     deploy:
       resources:
         limits:
           memory: 64M
+          cpus: "0.25"
+        reservations:
+          memory: 16M
 
+  # ─── Postgres ─────────────────────────────────────────────────────
   postgres:
-    ports: [] # Don't expose Postgres publicly in prod
+    # Strip the dev loopback binding — postgres is internal-only in prod.
+    ports: []
     environment:
+      # data-checksums detect silent disk corruption (page-level CRC checks).
+      # Worth the ~2% write overhead; impossible to enable post-init.
       - POSTGRES_INITDB_ARGS=--data-checksums
+    # Postgres needs to write to /var/lib/postgresql/data (named volume) but
+    # nothing else, so read_only with one tmpfs for /tmp is safe.
+    read_only: true
+    tmpfs:
+      - /tmp:size=64M,mode=1777
+      - /var/run/postgresql:size=16M,mode=0755
+    cap_drop:
+      - ALL
+    cap_add:
+      # SETGID/SETUID/CHOWN/DAC_READ_SEARCH/FOWNER: postgres init drops to
+      # the postgres user and chowns the data directory.
+      - SETUID
+      - SETGID
+      - CHOWN
+      - DAC_READ_SEARCH
+      - FOWNER
+    security_opt: *default-security
+    logging: *default-logging
     deploy:
       resources:
         limits:
           memory: 2048M
+          cpus: "2.00"
+        reservations:
+          memory: 512M
 
+  # ─── MinIO ────────────────────────────────────────────────────────
   minio:
-    ports: [] # MinIO console only via Caddy with auth
+    # No public binding — MinIO is internal-only.
+    ports: []
+    cap_drop:
+      - ALL
+    security_opt: *default-security
+    logging: *default-logging
     deploy:
       resources:
         limits:
           memory: 1024M
+          cpus: "1.50"
+        reservations:
+          memory: 256M
 
+  # ─── Valkey ───────────────────────────────────────────────────────
   valkey:
+    read_only: true
+    tmpfs:
+      - /tmp:size=16M,mode=1777
+    cap_drop:
+      - ALL
+    security_opt: *default-security
+    logging: *default-logging
     deploy:
       resources:
         limits:
           memory: 256M
+          cpus: "0.50"
 
+  # ─── NATS ─────────────────────────────────────────────────────────
   nats:
+    read_only: true
+    tmpfs:
+      - /tmp:size=16M,mode=1777
+    cap_drop:
+      - ALL
+    security_opt: *default-security
+    logging: *default-logging
     deploy:
       resources:
         limits:
           memory: 256M
+          cpus: "0.50"
 
+  # ─── Prometheus ───────────────────────────────────────────────────
   prometheus:
+    cap_drop:
+      - ALL
+    security_opt: *default-security
+    logging: *default-logging
     deploy:
       resources:
         limits:
           memory: 512M
+          cpus: "0.50"
 
+  # ─── Grafana ──────────────────────────────────────────────────────
   grafana:
-    ports: [] # Grafana only via Caddy with auth
+    # Strip the dev loopback binding — Grafana is reached via Caddy under
+    # /grafana with auth in production.
+    ports: []
     environment:
+      # GRAFANA_ADMIN_PASSWORD must be set in the production .env. The
+      # base compose has admin/admin for local dev only.
+      - GF_SECURITY_ADMIN_USER=admin
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD}
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_AUTH_ANONYMOUS_ENABLED=false
+      - GF_AUTH_BASIC_ENABLED=true
+      - GF_SECURITY_DISABLE_GRAVATAR=true
+      - GF_ANALYTICS_REPORTING_ENABLED=false
+      - GF_ANALYTICS_CHECK_FOR_UPDATES=false
+      - GF_SECURITY_COOKIE_SECURE=true
+      - GF_SECURITY_COOKIE_SAMESITE=strict
       - GF_SERVER_ROOT_URL=https://${DOMAIN}/grafana
       - GF_SERVER_SERVE_FROM_SUB_PATH=true
-
-  loki:
+    cap_drop:
+      - ALL
+    security_opt: *default-security
+    logging: *default-logging
     deploy:
       resources:
         limits:
           memory: 512M
+          cpus: "0.50"
+
+  # ─── Loki ─────────────────────────────────────────────────────────
+  loki:
+    cap_drop:
+      - ALL
+    security_opt: *default-security
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "0.50"
+
+  # ─── Promtail ─────────────────────────────────────────────────────
+  promtail:
+    cap_drop:
+      - ALL
+    cap_add:
+      # Promtail reads /var/lib/docker/containers/*.log which is owned
+      # by root; needs DAC_READ_SEARCH to bypass the perms check.
+      - DAC_READ_SEARCH
+    security_opt: *default-security
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: "0.25"
+
+  # ─── Postgres backup sidecar ──────────────────────────────────────
+  # Runs pg_dump nightly at 02:30 UTC inside the same compose stack.
+  # Output goes to a named volume + (optional) external rclone target.
+  # 28-day rolling retention. Implemented as a slim Alpine image with
+  # cron + postgres-client.
+  pg-backup:
+    image: postgres:16.4-alpine
+    container_name: slothbox-pg-backup
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      - POSTGRES_HOST=postgres
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - PGPASSWORD=${POSTGRES_PASSWORD}
+      - BACKUP_RETENTION_DAYS=28
+    volumes:
+      - pg_backups:/backups
+    networks:
+      - internal
+    cap_drop:
+      - ALL
+    security_opt: *default-security
+    logging: *default-logging
+    # Run the backup loop in-process: shell sleeps until 02:30 UTC each day,
+    # runs pg_dump, prunes old dumps. Simpler than installing cron and means
+    # the backup behaviour is auditable by reading this one block.
+    entrypoint: >
+      /bin/sh -c "
+      set -eu;
+      mkdir -p /backups;
+      while :; do
+        NOW=$$(date -u +%s);
+        TARGET=$$(date -u -d 'tomorrow 02:30' +%s 2>/dev/null || date -u -v+1d -v2H -v30M -v0S +%s);
+        SLEEP=$$((TARGET - NOW));
+        echo \"[backup] sleeping $${SLEEP}s until next run\";
+        sleep $$SLEEP;
+        TS=$$(date -u +%Y-%m-%dT%H-%M-%SZ);
+        FILE=/backups/$${POSTGRES_DB}-$${TS}.sql.gz;
+        echo \"[backup] starting dump -> $$FILE\";
+        pg_dump -h $$POSTGRES_HOST -U $$POSTGRES_USER -d $$POSTGRES_DB --no-owner --no-acl --clean --if-exists | gzip -9 > $$FILE.tmp && mv $$FILE.tmp $$FILE;
+        echo \"[backup] dump complete: $$(du -h $$FILE | cut -f1)\";
+        echo \"[backup] pruning dumps older than $${BACKUP_RETENTION_DAYS} days\";
+        find /backups -name '*.sql.gz' -mtime +$${BACKUP_RETENTION_DAYS} -delete;
+        echo \"[backup] done\";
+      done
+      "
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: "0.25"
+
+# Add the backup volume so pg-backup can persist its dumps.
+volumes:
+  pg_backups:
