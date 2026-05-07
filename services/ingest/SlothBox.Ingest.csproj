@@ -53,7 +53,7 @@
     <PackageReference Include="System.Text.Json" Version="8.0.5" />
 
     <!-- Storage -->
-    <PackageReference Include="Minio" Version="6.0.3" />
+    <PackageReference Include="Minio" Version="7.0.0" />
 
     <!-- Postgres. Bumped from 8.0.4 to 8.0.5 for the same advisory chain. -->
     <PackageReference Include="Npgsql" Version="8.0.5" />
