@@ -10,16 +10,24 @@
 FROM mcr.microsoft.com/dotnet/sdk:8.0-alpine AS build
 WORKDIR /src
 
+# TARGETARCH is set by docker buildx (amd64/arm64). Map to .NET RID so the
+# same Dockerfile builds on local x86 + the ARM Hetzner box.
+ARG TARGETARCH=amd64
+RUN case "$TARGETARCH" in \
+      amd64) echo "linux-musl-x64" > /tmp/rid ;; \
+      arm64) echo "linux-musl-arm64" > /tmp/rid ;; \
+      *) echo "unsupported TARGETARCH=$TARGETARCH" >&2; exit 1 ;; \
+    esac
+
 # Restore first (cache-friendly: deps change less often than source).
 COPY SlothBox.Receipt.csproj ./
-RUN dotnet restore SlothBox.Receipt.csproj \
-    --runtime linux-musl-x64
+RUN dotnet restore SlothBox.Receipt.csproj --runtime "$(cat /tmp/rid)"
 
 # Now copy the rest and publish.
 COPY . ./
 RUN dotnet publish SlothBox.Receipt.csproj \
     --configuration Release \
-    --runtime linux-musl-x64 \
+    --runtime "$(cat /tmp/rid)" \
     --self-contained false \
     --no-restore \
     --output /app/publish \

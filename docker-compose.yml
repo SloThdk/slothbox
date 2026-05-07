@@ -116,13 +116,20 @@ services:
         condition: service_healthy
       minio:
         condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
       valkey:
         condition: service_healthy
     healthcheck:
+      # Liveness only — the /healthz endpoint pings postgres/minio/valkey
+      # with bounded timeouts internally. start_period is generous because
+      # cold-start of the .NET runtime + MinIO bucket-existence probe takes
+      # a few seconds.
       test: ["CMD", "wget", "-qO-", "http://localhost:3023/healthz"]
       interval: 30s
-      timeout: 5s
-      retries: 3
+      timeout: 10s
+      retries: 5
+      start_period: 30s
 
   # ─── Receipt service (.NET) — v0.5+ stub ────────────────────
   receipt:
@@ -225,6 +232,37 @@ services:
       timeout: 10s
       retries: 5
 
+  # ─── MinIO bucket bootstrap (one-shot) ──────────────────────
+  # Creates the slothbox-blobs bucket on first compose up. Without this the
+  # ingest service's bucket-existence check fails on every health probe and
+  # the container reports unhealthy until the operator manually creates the
+  # bucket via the MinIO console. service_completed_successfully on this
+  # entry is the gate for ingest startup.
+  minio-init:
+    image: minio/mc:RELEASE.2024-10-08T09-37-26Z
+    container_name: slothbox-minio-init
+    restart: "no"
+    depends_on:
+      minio:
+        condition: service_healthy
+    networks:
+      - internal
+    environment:
+      - MC_HOST_minio=http://${MINIO_ACCESS_KEY}:${MINIO_SECRET_KEY}@minio:9000
+    entrypoint: >
+      /bin/sh -c "
+      set -eu;
+      echo '[minio-init] checking bucket ${MINIO_BUCKET:-slothbox-blobs}';
+      if mc ls minio/${MINIO_BUCKET:-slothbox-blobs} >/dev/null 2>&1; then
+        echo '[minio-init] bucket already exists — nothing to do';
+      else
+        echo '[minio-init] creating bucket';
+        mc mb --ignore-existing minio/${MINIO_BUCKET:-slothbox-blobs};
+        mc anonymous set none minio/${MINIO_BUCKET:-slothbox-blobs};
+        echo '[minio-init] bucket ready';
+      fi
+      "
+
   # ─── Valkey (Redis fork) ────────────────────────────────────
   valkey:
     image: valkey/valkey:7.2.5-alpine
@@ -246,16 +284,23 @@ services:
     image: nats:2.10-alpine
     container_name: slothbox-nats
     restart: unless-stopped
-    command: ["-js", "-sd", "/data"]
+    # `-m 8222` enables the HTTP monitoring endpoint that the healthcheck
+    # below queries. Without it, /healthz responds with connection refused
+    # and the container reports unhealthy forever.
+    command: ["-js", "-sd", "/data", "-m", "8222"]
     volumes:
       - nats_data:/data
     networks:
       - internal
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:8222/varz"]
+      # NATS uses /healthz (not /varz — that's monitoring telemetry, not
+      # liveness). nats:2.10-alpine doesn't ship wget, so we use the
+      # nats-server binary to probe its own monitoring port via 127.0.0.1.
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8222/healthz || exit 1"]
       interval: 30s
       timeout: 5s
       retries: 3
+      start_period: 10s
 
   # ─── Prometheus ─────────────────────────────────────────────
   prometheus:
