@@ -31,16 +31,8 @@ import {
   initCrypto,
   stringToBytes,
 } from "@slothbox/crypto-core";
-import {
-  createShare,
-  type CreateShareRequest,
-  type CreateShareResponse,
-} from "./api";
-import {
-  CHUNK_SIZE_BYTES,
-  MAX_FILE_SIZE_BYTES,
-  PUBLIC_URL,
-} from "./config";
+import { createShare, type CreateShareRequest, type CreateShareResponse } from "./api";
+import { CHUNK_SIZE_BYTES, MAX_FILE_SIZE_BYTES, PUBLIC_URL } from "./config";
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -105,10 +97,7 @@ export class UploadError extends Error {
  * raw key is encoded into the URL fragment which browsers never include in
  * HTTP requests.
  */
-export async function uploadFile(
-  file: File,
-  options: UploadOptions = {}
-): Promise<UploadResult> {
+export async function uploadFile(file: File, options: UploadOptions = {}): Promise<UploadResult> {
   if (file.size <= 0) {
     throw new UploadError("file is empty");
   }
@@ -171,10 +160,7 @@ export async function uploadFile(
   try {
     descriptor = await createShare(createReq);
   } catch (err) {
-    throw new UploadError(
-      err instanceof Error ? err.message : "could not create share",
-      err
-    );
+    throw new UploadError(err instanceof Error ? err.message : "could not create share", err);
   }
 
   const { shortId, uploadUrls } = descriptor;

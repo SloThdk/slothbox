@@ -33,6 +33,7 @@ periodically (every 1000 receipts or every hour, whichever first) and published
 to a read-only endpoint at `https://slothbox.com/audit/anchors`.
 
 This means:
+
 - Once a receipt is published, the receipt cannot be changed without being
   detected
 - A receipt cannot be silently retracted
@@ -72,13 +73,13 @@ JSON, as small as possible:
 
 ## What the receipt proves
 
-| Claim | How it's proven |
-|---|---|
-| "A file with this hash was retrieved" | The TSA signed over the hash |
-| "Retrieved at this time (within TSA precision)" | TSA timestamp |
-| "From this IP region" | We log coarse region, sign it as part of the receipt |
-| "The receipt was issued by SlothBox" | TSA signature chains to the TSA's CA |
-| "The receipt is in our public audit chain" | Merkle proof + published root anchor |
+| Claim                                           | How it's proven                                      |
+| ----------------------------------------------- | ---------------------------------------------------- |
+| "A file with this hash was retrieved"           | The TSA signed over the hash                         |
+| "Retrieved at this time (within TSA precision)" | TSA timestamp                                        |
+| "From this IP region"                           | We log coarse region, sign it as part of the receipt |
+| "The receipt was issued by SlothBox"            | TSA signature chains to the TSA's CA                 |
+| "The receipt is in our public audit chain"      | Merkle proof + published root anchor                 |
 
 What the receipt does NOT prove:
 

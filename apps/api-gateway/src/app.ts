@@ -84,8 +84,7 @@ export function buildApp(): {
       // HSTS is only meaningful behind HTTPS — skip in dev/local.
       ...(isProduction
         ? {
-            strictTransportSecurity:
-              "max-age=63072000; includeSubDomains; preload",
+            strictTransportSecurity: "max-age=63072000; includeSubDomains; preload",
           }
         : {}),
       xContentTypeOptions: "nosniff",
@@ -105,8 +104,7 @@ export function buildApp(): {
     const requestId = c.get("requestId");
     await next();
     const status = c.res.status;
-    const durationSec =
-      Number(process.hrtime.bigint() - start) / 1_000_000_000;
+    const durationSec = Number(process.hrtime.bigint() - start) / 1_000_000_000;
     const route = c.req.routePath ?? c.req.path;
     const method = c.req.method;
     const cls = statusClass(status);

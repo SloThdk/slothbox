@@ -27,11 +27,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { ShareLink } from "@/components/ShareLink";
 import { MAX_FILE_SIZE_BYTES } from "@/lib/config";
-import {
-  uploadFile,
-  type UploadProgressEvent,
-  type UploadResult,
-} from "@/lib/upload";
+import { uploadFile, type UploadProgressEvent, type UploadResult } from "@/lib/upload";
 import { cn, formatBytes } from "@/lib/utils";
 
 // Expiry options offered to the sender. Server side has its own clamp via
@@ -70,9 +66,7 @@ export function UploadDrop() {
         return;
       }
       if (file.size > MAX_FILE_SIZE_BYTES) {
-        toast.error(
-          `file is too large (max ${formatBytes(MAX_FILE_SIZE_BYTES)})`,
-        );
+        toast.error(`file is too large (max ${formatBytes(MAX_FILE_SIZE_BYTES)})`);
         return;
       }
 
@@ -85,16 +79,13 @@ export function UploadDrop() {
           burnAfterRead,
           signal: controller.signal,
           onProgress: (progress) => {
-            setState((prev) =>
-              prev.kind === "uploading" ? { ...prev, progress } : prev,
-            );
+            setState((prev) => (prev.kind === "uploading" ? { ...prev, progress } : prev));
           },
         });
         setState({ kind: "done", result, file });
         toast.success("Encrypted and uploaded.");
       } catch (err) {
-        const message =
-          err instanceof Error ? err.message : "upload failed";
+        const message = err instanceof Error ? err.message : "upload failed";
         // The user clicking "cancel" routes through here too — render that as
         // a neutral idle state, not an error.
         if (message === "upload cancelled") {
@@ -105,7 +96,7 @@ export function UploadDrop() {
         toast.error(message);
       }
     },
-    [expiryHours, burnAfterRead],
+    [expiryHours, burnAfterRead]
   );
 
   // ---- DOM event handlers ----------------------------------------------
@@ -119,7 +110,7 @@ export function UploadDrop() {
         void startUpload(file);
       }
     },
-    [startUpload],
+    [startUpload]
   );
 
   const onPick = React.useCallback(
@@ -131,7 +122,7 @@ export function UploadDrop() {
       // Reset so picking the same file twice still fires `change`.
       e.target.value = "";
     },
-    [startUpload],
+    [startUpload]
   );
 
   const reset = React.useCallback(() => {
@@ -180,10 +171,7 @@ export function UploadDrop() {
             if (state.kind !== "uploading") fileInputRef.current?.click();
           }}
           onKeyDown={(e) => {
-            if (
-              (e.key === "Enter" || e.key === " ") &&
-              state.kind !== "uploading"
-            ) {
+            if ((e.key === "Enter" || e.key === " ") && state.kind !== "uploading") {
               e.preventDefault();
               fileInputRef.current?.click();
             }
@@ -191,9 +179,9 @@ export function UploadDrop() {
           className={cn(
             "relative flex min-h-[260px] cursor-pointer flex-col items-center justify-center gap-4 border-b border-[var(--color-border)] p-8 text-center transition-colors",
             isDragOver
-              ? "bg-[color-mix(in_srgb,var(--color-accent)_10%,var(--color-card))] border-[var(--color-accent)]"
+              ? "border-[var(--color-accent)] bg-[color-mix(in_srgb,var(--color-accent)_10%,var(--color-card))]"
               : "bg-[var(--color-card)]",
-            state.kind === "uploading" && "cursor-not-allowed",
+            state.kind === "uploading" && "cursor-not-allowed"
           )}
         >
           <input
@@ -214,22 +202,15 @@ export function UploadDrop() {
                   Drop a file here, or click to choose
                 </p>
                 <p className="text-xs text-[var(--color-muted)]">
-                  Up to {formatBytes(MAX_FILE_SIZE_BYTES)} · encrypted in your
-                  browser before upload
+                  Up to {formatBytes(MAX_FILE_SIZE_BYTES)} · encrypted in your browser before upload
                 </p>
               </div>
               {state.kind === "error" ? (
-                <p className="text-sm text-[var(--color-danger)]">
-                  {state.message}
-                </p>
+                <p className="text-sm text-[var(--color-danger)]">{state.message}</p>
               ) : null}
             </>
           ) : (
-            <UploadingPanel
-              file={state.file}
-              progress={state.progress}
-              onCancel={cancel}
-            />
+            <UploadingPanel file={state.file} progress={state.progress} onCancel={cancel} />
           )}
         </div>
 
@@ -237,7 +218,7 @@ export function UploadDrop() {
         <div
           className={cn(
             "grid grid-cols-1 gap-4 p-6 sm:grid-cols-2 sm:p-6",
-            state.kind === "uploading" && "pointer-events-none opacity-60",
+            state.kind === "uploading" && "pointer-events-none opacity-60"
           )}
         >
           <div className="space-y-2">
@@ -263,9 +244,7 @@ export function UploadDrop() {
           <div className="flex items-end justify-between gap-4">
             <div className="space-y-1">
               <Label htmlFor="burn">Burn after read</Label>
-              <p className="text-xs text-[var(--color-muted)]">
-                Self-destruct on first download.
-              </p>
+              <p className="text-xs text-[var(--color-muted)]">Self-destruct on first download.</p>
             </div>
             <Switch
               id="burn"
@@ -279,9 +258,7 @@ export function UploadDrop() {
         {/* ------------------ Trust footnote ------------------ */}
         <div className="flex items-center gap-2 border-t border-[var(--color-border)] bg-[color-mix(in_srgb,var(--color-card)_70%,var(--color-bg))] px-6 py-3 text-xs text-[var(--color-muted)]">
           <Lock className="h-3.5 w-3.5 text-[var(--color-accent)]" aria-hidden />
-          <span>
-            Encryption happens in your browser. The key never leaves this tab.
-          </span>
+          <span>Encryption happens in your browser. The key never leaves this tab.</span>
         </div>
       </CardContent>
     </Card>
@@ -304,9 +281,7 @@ function UploadingPanel({
     <div className="flex w-full flex-col gap-4">
       <div className="flex items-center justify-between gap-3">
         <div className="min-w-0 text-left">
-          <p className="truncate text-sm font-medium text-[var(--color-fg)]">
-            {file.name}
-          </p>
+          <p className="truncate text-sm font-medium text-[var(--color-fg)]">{file.name}</p>
           <p className="text-xs text-[var(--color-muted)]">
             {progress
               ? `Chunk ${progress.chunksUploaded}/${progress.chunksTotal} · ${formatBytes(progress.bytesUploaded)} / ${formatBytes(progress.bytesTotal)}`
@@ -330,13 +305,9 @@ function UploadingPanel({
       <div className="flex items-center justify-between text-xs">
         <span className="flex items-center gap-1.5 text-[var(--color-accent)]">
           <RefreshCw className="h-3 w-3 animate-spin" aria-hidden />
-          {fraction > 0
-            ? `${Math.floor(fraction * 100)}% encrypted + uploaded`
-            : "encrypting…"}
+          {fraction > 0 ? `${Math.floor(fraction * 100)}% encrypted + uploaded` : "encrypting…"}
         </span>
-        <span className="text-[var(--color-muted)]">
-          XChaCha20-Poly1305 · 5 MiB chunks
-        </span>
+        <span className="text-[var(--color-muted)]">XChaCha20-Poly1305 · 5 MiB chunks</span>
       </div>
     </div>
   );

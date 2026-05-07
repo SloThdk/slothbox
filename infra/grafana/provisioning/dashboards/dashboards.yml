@@ -1,9 +1,9 @@
 apiVersion: 1
 
 providers:
-  - name: 'SlothBox dashboards'
+  - name: "SlothBox dashboards"
     orgId: 1
-    folder: 'SlothBox'
+    folder: "SlothBox"
     type: file
     disableDeletion: true
     updateIntervalSeconds: 30

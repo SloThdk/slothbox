@@ -7,7 +7,7 @@
 ## Context
 
 Architecture choices are the part of a project that's hardest to reverse later.
-Without a record of *why* a decision was made, future maintainers (including
+Without a record of _why_ a decision was made, future maintainers (including
 future-me) end up either preserving the current shape because nobody remembers
 the rationale, or breaking constraints they didn't know existed.
 
@@ -32,7 +32,7 @@ framework), a code comment or PR description is sufficient.
 - New significant changes require an ADR PR before code lands. Slows the
   earliest decision a little; saves arguments later.
 - Existing decisions become legible. Anyone reading the repo cold can understand
-  *why* `apps/api-gateway` is in TypeScript and `services/ingest` is in C#.
+  _why_ `apps/api-gateway` is in TypeScript and `services/ingest` is in C#.
 - Older ADRs may become superseded — that's fine, we add a new ADR with status
   "supersedes 0007" or similar.
 

@@ -10,22 +10,22 @@ file a bug — it shouldn't be here.
 
 ## Primitives in use (v0.1.0-alpha)
 
-| Use | Algorithm | Library | Where |
-|---|---|---|---|
+| Use                                | Algorithm                 | Library            | Where                     |
+| ---------------------------------- | ------------------------- | ------------------ | ------------------------- |
 | Symmetric authenticated encryption | XChaCha20-Poly1305 (AEAD) | libsodium-wrappers | browser → file encryption |
-| Random key generation | `randombytes_buf` | libsodium-wrappers | browser → key per share |
-| Random IDs | `crypto.randomUUID()` | Web Crypto | browser → share IDs |
-| Hashing (file content addressing) | BLAKE2b-256 | libsodium-wrappers | browser → integrity check |
-| URL-safe encoding | base64url (RFC 4648 §5) | small wrapper | browser ↔ URL fragment |
+| Random key generation              | `randombytes_buf`         | libsodium-wrappers | browser → key per share   |
+| Random IDs                         | `crypto.randomUUID()`     | Web Crypto         | browser → share IDs       |
+| Hashing (file content addressing)  | BLAKE2b-256               | libsodium-wrappers | browser → integrity check |
+| URL-safe encoding                  | base64url (RFC 4648 §5)   | small wrapper      | browser ↔ URL fragment    |
 
 ## Primitives planned (v0.5+)
 
-| Use | Algorithm | Library | Where |
-|---|---|---|---|
-| Password hashing (auth) | Argon2id | argon2-browser / libsodium-net | accounts |
-| Asymmetric encryption (per-recipient) | Curve25519 + XChaCha20-Poly1305 (via age) | age | v1.0 — recipient keys |
-| Timestamp signatures | RFC 3161 (RSA / ECDSA) | Bouncy Castle (.NET) | v0.5 — receipts |
-| Merkle hash chain | BLAKE2b-256 | libsodium-net | v0.5 — audit log |
+| Use                                   | Algorithm                                 | Library                        | Where                 |
+| ------------------------------------- | ----------------------------------------- | ------------------------------ | --------------------- |
+| Password hashing (auth)               | Argon2id                                  | argon2-browser / libsodium-net | accounts              |
+| Asymmetric encryption (per-recipient) | Curve25519 + XChaCha20-Poly1305 (via age) | age                            | v1.0 — recipient keys |
+| Timestamp signatures                  | RFC 3161 (RSA / ECDSA)                    | Bouncy Castle (.NET)           | v0.5 — receipts       |
+| Merkle hash chain                     | BLAKE2b-256                               | libsodium-net                  | v0.5 — audit log      |
 
 ## How encryption works (v0.1)
 
@@ -61,21 +61,22 @@ verification failure on decryption.
 
 ## What the server can see
 
-| Item | Server can see? |
-|---|---|
-| Share ID | Yes (it issued the ID) |
-| Encrypted chunks | Yes (it stores them) |
-| Per-chunk nonces | Yes (stored alongside ciphertext) |
-| AAD | Yes (computed from shareId + chunkIndex) |
-| **Encryption key** | **No** — lives in URL fragment, never sent to server |
-| **Plaintext file content** | **No** — derived from ciphertext + key, both never co-located on server |
-| **File name (original)** | **No** — encrypted alongside content as part of metadata blob |
-| **File MIME type (real)** | **No** — same |
-| **Sender identity (anonymous shares)** | Only IP + User-Agent (rate limiting) |
+| Item                                   | Server can see?                                                         |
+| -------------------------------------- | ----------------------------------------------------------------------- |
+| Share ID                               | Yes (it issued the ID)                                                  |
+| Encrypted chunks                       | Yes (it stores them)                                                    |
+| Per-chunk nonces                       | Yes (stored alongside ciphertext)                                       |
+| AAD                                    | Yes (computed from shareId + chunkIndex)                                |
+| **Encryption key**                     | **No** — lives in URL fragment, never sent to server                    |
+| **Plaintext file content**             | **No** — derived from ciphertext + key, both never co-located on server |
+| **File name (original)**               | **No** — encrypted alongside content as part of metadata blob           |
+| **File MIME type (real)**              | **No** — same                                                           |
+| **Sender identity (anonymous shares)** | Only IP + User-Agent (rate limiting)                                    |
 
 ## What an attacker with the server's database gets
 
 A pile of:
+
 - `(shareId, chunkIndex, nonce, ciphertext, AAD)` tuples
 - `(shareId, expiresAt, downloadCount, createdAt)` rows
 - Connection metadata (IPs, timestamps)

@@ -55,9 +55,7 @@ export function Decrypt({ shortId, descriptor, decryptionKey }: DecryptProps) {
       const result = await downloadFile(shortId, decryptionKey, {
         signal: controller.signal,
         onProgress: (progress) => {
-          setState((prev) =>
-            prev.kind === "busy" ? { ...prev, progress } : prev
-          );
+          setState((prev) => (prev.kind === "busy" ? { ...prev, progress } : prev));
         },
       });
 
@@ -106,9 +104,7 @@ export function Decrypt({ shortId, descriptor, decryptionKey }: DecryptProps) {
         </div>
         <div className="min-w-0 flex-1">
           <p className="truncate text-base font-medium text-[var(--color-fg)]">
-            {state.kind === "done"
-              ? state.fileName
-              : "Encrypted payload"}
+            {state.kind === "done" ? state.fileName : "Encrypted payload"}
           </p>
           <p className="text-xs text-[var(--color-muted)]">
             {formatBytes(fileSizeBytes)} ·{" "}
@@ -134,10 +130,7 @@ export function Decrypt({ shortId, descriptor, decryptionKey }: DecryptProps) {
 
       {state.kind === "busy" ? (
         <div className="flex flex-col gap-3">
-          <Progress
-            value={state.progress?.fraction ?? 0}
-            indeterminate={!state.progress}
-          />
+          <Progress value={state.progress?.fraction ?? 0} indeterminate={!state.progress} />
           <div className="flex items-center justify-between text-xs">
             <span className="flex items-center gap-1.5 text-[var(--color-accent)]">
               <RefreshCw className="h-3 w-3 animate-spin" aria-hidden />
@@ -160,14 +153,9 @@ export function Decrypt({ shortId, descriptor, decryptionKey }: DecryptProps) {
       {state.kind === "done" ? (
         <div className="flex flex-col gap-3 rounded-lg border border-[color-mix(in_srgb,var(--color-accent)_50%,var(--color-border))] bg-[color-mix(in_srgb,var(--color-accent)_10%,var(--color-card))] p-4">
           <p className="flex items-center gap-2 text-sm font-medium text-[var(--color-fg)]">
-            <Check
-              className="h-4 w-4 text-[var(--color-accent)]"
-              aria-hidden
-            />
+            <Check className="h-4 w-4 text-[var(--color-accent)]" aria-hidden />
             Decrypted and saved.
-            {descriptor.burnAfterRead
-              ? " Share has been destroyed."
-              : " You can close this tab."}
+            {descriptor.burnAfterRead ? " Share has been destroyed." : " You can close this tab."}
           </p>
           <div>
             <Button variant="secondary" onClick={downloadAgain}>
@@ -181,10 +169,7 @@ export function Decrypt({ shortId, descriptor, decryptionKey }: DecryptProps) {
       {state.kind === "error" ? (
         <div className="flex flex-col gap-3 rounded-lg border border-[color-mix(in_srgb,var(--color-danger)_50%,var(--color-border))] bg-[color-mix(in_srgb,var(--color-danger)_10%,var(--color-card))] p-4">
           <p className="flex items-center gap-2 text-sm font-medium text-[var(--color-fg)]">
-            <AlertTriangle
-              className="h-4 w-4 text-[var(--color-danger)]"
-              aria-hidden
-            />
+            <AlertTriangle className="h-4 w-4 text-[var(--color-danger)]" aria-hidden />
             {state.message}
           </p>
           <div>

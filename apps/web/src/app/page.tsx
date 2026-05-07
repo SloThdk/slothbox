@@ -5,14 +5,7 @@
 // trust pitch to be the first thing every visitor reads.
 
 import Link from "next/link";
-import {
-  Code2,
-  EarthLock,
-  FileCheck2,
-  KeyRound,
-  Server,
-  ShieldCheck,
-} from "lucide-react";
+import { Code2, EarthLock, FileCheck2, KeyRound, Server, ShieldCheck } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { UploadDrop } from "@/components/UploadDrop";
 import { GITHUB_URL } from "@/lib/config";
@@ -23,27 +16,26 @@ import { GITHUB_URL } from "@/lib/config";
 
 function Hero() {
   return (
-    <section className="mx-auto flex w-full max-w-[var(--container-xl)] flex-col items-center gap-10 px-4 pb-16 pt-12 sm:px-6 sm:pt-20 lg:flex-row lg:gap-12">
+    <section className="mx-auto flex w-full max-w-[var(--container-xl)] flex-col items-center gap-10 px-4 pt-12 pb-16 sm:px-6 sm:pt-20 lg:flex-row lg:gap-12">
       <div className="flex max-w-2xl flex-1 flex-col gap-6 lg:max-w-none lg:basis-1/2">
         <span className="inline-flex w-fit items-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-card)] px-3 py-1 text-xs text-[var(--color-muted)]">
-          <span className="inline-flex h-1.5 w-1.5 rounded-full bg-[var(--color-accent)] animate-pulse-glow" />
+          <span className="animate-pulse-glow inline-flex h-1.5 w-1.5 rounded-full bg-[var(--color-accent)]" />
           v0.1.0-alpha · public source · EU-hosted
         </span>
 
-        <h1 className="font-display text-4xl font-semibold leading-[1.05] tracking-tight text-[var(--color-fg)] sm:text-5xl md:text-6xl">
-          Send any file.{" "}
-          <span className="gradient-text">We can&apos;t read it.</span>{" "}
-          Verify the math yourself.
+        <h1 className="font-display text-4xl leading-[1.05] font-semibold tracking-tight text-[var(--color-fg)] sm:text-5xl md:text-6xl">
+          Send any file. <span className="gradient-text">We can&apos;t read it.</span> Verify the
+          math yourself.
         </h1>
 
         <p className="max-w-xl text-base leading-relaxed text-[var(--color-muted)] sm:text-lg">
-          SlothBox encrypts your file in your browser before it leaves your
-          machine. The unlock key lives in the part of the URL after{" "}
+          SlothBox encrypts your file in your browser before it leaves your machine. The unlock key
+          lives in the part of the URL after{" "}
           <code className="rounded bg-[var(--color-card)] px-1 py-0.5 font-mono text-sm text-[var(--color-fg)]">
             #
-          </code>
-          {" "}— which browsers <em>never</em> send to any server. Audited
-          libsodium primitives only. No telemetry. No accounts required.
+          </code>{" "}
+          — which browsers <em>never</em> send to any server. Audited libsodium primitives only. No
+          telemetry. No accounts required.
         </p>
 
         <div className="flex flex-wrap items-center gap-3 pt-2">
@@ -53,9 +45,7 @@ function Hero() {
           >
             How the trust model works →
           </Link>
-          <span className="hidden text-[var(--color-border)] sm:inline">
-            ·
-          </span>
+          <span className="hidden text-[var(--color-border)] sm:inline">·</span>
           <a
             href={GITHUB_URL}
             target="_blank"
@@ -105,24 +95,21 @@ function Guarantees() {
   return (
     <section className="mx-auto w-full max-w-[var(--container-xl)] px-4 py-16 sm:px-6">
       <div className="mb-10 max-w-2xl">
-        <p className="text-xs font-semibold uppercase tracking-wider text-[var(--color-accent)]">
+        <p className="text-xs font-semibold tracking-wider text-[var(--color-accent)] uppercase">
           Four guarantees
         </p>
-        <h2 className="mt-2 font-display text-3xl font-semibold text-[var(--color-fg)] sm:text-4xl">
+        <h2 className="font-display mt-2 text-3xl font-semibold text-[var(--color-fg)] sm:text-4xl">
           Trust comes from architecture — not marketing copy.
         </h2>
         <p className="mt-3 text-[var(--color-muted)]">
-          Every claim below is enforced at the code or infrastructure layer.
-          You can read the source yourself.
+          Every claim below is enforced at the code or infrastructure layer. You can read the source
+          yourself.
         </p>
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         {GUARANTEES.map((item) => (
-          <Card
-            key={item.title}
-            className="surface-hover transition-colors"
-          >
+          <Card key={item.title} className="surface-hover transition-colors">
             <CardContent className="flex flex-col gap-3 p-6">
               <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-[color-mix(in_srgb,var(--color-accent)_15%,transparent)] text-[var(--color-accent)]">
                 <item.icon className="h-5 w-5" aria-hidden />
@@ -130,9 +117,7 @@ function Guarantees() {
               <h3 className="font-display text-lg font-semibold text-[var(--color-fg)]">
                 {item.title}
               </h3>
-              <p className="text-sm leading-relaxed text-[var(--color-muted)]">
-                {item.body}
-              </p>
+              <p className="text-sm leading-relaxed text-[var(--color-muted)]">{item.body}</p>
             </CardContent>
           </Card>
         ))}
@@ -170,10 +155,10 @@ function HowItWorks() {
   return (
     <section className="mx-auto w-full max-w-[var(--container-xl)] px-4 py-16 sm:px-6">
       <div className="mb-10 max-w-2xl">
-        <p className="text-xs font-semibold uppercase tracking-wider text-[var(--color-accent)]">
+        <p className="text-xs font-semibold tracking-wider text-[var(--color-accent)] uppercase">
           How it works
         </p>
-        <h2 className="mt-2 font-display text-3xl font-semibold text-[var(--color-fg)] sm:text-4xl">
+        <h2 className="font-display mt-2 text-3xl font-semibold text-[var(--color-fg)] sm:text-4xl">
           Three steps. Zero secrets shared with us.
         </h2>
       </div>
@@ -183,20 +168,15 @@ function HowItWorks() {
           <Card key={step.n}>
             <CardContent className="flex flex-col gap-3 p-6">
               <div className="flex items-center justify-between">
-                <span className="font-mono text-xs uppercase tracking-widest text-[var(--color-muted)]">
+                <span className="font-mono text-xs tracking-widest text-[var(--color-muted)] uppercase">
                   {step.n}
                 </span>
-                <step.icon
-                  className="h-5 w-5 text-[var(--color-accent)]"
-                  aria-hidden
-                />
+                <step.icon className="h-5 w-5 text-[var(--color-accent)]" aria-hidden />
               </div>
               <h3 className="font-display text-lg font-semibold text-[var(--color-fg)]">
                 {step.title}
               </h3>
-              <p className="text-sm leading-relaxed text-[var(--color-muted)]">
-                {step.body}
-              </p>
+              <p className="text-sm leading-relaxed text-[var(--color-muted)]">{step.body}</p>
             </CardContent>
           </Card>
         ))}
@@ -211,16 +191,15 @@ function HowItWorks() {
 
 function FooterCta() {
   return (
-    <section className="mx-auto w-full max-w-[var(--container-xl)] px-4 pb-12 pt-6 sm:px-6">
+    <section className="mx-auto w-full max-w-[var(--container-xl)] px-4 pt-6 pb-12 sm:px-6">
       <div className="surface flex flex-col items-start gap-4 p-8 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h3 className="font-display text-2xl font-semibold text-[var(--color-fg)]">
             Built for regulated work.
           </h3>
           <p className="mt-1 max-w-xl text-sm text-[var(--color-muted)]">
-            Lawyers, accountants, journalists, doctors — anyone bound by
-            tavshedspligt or audit-trail requirements. v0.5 adds court-admissible
-            delivery receipts.
+            Lawyers, accountants, journalists, doctors — anyone bound by tavshedspligt or
+            audit-trail requirements. v0.5 adds court-admissible delivery receipts.
           </p>
         </div>
         <Link

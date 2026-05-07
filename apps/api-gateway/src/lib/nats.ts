@@ -44,10 +44,7 @@ export async function getNats(): Promise<NatsConnection | null> {
       // every caller to await it.
       void (async () => {
         for await (const status of nc.status()) {
-          logger.info(
-            { component: "nats", type: status.type, data: status.data },
-            "nats status"
-          );
+          logger.info({ component: "nats", type: status.type, data: status.data }, "nats status");
         }
       })();
 
