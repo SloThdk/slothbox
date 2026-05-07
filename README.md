@@ -2,8 +2,13 @@
 
 > **End-to-end encrypted file transfer with court-admissible delivery receipts. The server cannot decrypt anything — verify the math yourself.**
 
+**Live: <https://slothbox.philipsloth.com>**
+
+[![Live](https://img.shields.io/badge/live-slothbox.philipsloth.com-success)](https://slothbox.philipsloth.com)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![CI](https://img.shields.io/badge/CI-pending-lightgrey)](https://github.com/SloThdk/slothbox/actions)
+[![CI](https://github.com/SloThdk/slothbox/actions/workflows/ci.yml/badge.svg)](https://github.com/SloThdk/slothbox/actions/workflows/ci.yml)
+[![Security](https://github.com/SloThdk/slothbox/actions/workflows/security.yml/badge.svg)](https://github.com/SloThdk/slothbox/actions/workflows/security.yml)
+[![Deploy](https://github.com/SloThdk/slothbox/actions/workflows/deploy.yml/badge.svg)](https://github.com/SloThdk/slothbox/actions/workflows/deploy.yml)
 [![Crypto: libsodium + age](https://img.shields.io/badge/crypto-libsodium%20%2B%20age-brightgreen)](docs/CRYPTO.md)
 [![Status: v0.1.0-alpha](https://img.shields.io/badge/status-v0.1.0--alpha-orange)](MILESTONES.md)
 [![EU-hosted: Hetzner DE](<https://img.shields.io/badge/region-EU%20(Hetzner%20DE)-blue>)](#why-eu-hosted)
@@ -13,6 +18,35 @@
 > (libsodium, age) are battle-tested, but the SlothBox integration has **not** yet been
 > independently audited. Do not use for high-stakes secrets until v1.0 + external
 > cryptographer review (see [`SECURITY.md`](SECURITY.md)).
+
+---
+
+## Production deployment
+
+The reference instance lives at **<https://slothbox.philipsloth.com>**, hosted on
+a Hetzner cax11 ARM box in Falkenstein, DE (4.49 EUR/mo). Every commit to `master`
+that passes CI auto-rolls forward via `.github/workflows/deploy.yml`:
+
+| Verification           | Where                                                                                           |
+| ---------------------- | ----------------------------------------------------------------------------------------------- |
+| TLS (HTTPS / HTTP/3)   | [`https://slothbox.philipsloth.com`](https://slothbox.philipsloth.com)                          |
+| Health endpoint        | [`/healthz`](https://slothbox.philipsloth.com/healthz) returns `200 ok`                         |
+| Strict CSP w/ nonces   | DevTools → Network → response headers include `nonce-...; strict-dynamic`                       |
+| Workflow status        | [Actions](https://github.com/SloThdk/slothbox/actions) — CI / Security / Deploy badges above    |
+| Architecture document  | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — 14-service Docker Compose breakdown            |
+| Security threat model  | [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md)                                                  |
+| Production hardening   | [`docker-compose.prod.yml`](docker-compose.prod.yml) — read-only fs, `cap_drop: ALL`, RLS, etc. |
+| Postgres backup policy | `pg-backup` sidecar dumps nightly at 02:30 UTC, gzipped, 28-day retention on a named volume     |
+| Observability          | Grafana provisioned at `/grafana` (auth required) with the SlothBox overview dashboard          |
+| Alert rules            | [`infra/prometheus/alerts.yml`](infra/prometheus/alerts.yml) — 11 rules, severity-tagged        |
+
+End-to-end smoke test (run from your laptop):
+
+```bash
+curl -fsS https://slothbox.philipsloth.com/healthz                # 200 ok
+curl -fsS -XPOST -H 'Content-Type: application/json' \
+  https://slothbox.philipsloth.com/api/shares                      # 400 (validation)
+```
 
 ---
 
@@ -86,7 +120,7 @@ For the threat model and what we explicitly do **not** protect against, see
 
 ## Architecture
 
-13 containers, four languages, one Docker Compose file:
+14 containers, four languages, one Docker Compose file:
 
 ```
                            ┌──────────────┐
@@ -142,6 +176,13 @@ Polyglot for honest reasons. If you ask "why X?" in interview the answer holds u
 
 ## Quick start
 
+### Try the live deployment
+
+The reference deployment is at **<https://slothbox.philipsloth.com>** (Hetzner cax11
+ARM, EU). Drag-drop a file, get a share link, send it.
+
+### Or run the entire stack on your machine
+
 ```bash
 git clone https://github.com/SloThdk/slothbox.git
 cd slothbox
@@ -149,7 +190,7 @@ cp .env.example .env
 docker compose up -d
 ```
 
-That's it. 13 services come up. Open <http://localhost:8080>.
+That's it. 14 services come up. Open <http://localhost:8080>.
 
 For development with hot-reload on the frontend:
 
@@ -160,6 +201,21 @@ pnpm dev
 ```
 
 Or on Windows just double-click `start_local_server.bat`.
+
+### Run with the production hardening overlay
+
+The production overlay adds enterprise-grade hardening on top of the base compose:
+read-only root filesystems, `cap_drop: ALL` with explicit allowlists,
+`no-new-privileges`, per-container memory + CPU limits, json-file log rotation,
+loopback-only DB/cache/storage ports, nightly `pg_dump` with 28-day retention.
+
+```bash
+# Generate strong secrets first; never use defaults in real prod.
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+```
+
+See [`docker-compose.prod.yml`](docker-compose.prod.yml) for the full hardening
+inventory with comments explaining the threat each control mitigates.
 
 ---
 
@@ -179,8 +235,9 @@ Or on Windows just double-click `start_local_server.bat`.
 - **Real-time** — WebSocket (control plane) · WebRTC DataChannels (P2P file path, v1.1)
 - **Cryptography** — libsodium-wrappers (browser) · libsodium-net (C#) · age (asymmetric)
 - **Observability** — Grafana · Prometheus · Loki · Promtail
-- **Host** — Hetzner CCX13 (dedicated CPU, 8 GB RAM, EU)
-- **CI/CD** — GitHub Actions · GHCR · SSH deploy
+- **Host** — Hetzner cax11 ARM (Falkenstein DE) — 4.49 EUR/mo with managed firewall
+- **CI/CD** — GitHub Actions (CI/Security/Deploy/Dependabot) · GHCR multi-arch (amd64+arm64) · SSH deploy with `vars.AUTO_DEPLOY` gate
+- **TLS** — Caddy 2.8 with Let's Encrypt · HTTP/3 · automatic renewal · per-request CSP nonce middleware
 
 ---
 
