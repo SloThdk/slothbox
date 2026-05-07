@@ -11,8 +11,51 @@
 "use client";
 
 import * as React from "react";
-import { ArrowUpFromLine, Lock, RefreshCw, X } from "lucide-react";
+import { Lock, RefreshCw, X } from "lucide-react";
 import { toast } from "sonner";
+
+// Custom inline SVG — sealed envelope with a wax-seal padlock medallion.
+// The "letter sealed by a credential only the sender + recipient share" is
+// a much sharper metaphor for end-to-end encryption than a generic
+// upload-arrow. Drawn in champagne gold + graphite to match the brand.
+function SealedEnvelope() {
+  return (
+    <svg
+      width={56}
+      height={56}
+      viewBox="0 0 64 64"
+      fill="none"
+      stroke="currentColor"
+      aria-hidden
+      className="text-[var(--color-accent)]"
+    >
+      {/* Envelope body — slightly tilted to feel handed-over, not just dropped. */}
+      <rect
+        x={6}
+        y={14}
+        width={52}
+        height={36}
+        rx={2}
+        stroke="currentColor"
+        strokeWidth={1.6}
+      />
+      {/* Flap fold — the diagonal that makes it read as an envelope. */}
+      <path d="M6 16 L32 36 L58 16" stroke="currentColor" strokeWidth={1.6} fill="none" />
+      {/* Wax-seal medallion — overlaps the flap, signals "sealed". */}
+      <circle cx={32} cy={36} r={8.5} fill="var(--color-accent)" stroke="none" />
+      {/* Padlock cutout inside the seal — same glyph as the favicon. */}
+      <path
+        d="M29 35 v-2 a3 3 0 0 1 6 0 v2"
+        stroke="var(--color-bg)"
+        strokeWidth={1.4}
+        fill="none"
+        strokeLinecap="round"
+      />
+      <rect x={28.2} y={34.6} width={7.6} height={5.6} rx={0.8} fill="var(--color-bg)" />
+      <circle cx={32} cy={37.4} r={0.7} fill="var(--color-accent)" />
+    </svg>
+  );
+}
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -179,7 +222,7 @@ export function UploadDrop() {
           className={cn(
             "relative flex min-h-[260px] cursor-pointer flex-col items-center justify-center gap-4 border-b border-[var(--color-border)] p-8 text-center transition-colors",
             isDragOver
-              ? "border-[var(--color-accent)] bg-[color-mix(in_srgb,var(--color-accent)_10%,var(--color-card))]"
+              ? "border-[var(--color-accent-tint)] bg-[var(--color-accent-soft)]"
               : "bg-[var(--color-card)]",
             state.kind === "uploading" && "cursor-not-allowed"
           )}
@@ -194,15 +237,13 @@ export function UploadDrop() {
 
           {state.kind === "idle" || state.kind === "error" ? (
             <>
-              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-[var(--color-accent)] to-[var(--color-accent-2)] text-[#04221b] shadow-[0_0_30px_-4px_rgba(16,185,129,0.5)]">
-                <ArrowUpFromLine className="h-6 w-6" aria-hidden />
-              </div>
-              <div className="space-y-1">
-                <p className="text-base font-medium text-[var(--color-fg)]">
-                  Drop a file here, or click to choose
+              <SealedEnvelope />
+              <div className="space-y-1.5">
+                <p className="font-display text-lg font-medium text-[var(--color-fg)]">
+                  Drop a file, or click to choose
                 </p>
-                <p className="text-xs text-[var(--color-muted)]">
-                  Up to {formatBytes(MAX_FILE_SIZE_BYTES)} · encrypted in your browser before upload
+                <p className="text-xs tracking-wide text-[var(--color-muted)]">
+                  Up to {formatBytes(MAX_FILE_SIZE_BYTES)} · sealed in your browser before upload
                 </p>
               </div>
               {state.kind === "error" ? (
