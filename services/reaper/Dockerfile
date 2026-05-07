@@ -42,7 +42,11 @@ COPY . .
 # (./...). With ./... and `-o /reaper`, go refuses with "cannot write
 # multiple packages to non-directory" because internal/reaper is also a
 # package — even though it has no main. Build the root package explicitly.
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
+#
+# TARGETARCH is provided by docker buildx so the same Dockerfile produces
+# native binaries on amd64 dev boxes and arm64 hosts.
+ARG TARGETARCH=amd64
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=${TARGETARCH} \
     go build \
         -ldflags='-w -s' \
         -trimpath \
