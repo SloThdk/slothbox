@@ -1,13 +1,16 @@
 // Next.js configuration for @slothbox/web
 //
-// We deploy this app inside a Docker container on a plain Hetzner box, NOT to
-// Vercel or Cloudflare Pages. `output: "standalone"` is the build target — it
-// produces a self-contained `.next/standalone/` directory we can copy into a
-// minimal Node 20 Alpine runtime image (see Dockerfile).
+// We deploy this app inside a Docker container on a plain Linux VM (no Vercel,
+// no Cloudflare Pages). `output: "standalone"` is the build target — it
+// produces a self-contained `.next/standalone/` directory we copy into a
+// minimal Node 20 Alpine runtime image (see Dockerfile). That keeps the
+// production runtime free of build-time devDependencies and shrinks the image
+// from ~1.2 GB (full node_modules) to ~180 MB (standalone + native libs).
 //
 // Security headers are applied at the Next layer as defence-in-depth on top of
 // the Caddy reverse proxy. They are intentionally strict; any future addition
-// (third-party script, embed, etc.) MUST be reviewed here first.
+// (third-party script, embed, etc.) MUST be reviewed here first because the
+// Caddy CSP nonce middleware relies on these headers being absent or aligned.
 
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";

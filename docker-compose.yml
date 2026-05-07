@@ -131,8 +131,8 @@ services:
       # auto-sets TARGETARCH only on multi-platform builds via buildx; with
       # plain `docker compose build` it falls back to the ARG default in the
       # Dockerfile (amd64) which produces wrong-arch binaries on ARM hosts.
-      # Override here from the .env so prod (cax11=arm64) gets ARM and
-      # local x86 dev gets amd64.
+      # Override here from the .env so prod (ARM VM) gets arm64 and local
+      # x86 dev gets amd64. Production sets TARGETARCH=arm64 in .env.
       args:
         TARGETARCH: ${TARGETARCH:-amd64}
     container_name: slothbox-ingest
