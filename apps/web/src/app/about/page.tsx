@@ -104,8 +104,8 @@ export default function AboutPage() {
         </p>
 
         <p className="pt-2 text-sm text-[var(--color-muted)]">
-          Built on a Hetzner CCX13 box in Falkenstein with eight other people&apos;s open-source
-          projects holding it up. See{" "}
+          Built on a single ARM Linux VM in an EU jurisdiction, with eight other people&apos;s
+          open-source projects holding it up. See{" "}
           <Link
             href="/security"
             className="text-[var(--color-accent)] underline-offset-4 hover:underline"

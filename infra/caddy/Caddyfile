@@ -18,8 +18,9 @@
 	# Real email so Let's Encrypt can warn before cert expiry / outages.
 	email admin@philipsloth.com
 
-	# HTTP/3 + HTTP/2 + HTTP/1.1. h3 needs UDP/443 open (it is, via the
-	# Hetzner firewall created at provision time).
+	# HTTP/3 + HTTP/2 + HTTP/1.1. h3 needs UDP/443 open in the cloud
+	# provider's network firewall — verify before deploy. UDP/443 is an
+	# explicit firewall rule because most providers default-deny UDP.
 	servers {
 		protocols h1 h2 h3
 	}
@@ -32,8 +33,9 @@
 # ─── Production HTTPS ────────────────────────────────────────────────
 slothbox.philipsloth.com {
 	# Caddy auto-issues + auto-renews. ACME HTTP-01 challenge requires
-	# port 80 reachable from the public internet — the Hetzner firewall
-	# rule "HTTP (Caddy ACME)" allows this.
+	# port 80 reachable from the public internet — the cloud provider's
+	# firewall rule "HTTP (Caddy ACME)" allows this. Without it, cert
+	# renewal silently fails 60 days in and the site goes dark on day 90.
 
 	# ── Liveness ─────────────────────────────────────────────────
 	handle /healthz {
@@ -190,10 +192,10 @@ http://localhost {
 }
 
 # ─── HTTP -> HTTPS redirect for production IP / wrong-host requests ──
-# Anyone hitting http://178.105.105.187 directly, or any other host
-# arriving on plain :80 (other than localhost handled above), gets
-# bounced to the canonical HTTPS domain. Also keeps :80 open for the
-# Let's Encrypt HTTP-01 challenge.
+# Anyone hitting the production VM's bare IPv4 directly, or any other
+# host header arriving on plain :80 (other than localhost handled
+# above), gets bounced to the canonical HTTPS domain. Also keeps :80
+# open for the Let's Encrypt HTTP-01 challenge.
 :80 {
 	redir https://slothbox.philipsloth.com{uri} permanent
 }

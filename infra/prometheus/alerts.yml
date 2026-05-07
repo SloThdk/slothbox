@@ -108,8 +108,10 @@ groups:
             could be OOMKill, panic, or healthcheck failure.
 
       - alert: DiskSpaceLow
-        # Hetzner cax11 has 40 GB. Postgres + MinIO + container logs can
-        # gnaw through that fast. Alert at 85% so we have time to react.
+        # Reference deployment runs on a small VM (40 GB root). Postgres +
+        # MinIO + rotated container logs can chew through that surprisingly
+        # fast under load. Alerting at 85% gives roughly 6 GB of head-room
+        # to react before writes start failing on a full filesystem.
         expr: |
           (
             (node_filesystem_size_bytes{mountpoint="/", fstype!="tmpfs"} - node_filesystem_avail_bytes{mountpoint="/", fstype!="tmpfs"})

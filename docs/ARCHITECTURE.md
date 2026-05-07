@@ -1,7 +1,12 @@
 # Architecture
 
 SlothBox is a 14-service monorepo. Everything runs in Docker Compose locally and
-in production (one Hetzner cax11 ARM box in Falkenstein, DE for v0.1).
+in production (one ARM Linux VM in an EU jurisdiction for v0.1 — German data
+centre, no transit through US-jurisdiction infrastructure). The same compose
+file scales horizontally if a deployment outgrows a single VM (split state →
+managed Postgres + S3-compatible object storage, split observability → managed
+Grafana Cloud or shared cluster, the four .NET / Hono / Go services scale
+behind any L7 load balancer with sticky sessions on the WebSocket route).
 
 ## System diagram
 
@@ -13,7 +18,7 @@ flowchart TB
         RECV[Recipient browser<br/>libsodium WASM<br/>key from URL fragment]
     end
 
-    subgraph "Hetzner cax11 ARM · Falkenstein DE · 4.49 EUR/mo"
+    subgraph "EU-jurisdiction Linux VM · provider firewall · 22/80/443 only"
         CADDY[Caddy 2.8<br/>:443 TLS · :80 redirect<br/>Let's Encrypt auto-renew<br/>HTTP/3 · per-route body caps]
 
         subgraph "Public surfaces"
@@ -188,9 +193,9 @@ See the README for the per-language justification. Highlights:
 
 | Bottleneck at 10x users   | Mitigation                                             |
 | ------------------------- | ------------------------------------------------------ |
-| Single Hetzner box CPU    | Scale up to CCX23 / CCX33                              |
+| Single VM CPU             | Scale vertically — same compose, larger ARM/AMD VM     |
 | Postgres write throughput | Read replica + tune connection pool                    |
-| MinIO disk capacity       | Attach Hetzner Storage Box for cold storage            |
+| MinIO disk capacity       | Attach provider block-storage volume for cold blobs    |
 | WebSocket connections     | Scale out api-gateway pods behind Caddy load-balancing |
 
 | Bottleneck at 100x users | Mitigation                                                            |
@@ -206,7 +211,7 @@ None of these are surprises. All known migration paths.
 
 ```
 ┌──────────────────────────────────────────────────────┐
-│  Hetzner cax11 ARM (Falkenstein DE) — 4.49 EUR/mo    │
+│  EU-jurisdiction ARM Linux VM · provider firewall    │
 │  ┌────────────────────────────────────────────────┐  │
 │  │  docker-compose.prod.yml                       │  │
 │  │  ┌────────┐ ┌─────────┐ ┌──────┐ ┌──────────┐ │  │
@@ -225,8 +230,8 @@ None of these are surprises. All known migration paths.
 └──────────────────────────────────────────────────────┘
         │                                       │
         ▼                                       ▼
-   Hetzner Storage Box              FreeTSA.org (RFC 3161)
-   (encrypted backups)              (timestamp authority)
+   Provider block-storage              FreeTSA.org (RFC 3161)
+   (encrypted backups)                 (timestamp authority)
 ```
 
 See [`RUNBOOK.md`](RUNBOOK.md) for the deployment procedure.

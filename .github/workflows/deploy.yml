@@ -3,14 +3,14 @@ name: Deploy
 # Two jobs:
 #  1. build  — multi-arch Docker build for all 5 services, push to GHCR.
 #              Runs on every master push and every v* tag.
-#  2. deploy — SSH to the production Hetzner box and `docker compose pull` +
-#              `up -d`. Gated behind the repo variable AUTO_DEPLOY=true so it
-#              only fires when secrets are configured. Manual runs always
-#              attempt deploy.
+#  2. deploy — SSH to the production VM and `docker compose pull` + `up -d`.
+#              Gated behind the repo variable AUTO_DEPLOY=true so it only
+#              fires when secrets are configured. Manual workflow_dispatch
+#              runs always attempt deploy.
 #
 # Build platforms intentionally include linux/arm64 because the production
-# host is an ARM cax11. linux/amd64 is kept so contributors can `docker pull`
-# on a normal x86 dev box.
+# VM is ARM. linux/amd64 is kept so contributors can `docker pull` on a
+# normal x86 dev box and run the full stack locally.
 
 on:
   push:
@@ -93,9 +93,9 @@ jobs:
           context: ${{ matrix.context }}
           file: ${{ matrix.file }}
           push: true
-          # Multi-arch. The Hetzner production host is ARM; contributors
-          # tend to dev on AMD64. Both platforms get pushed under the same
-          # tag and Docker pulls the right one based on the host's arch.
+          # Multi-arch. The production VM is ARM; contributors tend to dev
+          # on AMD64. Both platforms get pushed under the same tag and Docker
+          # pulls the right one based on the host's arch.
           platforms: linux/amd64,linux/arm64
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
@@ -103,7 +103,7 @@ jobs:
           cache-to: type=gha,mode=max
 
   deploy:
-    name: Deploy to Hetzner
+    name: Deploy to production
     needs: build
     runs-on: ubuntu-24.04
     environment: production

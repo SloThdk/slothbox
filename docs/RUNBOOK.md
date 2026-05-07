@@ -2,10 +2,15 @@
 
 How to deploy, operate, and recover SlothBox in production.
 
-## Provisioning a new Hetzner box
+## Provisioning a new EU host
+
+Any EU-jurisdiction Linux VM works — the reference deployment uses an ARM
+host in a German data centre, but the procedure is the same on any
+Debian/Ubuntu 22.04+ box. The example below uses Hetzner Cloud's CLI;
+substitute your provider's equivalent.
 
 ```bash
-# 1. Create the box via Hetzner Cloud Console or CLI
+# 1. Create the box (any EU-jurisdiction provider with cloud-init works)
 hcloud server create \
   --name slothbox-prod-1 \
   --type ccx13 \
@@ -83,8 +88,8 @@ receipt/api → web/caddy).
 
 ### Database backups
 
-WAL-G runs as a sidecar service, archiving every WAL segment to Hetzner Storage
-Box (encrypted). Daily base backups at 03:30 UTC.
+WAL-G runs as a sidecar service, archiving every WAL segment to provider
+block storage (encrypted at rest). Daily base backups at 03:30 UTC.
 
 Manual base backup:
 
@@ -225,7 +230,7 @@ If SlothBox shuts down:
 2. Disable new uploads
 3. Allow existing shares to expire naturally OR provide a bulk-download tool
 4. Publish a final Merkle root anchor
-5. Take a final snapshot, archive to Storage Box (90-day retention)
-6. Tear down the Hetzner box
+5. Take a final snapshot, archive to provider block storage (90-day retention)
+6. Tear down the production VM
 7. Leave the GitHub repo and historical Merkle anchors public so any unexpired
    receipts remain verifiable

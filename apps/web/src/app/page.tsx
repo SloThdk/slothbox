@@ -102,7 +102,7 @@ const GUARANTEES = [
   },
   {
     title: "EU only. No US transit.",
-    body: "Hetzner Germany. No CloudFront. No Vercel edge. Schrems II is not a concern because no part of the data path crosses US jurisdiction.",
+    body: "EU-jurisdiction servers, German data centre. No CloudFront. No Vercel edge. Schrems II is not a concern because no part of the data path crosses US jurisdiction.",
   },
   {
     title: "Open source, every line.",
