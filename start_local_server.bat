@@ -5,22 +5,33 @@ REM ============================================================================
 REM  SlothBox - local dev launcher
 REM ----------------------------------------------------------------------------
 REM  Tier 2 from LESSONS.md (full-stack with DB + multi-service).
-REM    1. Detect if we're running from a Sync.com cloud folder (broken!)
-REM    2. Free the dev port if a previous run left it occupied
-REM    3. docker compose up -d --build  (rebuilds changed images)
-REM    4. Wait for Postgres + ingest healthy, then run idempotent migrations
-REM    5. Start Next.js frontend in dev mode (hot reload)
+REM    0. Detect Sync.com folder. If we're inside one, AUTO-MIRROR the project
+REM       to C:\dev\slothbox (a non-Sync location) and re-launch from there.
+REM       User-transparent: same command, same result, same hot-reload URL.
+REM    1. Free the dev port if a previous run left it occupied
+REM    2. docker compose up -d --build  (rebuilds changed images)
+REM    3. Wait for Postgres + ingest healthy, then run idempotent migrations
+REM    4. Start Next.js frontend in dev mode (hot reload)
 REM
-REM  KNOWN ISSUE: Sync.com folders.
+REM  WHY THE AUTO-MIRROR EXISTS:
 REM    Files inside C:\Users\phili\Sync\... carry the Windows ReparsePoint
-REM    attribute (0x400) even after they're fully hydrated locally. Docker
-REM    BuildKit refuses to include reparse points in build context, failing
-REM    every COPY with "invalid file request <path>". Sync.com's filesystem
-REM    driver immediately re-applies the flag if you try to strip it.
+REM    attribute (0x400) even after full hydration, because Sync.com's
+REM    filesystem driver uses it to track sync state. Docker BuildKit
+REM    refuses to include reparse points in build context — it can't tell
+REM    a Sync placeholder from a malicious symlink, so it rejects all of
+REM    them with "invalid file request <path>". Sync.com's driver also
+REM    re-applies the flag immediately if anything tries to strip it.
 REM
-REM    Fix: clone or mirror the project to a NON-Sync location. The script
-REM    detects this below and bails with a helpful pointer to scripts\
-REM    setup-local-dev.bat which creates the C:\dev\slothbox mirror.
+REM    Solution: keep two copies of the project.
+REM      Canonical (Sync\Websites\slothbox): source of truth, git ops,
+REM         editor lives here, Sync.com cloud backup.
+REM      Mirror (C:\dev\slothbox): non-Sync folder, BuildKit-friendly,
+REM         used ONLY for `docker compose` runs.
+REM
+REM    Auto-mirror via robocopy. First run = a few seconds. Subsequent
+REM    runs = sub-second incremental. Files that don't matter for the
+REM    docker build (node_modules, .next, .git, dist, etc.) are excluded.
+REM    The .env file is copied explicitly so secrets propagate correctly.
 REM ============================================================================
 
 set FRONTEND_PORT=3021
@@ -35,44 +46,70 @@ REM Detect Sync.com cloud folder via path substring.
 REM
 REM We use cmd's string-replace-with-empty syntax instead of findstr.
 REM `%CWD:\Sync\=%` returns CWD with the literal `\Sync\` removed; if
-REM the result differs from CWD, Sync was present in the path. This
-REM is more reliable than findstr regex which has ugly backslash-
-REM escaping rules and was matching the wrong things in some shells.
-REM Match is case-insensitive because Windows paths usually are.
+REM the result differs from CWD, Sync was present in the path.
 set "CWD=%CD%"
 set "STRIPPED=%CWD:\Sync\=%"
 set "STRIPPED_LOWER=%CWD:\sync\=%"
-if /I not "%STRIPPED%"=="%CWD%" goto :sync_detected
-if /I not "%STRIPPED_LOWER%"=="%CWD%" goto :sync_detected
+if /I not "%STRIPPED%"=="%CWD%" goto :auto_mirror
+if /I not "%STRIPPED_LOWER%"=="%CWD%" goto :auto_mirror
 goto :no_sync
 
-:sync_detected
+:auto_mirror
+set "MIRROR=C:\dev\slothbox"
 echo.
 echo ============================================================================
-echo  ERROR: SlothBox cannot run docker compose from a Sync.com folder.
+echo  Sync.com folder detected - auto-mirroring to %MIRROR%
 echo ============================================================================
+echo  Source: %CWD%
+echo  Target: %MIRROR%
+echo  Why:    Sync.com placeholder flags break Docker BuildKit. Mirroring to
+echo          a non-Sync folder lets Docker read files normally.
+echo  Speed:  first run ~5 sec, incremental ~1 sec.
 echo.
-echo  Current path: %CWD%
+
+if not exist "C:\dev" mkdir "C:\dev"
+
+REM robocopy options:
+REM   /MIR              mirror tree (delete dest files not in source)
+REM   /XD ...           exclude these directories
+REM   /XF ...           exclude these files
+REM   /R:1 /W:1         retry once with 1s wait on file lock
+REM   /NJH /NJS /NDL /NFL /NC /NS  quiet output (no header/summary/dirlist/filelist/class/size)
+REM
+REM Excluded dirs:
+REM   node_modules  - pnpm reinstalls inside container
+REM   .next .turbo  - Next.js build caches
+REM   dist out      - build outputs
+REM   coverage      - test coverage
+REM   .git          - keep git ops in canonical only (avoids cross-folder confusion)
+REM
+REM Excluded files:
+REM   .env          - copied explicitly below so dev/prod values don't get crossed
+REM   *.log         - noise
+robocopy "%CWD%" "%MIRROR%" /MIR /XD node_modules .next .turbo dist out coverage .git /XF .env *.log /R:1 /W:1 /NJH /NJS /NDL /NFL /NC /NS >nul
+
+REM robocopy exit codes: 0=no copy, 1=files copied, 2=extras, 4=mismatched,
+REM 8+=failures. Anything 0-7 is success.
+if errorlevel 8 (
+    echo.
+    echo  ERROR: robocopy mirror failed with exit code !errorlevel!.
+    echo  You can run scripts\setup-local-dev.bat manually for a clean restart.
+    pause
+    exit /b 1
+)
+
+REM Always copy .env fresh so secrets propagate from canonical.
+if exist "%CWD%\.env" copy /Y "%CWD%\.env" "%MIRROR%\.env" >nul
+
+echo  Mirror ready. Switching to %MIRROR% and continuing...
 echo.
-echo  Sync.com flags every file with the Windows ReparsePoint attribute as a
-echo  cloud-storage placeholder. Docker BuildKit refuses to include reparse
-echo  points in a build context, so every COPY in the Dockerfile fails with
-echo  "invalid file request ^<path^>" and the stack never comes up.
-echo.
-echo  Fix:
-echo    1. Open a fresh terminal at C:\dev\slothbox  (created by
-echo       scripts\setup-local-dev.bat if it doesn't exist yet)
-echo    2. Run start_local_server.bat from THERE.
-echo.
-echo  The Sync\Websites\slothbox copy stays as your canonical source - all
-echo  git operations, edits, and Sync.com backup happen there. The mirror
-echo  at C:\dev\slothbox is only used for `docker compose` runs.
-echo.
-echo  To create the mirror right now, run:
-echo    scripts\setup-local-dev.bat
-echo.
-pause
-exit /b 1
+
+REM Re-launch the script from the mirror so subsequent commands run from
+REM the right cwd. The /B flag stays in the same console window; the
+REM `exit` at the end propagates the launched bat's exit code back.
+cd /d "%MIRROR%"
+call "%MIRROR%\start_local_server.bat"
+exit /b %errorlevel%
 
 :no_sync
 
