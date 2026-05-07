@@ -38,7 +38,15 @@ set FRONTEND_PORT=3021
 set GATEWAY_PORT=3022
 set INGEST_PORT=3023
 set RECEIPT_PORT=3024
-set DASHBOARD_URL=http://localhost:%FRONTEND_PORT%
+REM The browser auto-opens to the Caddy-fronted production-shape URL on
+REM port 80 because that's what's running the moment the docker stack
+REM finishes coming up. The pnpm dev hot-reload server at :3021 is also
+REM started below for code-tweak workflows, but it can take 30-60 seconds
+REM to compile its first bundle — opening the browser there racy-fails
+REM with "connection refused". The :80 URL is identical in shape to
+REM production (Caddy reverse proxy, all 13 services live) and is what
+REM most users actually want to look at.
+set DASHBOARD_URL=http://localhost
 
 cd /d "%~dp0"
 
@@ -170,16 +178,16 @@ if errorlevel 1 (
     echo.
 )
 
-echo [5/5] Starting Next.js dev server on http://localhost:%FRONTEND_PORT% ...
+echo [5/5] Starting Next.js dev hot-reload (background) on :%FRONTEND_PORT% ...
 echo.
 echo ============================================================================
 echo  Stack URLs
 echo ----------------------------------------------------------------------------
-echo   Frontend (dev):  http://localhost:%FRONTEND_PORT%       (hot reload via pnpm dev^)
-echo   Caddy + full:    http://localhost                       (production-shape proxy^)
+echo   ^>^>^> http://localhost                ^<^<^< primary - prod-shape via Caddy
 echo   API gateway:     proxied at /api/*                      (internal :3022^)
 echo   Ingest service:  proxied at /chunk/*                    (internal :3023^)
 echo   Receipt service: proxied at /receipt/*                  (internal :3024^)
+echo   Frontend HMR:    http://localhost:%FRONTEND_PORT%       (hot reload, ~60s to compile^)
 echo   MinIO console:   http://localhost:9001                  (slothbox-local / see .env^)
 echo   Grafana:         http://localhost:3030                  (admin / admin^)
 echo   Prometheus:      http://localhost:9090
@@ -190,8 +198,11 @@ echo  Tip: ctrl+c to stop the dev server. Docker stack keeps running -
 echo       use `docker compose down` to tear it down completely.
 echo.
 
-REM Browser opens after Next.js compiles (Next prints "Ready" first run)
-start "" /min cmd /c "timeout /t 12 /nobreak >nul & start %DASHBOARD_URL%"
+REM Browser opens to the prod-shape URL almost immediately - by this
+REM point Caddy + web are both healthy (verified by the depends_on
+REM gates above) so the page loads first try. 3 seconds is enough for
+REM the user to glance at the printed URLs first.
+start "" /min cmd /c "timeout /t 3 /nobreak >nul & start %DASHBOARD_URL%"
 
 REM Run the frontend in the foreground so Ctrl+C cleans up
 call pnpm --filter @slothbox/web run dev
