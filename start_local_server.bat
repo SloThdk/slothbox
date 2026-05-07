@@ -32,36 +32,49 @@ set DASHBOARD_URL=http://localhost:%FRONTEND_PORT%
 cd /d "%~dp0"
 
 REM Detect Sync.com cloud folder via path substring.
-set CWD=%CD%
-echo %CWD% | findstr /I "\\Sync\\" >nul
-if %errorlevel% equ 0 (
-    echo.
-    echo ============================================================================
-    echo  ERROR: SlothBox cannot run docker compose from a Sync.com folder.
-    echo ============================================================================
-    echo.
-    echo  Current path: %CWD%
-    echo.
-    echo  Sync.com flags every file with the Windows ReparsePoint attribute as a
-    echo  cloud-storage placeholder. Docker BuildKit refuses to include reparse
-    echo  points in a build context, so every COPY in the Dockerfile fails with
-    echo  "invalid file request ^<path^>" and the stack never comes up.
-    echo.
-    echo  Fix:
-    echo    1. Open a fresh terminal at C:\dev\slothbox  (created by
-    echo       scripts\setup-local-dev.bat if it doesn't exist yet)
-    echo    2. Run start_local_server.bat from THERE.
-    echo.
-    echo  The Sync\Websites\slothbox copy stays as your canonical source - all
-    echo  git operations, edits, and Sync.com backup happen there. The mirror
-    echo  at C:\dev\slothbox is only used for `docker compose` runs.
-    echo.
-    echo  To create the mirror right now, run:
-    echo    scripts\setup-local-dev.bat
-    echo.
-    pause
-    exit /b 1
-)
+REM
+REM We use cmd's string-replace-with-empty syntax instead of findstr.
+REM `%CWD:\Sync\=%` returns CWD with the literal `\Sync\` removed; if
+REM the result differs from CWD, Sync was present in the path. This
+REM is more reliable than findstr regex which has ugly backslash-
+REM escaping rules and was matching the wrong things in some shells.
+REM Match is case-insensitive because Windows paths usually are.
+set "CWD=%CD%"
+set "STRIPPED=%CWD:\Sync\=%"
+set "STRIPPED_LOWER=%CWD:\sync\=%"
+if /I not "%STRIPPED%"=="%CWD%" goto :sync_detected
+if /I not "%STRIPPED_LOWER%"=="%CWD%" goto :sync_detected
+goto :no_sync
+
+:sync_detected
+echo.
+echo ============================================================================
+echo  ERROR: SlothBox cannot run docker compose from a Sync.com folder.
+echo ============================================================================
+echo.
+echo  Current path: %CWD%
+echo.
+echo  Sync.com flags every file with the Windows ReparsePoint attribute as a
+echo  cloud-storage placeholder. Docker BuildKit refuses to include reparse
+echo  points in a build context, so every COPY in the Dockerfile fails with
+echo  "invalid file request ^<path^>" and the stack never comes up.
+echo.
+echo  Fix:
+echo    1. Open a fresh terminal at C:\dev\slothbox  (created by
+echo       scripts\setup-local-dev.bat if it doesn't exist yet)
+echo    2. Run start_local_server.bat from THERE.
+echo.
+echo  The Sync\Websites\slothbox copy stays as your canonical source - all
+echo  git operations, edits, and Sync.com backup happen there. The mirror
+echo  at C:\dev\slothbox is only used for `docker compose` runs.
+echo.
+echo  To create the mirror right now, run:
+echo    scripts\setup-local-dev.bat
+echo.
+pause
+exit /b 1
+
+:no_sync
 
 echo ============================================================================
 echo  SlothBox local dev - booting up
