@@ -6,7 +6,7 @@
 # keep the simple deploy story and trade ~30 MB of image size for stability.
 
 # ─── Stage 1: restore + build ─────────────────────────────────────
-FROM mcr.microsoft.com/dotnet/sdk:8.0-alpine AS build
+FROM mcr.microsoft.com/dotnet/sdk:10.0-alpine AS build
 WORKDIR /src
 
 # TARGETARCH is set automatically by docker buildx to amd64 / arm64 depending
