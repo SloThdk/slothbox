@@ -47,8 +47,9 @@ BEGIN
 END;
 $$;
 
+-- Mirror 0001: target service_role, not the env-dependent superuser.
 REVOKE ALL ON FUNCTION append_audit_entry(TEXT, UUID, JSONB) FROM PUBLIC, anon, authenticated;
-GRANT EXECUTE ON FUNCTION append_audit_entry(TEXT, UUID, JSONB) TO postgres;
+GRANT EXECUTE ON FUNCTION append_audit_entry(TEXT, UUID, JSONB) TO service_role;
 
 -- Verify the chain integrity for a range — returns first broken seq or NULL if clean.
 CREATE OR REPLACE FUNCTION verify_audit_chain(p_from BIGINT DEFAULT 1, p_to BIGINT DEFAULT NULL)
