@@ -10,7 +10,10 @@ alerting:
     - static_configs:
         - targets: []
 
-rule_files: []
+# Wire the alert rules. Prometheus reloads them on SIGHUP or restart;
+# in dev a `docker compose restart prometheus` picks up rule changes.
+rule_files:
+  - /etc/prometheus/alerts.yml
 
 scrape_configs:
   - job_name: prometheus
