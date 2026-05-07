@@ -18,6 +18,7 @@ import { Toaster } from "sonner";
 import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
 import { APP_NAME, APP_TAGLINE, PUBLIC_URL } from "@/lib/config";
+import { LanguageProvider } from "@/lib/i18n/LanguageContext";
 import "@/styles/globals.css";
 
 // Force every route through the runtime so the per-request nonce minted
@@ -103,22 +104,32 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <meta httpEquiv="x-dns-prefetch-control" content="on" />
       </head>
       <body className="flex min-h-screen flex-col font-sans antialiased" data-nonce={nonce}>
-        <Header />
-        <main className="flex-1">{children}</main>
-        <Footer />
-        <Toaster
-          richColors
-          theme="dark"
-          position="bottom-right"
-          duration={4000}
-          toastOptions={{
-            style: {
-              background: "var(--color-card)",
-              borderColor: "var(--color-border)",
-              color: "var(--color-fg)",
-            },
-          }}
-        />
+        {/*
+          LanguageProvider wraps EVERY route. It hydrates from
+          localStorage / navigator.language on the first client effect,
+          so server-rendered HTML is always English (matches the
+          `<html lang="en">` we just emitted). The flicker on first
+          paint for a Danish-preferring user is intentional — see
+          LanguageContext.tsx for the full SSR rationale.
+        */}
+        <LanguageProvider>
+          <Header />
+          <main className="flex-1">{children}</main>
+          <Footer />
+          <Toaster
+            richColors
+            theme="dark"
+            position="bottom-right"
+            duration={4000}
+            toastOptions={{
+              style: {
+                background: "var(--color-card)",
+                borderColor: "var(--color-border)",
+                color: "var(--color-fg)",
+              },
+            }}
+          />
+        </LanguageProvider>
       </body>
     </html>
   );

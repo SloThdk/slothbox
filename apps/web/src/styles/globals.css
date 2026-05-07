@@ -68,10 +68,10 @@
 
   /* Type stack — Inter for everything. No Playfair. visionOS is sans-only;
      the serif drop was the right call. JetBrains Mono kept for hashes/code. */
-  --font-family-sans: var(--font-inter), -apple-system, BlinkMacSystemFont, ui-sans-serif,
-    system-ui, sans-serif;
-  --font-family-display: var(--font-inter), -apple-system, BlinkMacSystemFont, ui-sans-serif,
-    system-ui, sans-serif;
+  --font-family-sans:
+    var(--font-inter), -apple-system, BlinkMacSystemFont, ui-sans-serif, system-ui, sans-serif;
+  --font-family-display:
+    var(--font-inter), -apple-system, BlinkMacSystemFont, ui-sans-serif, system-ui, sans-serif;
   --font-family-mono: var(--font-jetbrains-mono), ui-monospace, "SF Mono", monospace;
 
   /* Container widths. */

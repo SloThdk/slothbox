@@ -62,14 +62,19 @@ import { ShareLink } from "@/components/ShareLink";
 import { MAX_FILE_SIZE_BYTES } from "@/lib/config";
 import { uploadFile, type UploadProgressEvent, type UploadResult } from "@/lib/upload";
 import { cn, formatBytes } from "@/lib/utils";
+import { useLanguage } from "@/lib/i18n/LanguageContext";
+import type { TranslationKey } from "@/lib/i18n/translations";
 
-// Expiry options offered to the sender. Server side has its own clamp via
-// SHARE_MAX_EXPIRY_HOURS — we keep this list shorter than the server max.
-const EXPIRY_OPTIONS: Array<{ label: string; hours: number }> = [
-  { label: "1 hour", hours: 1 },
-  { label: "24 hours", hours: 24 },
-  { label: "7 days", hours: 24 * 7 },
-  { label: "30 days", hours: 24 * 30 },
+// Expiry options offered to the sender. Each option carries an hours
+// value (the actual API contract) plus a translation key for the
+// rendered label, so the dropdown localises with the rest of the UI.
+// Server side has its own clamp via SHARE_MAX_EXPIRY_HOURS — we keep
+// this list shorter than the server max.
+const EXPIRY_OPTIONS: ReadonlyArray<{ labelKey: TranslationKey; hours: number }> = [
+  { labelKey: "upload.expiry.1h", hours: 1 },
+  { labelKey: "upload.expiry.24h", hours: 24 },
+  { labelKey: "upload.expiry.7d", hours: 24 * 7 },
+  { labelKey: "upload.expiry.30d", hours: 24 * 30 },
 ];
 
 type UploadState =
@@ -84,6 +89,7 @@ type UploadState =
   | { kind: "error"; message: string };
 
 export function UploadDrop() {
+  const { t } = useLanguage();
   const [state, setState] = React.useState<UploadState>({ kind: "idle" });
   const [expiryHours, setExpiryHours] = React.useState<number>(24 * 7);
   const [burnAfterRead, setBurnAfterRead] = React.useState<boolean>(false);
@@ -95,11 +101,11 @@ export function UploadDrop() {
   const startUpload = React.useCallback(
     async (file: File) => {
       if (file.size <= 0) {
-        toast.error("file is empty");
+        toast.error(t("upload.toast.empty"));
         return;
       }
       if (file.size > MAX_FILE_SIZE_BYTES) {
-        toast.error(`file is too large (max ${formatBytes(MAX_FILE_SIZE_BYTES)})`);
+        toast.error(t("upload.toast.tooLarge", { max: formatBytes(MAX_FILE_SIZE_BYTES) }));
         return;
       }
 
@@ -116,11 +122,18 @@ export function UploadDrop() {
           },
         });
         setState({ kind: "done", result, file });
-        toast.success("Encrypted and uploaded.");
+        toast.success(t("upload.toast.success"));
       } catch (err) {
+        // Errors thrown by the upload module are surfaced directly so the
+        // user sees the actionable cause (e.g. "share token expired",
+        // "network error"). These are technical strings keyed off the
+        // upload pipeline; we don't translate them per-locale here
+        // because they're effectively diagnostic copy that needs to
+        // match docs / threads. A future i18n pass can lift them into
+        // the translations table once the error surface stabilises.
         const message = err instanceof Error ? err.message : "upload failed";
-        // The user clicking "cancel" routes through here too — render that as
-        // a neutral idle state, not an error.
+        // The user clicking "cancel" routes through here too — render
+        // that as a neutral idle state, not an error.
         if (message === "upload cancelled") {
           setState({ kind: "idle" });
           return;
@@ -129,7 +142,7 @@ export function UploadDrop() {
         toast.error(message);
       }
     },
-    [expiryHours, burnAfterRead]
+    [expiryHours, burnAfterRead, t]
   );
 
   // ---- DOM event handlers ----------------------------------------------
@@ -226,10 +239,10 @@ export function UploadDrop() {
               <VaultMark />
               <div className="space-y-2">
                 <p className="text-[1.05rem] font-medium text-[var(--color-fg)]">
-                  Drop a file, or click to choose
+                  {t("upload.dropPrompt")}
                 </p>
                 <p className="text-xs font-light text-[var(--color-muted)]">
-                  Up to {formatBytes(MAX_FILE_SIZE_BYTES)} · sealed in your browser before upload
+                  {t("upload.maxNote", { max: formatBytes(MAX_FILE_SIZE_BYTES) })}
                 </p>
               </div>
               {state.kind === "error" ? (
@@ -249,19 +262,19 @@ export function UploadDrop() {
           )}
         >
           <div className="space-y-2">
-            <Label htmlFor="expiry">Expires after</Label>
+            <Label htmlFor="expiry">{t("upload.expires")}</Label>
             <Select
               value={String(expiryHours)}
               onValueChange={(value) => setExpiryHours(Number.parseInt(value, 10))}
               disabled={state.kind === "uploading"}
             >
               <SelectTrigger id="expiry">
-                <SelectValue placeholder="Select expiry" />
+                <SelectValue placeholder={t("upload.expiry.placeholder")} />
               </SelectTrigger>
               <SelectContent>
                 {EXPIRY_OPTIONS.map((opt) => (
                   <SelectItem key={opt.hours} value={String(opt.hours)}>
-                    {opt.label}
+                    {t(opt.labelKey)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -270,8 +283,8 @@ export function UploadDrop() {
 
           <div className="flex items-end justify-between gap-4">
             <div className="space-y-1">
-              <Label htmlFor="burn">Burn after read</Label>
-              <p className="text-xs text-[var(--color-muted)]">Self-destruct on first download.</p>
+              <Label htmlFor="burn">{t("upload.burn")}</Label>
+              <p className="text-xs text-[var(--color-muted)]">{t("upload.burn.help")}</p>
             </div>
             <Switch
               id="burn"
@@ -285,7 +298,7 @@ export function UploadDrop() {
         {/* ------------------ Trust footnote ------------------ */}
         <div className="flex items-center gap-2.5 border-t border-[var(--color-glass-stroke)] px-6 py-3 text-xs font-light text-[var(--color-muted)]">
           <Lock className="h-3.5 w-3.5 text-[var(--color-accent)]" aria-hidden strokeWidth={1.6} />
-          <span>Encryption happens in your browser. The key never leaves this tab.</span>
+          <span>{t("upload.trust")}</span>
         </div>
       </div>
     </div>
@@ -303,6 +316,7 @@ function UploadingPanel({
   progress: UploadProgressEvent | null;
   onCancel: () => void;
 }) {
+  const { t } = useLanguage();
   const fraction = progress?.fraction ?? 0;
   return (
     <div className="flex w-full flex-col gap-4">
@@ -311,8 +325,13 @@ function UploadingPanel({
           <p className="truncate text-sm font-medium text-[var(--color-fg)]">{file.name}</p>
           <p className="text-xs text-[var(--color-muted)]">
             {progress
-              ? `Chunk ${progress.chunksUploaded}/${progress.chunksTotal} · ${formatBytes(progress.bytesUploaded)} / ${formatBytes(progress.bytesTotal)}`
-              : `${formatBytes(file.size)} · preparing…`}
+              ? t("upload.chunkProgress", {
+                  done: progress.chunksUploaded,
+                  total: progress.chunksTotal,
+                  bytesDone: formatBytes(progress.bytesUploaded),
+                  bytesTotal: formatBytes(progress.bytesTotal),
+                })
+              : t("upload.preparing", { size: formatBytes(file.size) })}
           </p>
         </div>
         <Button
@@ -322,7 +341,7 @@ function UploadingPanel({
             e.stopPropagation();
             onCancel();
           }}
-          aria-label="Cancel upload"
+          aria-label={t("upload.cancel")}
           className="text-[var(--color-muted)] hover:text-[var(--color-danger)]"
         >
           <X className="h-4 w-4" aria-hidden />
@@ -332,9 +351,11 @@ function UploadingPanel({
       <div className="flex items-center justify-between text-xs">
         <span className="flex items-center gap-1.5 text-[var(--color-accent)]">
           <RefreshCw className="h-3 w-3 animate-spin" aria-hidden />
-          {fraction > 0 ? `${Math.floor(fraction * 100)}% encrypted + uploaded` : "encrypting…"}
+          {fraction > 0
+            ? t("upload.percentLabel", { percent: Math.floor(fraction * 100) })
+            : t("upload.encrypting")}
         </span>
-        <span className="text-[var(--color-muted)]">XChaCha20-Poly1305 · 5 MiB chunks</span>
+        <span className="text-[var(--color-muted)]">{t("upload.engineLabel")}</span>
       </div>
     </div>
   );
