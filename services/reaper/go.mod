@@ -17,7 +17,7 @@
 // Pinned to Go 1.22 — the toolchain we standardise on across slothbox services.
 module github.com/SloThdk/slothbox/reaper
 
-go 1.22
+go 1.23
 
 require (
 	// pgx v5 — native Postgres driver. Faster than database/sql + lib/pq and
