@@ -87,8 +87,9 @@ auditor:
 
 ## What this does NOT claim
 
-- It does not claim disk sectors are overwritten. We use Hetzner's storage
-  layer; physical destruction of NVMe sectors is at their hardware level.
+- It does not claim disk sectors are overwritten. We use the cloud
+  provider's storage layer; physical destruction of NVMe sectors happens at
+  their hardware level on volume detach, not synchronously on file unlink.
 - It does not claim the file was never read by an attacker between upload
   and destruction. If your data was sensitive in transit, the v1.0 per-recipient
   encryption is the mitigation — only the intended recipient's key opens it.
