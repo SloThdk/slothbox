@@ -7,7 +7,7 @@
 # breaks BouncyCastle reflection paths v0.5 will rely on — keep it predictable.
 
 # ─── Build stage ──────────────────────────────────────────────────────────
-FROM mcr.microsoft.com/dotnet/sdk:8.0-alpine AS build
+FROM mcr.microsoft.com/dotnet/sdk:10.0-alpine AS build
 WORKDIR /src
 
 # TARGETARCH is set by docker buildx (amd64/arm64). Map to .NET runtime
