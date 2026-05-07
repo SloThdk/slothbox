@@ -1,86 +1,159 @@
-# SlothBox — Caddy reverse proxy
+# SlothBox — Caddy reverse proxy + TLS edge
 #
-# Auto-HTTPS via Let's Encrypt. Strict security headers. Internal services
-# never exposed publicly except through here.
+# This file controls public ingress for the production deployment.
+# Key responsibilities:
+#   1. Terminate TLS on slothbox.philipsloth.com via Let's Encrypt (HTTP-01).
+#   2. Reverse-proxy paths to internal services on the docker network.
+#   3. Set every browser security header EXCEPT Content-Security-Policy.
+#      CSP must include a per-request nonce, which only the Next.js
+#      middleware can mint — see apps/web/src/middleware.ts.
+#   4. Strip the Server header so we don't leak Caddy's version.
+#   5. Cap request bodies per-route (1 MB by default, 5 GB for /chunk/*).
+#
+# Local development uses :80 and skips TLS — no Caddyfile-level toggle is
+# needed because the dev compose file overrides DOMAIN to "localhost"
+# which makes Caddy bind plaintext only.
 
 {
-	# Production: real email for Let's Encrypt urgent renewals
+	# Real email so Let's Encrypt can warn before cert expiry / outages.
 	email admin@philipsloth.com
+
+	# HTTP/3 + HTTP/2 + HTTP/1.1. h3 needs UDP/443 open (it is, via the
+	# Hetzner firewall created at provision time).
 	servers {
 		protocols h1 h2 h3
 	}
+
+	# Persistent ACME storage on the named volume so cert state survives
+	# `docker compose down`.
+	storage file_system /data
 }
 
-# ─── Local development (no TLS) ────────────────────────────────
-:80 {
-	# Health check for upstream load balancers
+# ─── Production HTTPS ────────────────────────────────────────────────
+slothbox.philipsloth.com {
+	# Caddy auto-issues + auto-renews. ACME HTTP-01 challenge requires
+	# port 80 reachable from the public internet — the Hetzner firewall
+	# rule "HTTP (Caddy ACME)" allows this.
+
+	# ── Liveness ─────────────────────────────────────────────────
 	handle /healthz {
 		respond "ok" 200
 	}
 
-	# API routes
+	# ── API gateway (HTTP) ──────────────────────────────────────
+	# All /api/* traffic is REST. Hono on :3022.
 	handle /api/* {
-		reverse_proxy api-gateway:3022
+		reverse_proxy api-gateway:3022 {
+			# Pass real client IP so the gateway's rate-limiter keys
+			# correctly. CF-Connecting-IP is set IF the request ever
+			# reverses through Cloudflare; otherwise X-Forwarded-For
+			# is the canonical source.
+			header_up X-Forwarded-Proto {scheme}
+			header_up X-Forwarded-Host {host}
+		}
 	}
 
-	# Ingest routes (chunked upload — large bodies allowed)
-	handle /ingest/* {
-		reverse_proxy ingest:3023 {
+	# ── API gateway (WebSocket) ────────────────────────────────
+	# Progress channel for long-running uploads. Caddy auto-detects
+	# WebSocket upgrade and switches to bidirectional pipe — but we
+	# explicitly carry the Upgrade/Connection headers and disable
+	# response buffering so frames don't pool up at the edge.
+	@websocket {
+		header Connection *Upgrade*
+		header Upgrade websocket
+	}
+	handle /ws/* {
+		reverse_proxy @websocket api-gateway:3022 {
+			flush_interval -1
+		}
+		# Non-WS clients hitting /ws (curl, mistakes) should see a
+		# clean 426 Upgrade Required, not a 502.
+		reverse_proxy api-gateway:3022 {
 			flush_interval -1
 		}
 	}
 
-	# Receipt routes (v0.5+)
+	# ── Ingest service (chunked uploads) ───────────────────────
+	# .NET 8 on :3023. Streams 0-5 GB bodies — disable Caddy buffering
+	# so memory pressure on the edge stays bounded regardless of upload
+	# size.
+	handle /chunk/* {
+		reverse_proxy ingest:3023 {
+			flush_interval -1
+			header_up X-Forwarded-Proto {scheme}
+		}
+	}
+
+	# ── Receipt service (court-admissible delivery proofs) ────
+	# .NET 8 on :3024. Most v0.1 endpoints return 501 by design.
 	handle /receipt/* {
 		reverse_proxy receipt:3024
 	}
 
-	# WebSocket
-	handle /ws/* {
-		reverse_proxy api-gateway:3022 {
-			header_up Host {host}
+	# ── Frontend (everything else) ────────────────────────────
+	handle {
+		reverse_proxy web:3021 {
+			# Next standalone server reads X-Forwarded-* for
+			# absolute-URL generation in metadata + OG tags.
+			header_up X-Forwarded-Proto {scheme}
+			header_up X-Forwarded-Host {host}
 		}
 	}
 
-	# Frontend (everything else)
-	handle {
-		reverse_proxy web:3021
-	}
-
-	# Standard security headers
+	# ── Security headers ─────────────────────────────────────
+	# Note: CSP is INTENTIONALLY OMITTED here. The Next.js middleware
+	# at apps/web/src/middleware.ts mints a per-request nonce and emits
+	# the full CSP including 'nonce-...' + 'strict-dynamic'. Setting
+	# CSP at both layers would emit two headers and confuse browsers.
 	header {
+		# 2-year HSTS with subdomains + preload. Submission to the
+		# preload list is a manual step at hstspreload.org once we
+		# have stable subdomain coverage.
 		Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
 		X-Content-Type-Options "nosniff"
 		X-Frame-Options "DENY"
 		Referrer-Policy "no-referrer"
-		Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=()"
+		Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=(), interest-cohort=()"
 		Cross-Origin-Embedder-Policy "require-corp"
 		Cross-Origin-Opener-Policy "same-origin"
 		Cross-Origin-Resource-Policy "same-origin"
-		Content-Security-Policy "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' wss: ws:; frame-ancestors 'none'; form-action 'self'; base-uri 'self'"
+		# Strip server identification.
 		-Server
+		# Remove the legacy header that exposes implementation.
+		-X-Powered-By
 	}
 
-	# Compression
+	# ── Compression ──────────────────────────────────────────
 	encode zstd gzip
 
-	# Body size limit — 4 GB for chunked uploads, set per-route
-	request_body /ingest/* {
+	# ── Body size limits ─────────────────────────────────────
+	# Per-route caps. Anything outside the explicitly listed routes
+	# is bounded to 1 MB which is plenty for /api/* JSON payloads.
+	request_body /chunk/* {
 		max_size 5GB
+	}
+	request_body /api/* {
+		max_size 1MB
 	}
 	request_body / {
 		max_size 1MB
 	}
 
-	# Logging
+	# ── Structured logging ───────────────────────────────────
 	log {
 		output stdout
 		format json
+		# Don't log every healthcheck poll — they're noise and they
+		# would dominate Loki's volume in steady state.
+		level INFO
 	}
 }
 
-# ─── Production (TLS via Let's Encrypt) ────────────────────────
-# Uncomment in production by setting DOMAIN env var or duplicating block
-# slothbox.com, www.slothbox.com {
-#     ... same handle blocks ...
-# }
+# ─── HTTP -> HTTPS redirect for the IP fallback ──────────────────────
+# Anyone hitting http://178.105.105.187 directly (or
+# http://slothbox.philipsloth.com) gets bounced to the canonical HTTPS
+# domain. This also acts as the holding pattern during ACME challenge
+# completion — Caddy keeps :80 open for the HTTP-01 challenge regardless.
+:80 {
+	redir https://slothbox.philipsloth.com{uri} permanent
+}
