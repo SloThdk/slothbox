@@ -135,38 +135,51 @@ For the threat model and explicit non-goals, see
 
 ## Architecture
 
-14 containers, four languages, one Docker Compose file:
+All 14 containers run as Docker services on a single **Hetzner Cloud
+CAX-series ARM VM in Falkenstein FSN1 (Germany)**. Four languages, one
+Docker Compose file, one host:
 
 ```
-                           ┌──────────────┐
-                           │     Caddy    │  auto-HTTPS, single public ingress
-                           │ reverse proxy│
-                           └──┬────┬──┬───┘
-                              │    │  │
-              ┌───────────────┘    │  └──────────────┐
-              │                    │                 │
-       ┌──────▼──────┐    ┌────────▼──────┐  ┌───────▼────────┐
-       │   Web UI    │    │  API Gateway  │  │ Ingest Service │
-       │  Next 15    │◄──►│  Node + Hono  │  │   .NET 8       │
-       │  WebCrypto  │ WS │   WebSocket   │  │ Kestrel +      │
-       │  drag-drop  │    │   rate-limit  │  │ ImageSharp     │
-       └─────────────┘    └────┬──────────┘  └────┬───────────┘
-                               │                  │
-                          ┌────▼──────────────────▼──────┐
-                          │      Postgres 16 (RLS)       │
-                          │      MinIO (S3-compat)       │
-                          │      Valkey (cache+queue)    │
-                          │      NATS (pub/sub)          │
-                          └────┬─────────────────────────┘
-                               │
-       ┌───────────────────────┼─────────────────────────┐
-       │                       │                         │
-┌──────▼──────┐  ┌─────────────▼────────┐   ┌────────────▼────────┐
-│   Reaper    │  │   Receipt Service    │   │   Observability     │
-│   Go daemon │  │   .NET 8 + RFC 3161  │   │   Grafana / Prom /  │
-│   expiry +  │  │   Merkle audit log   │   │   Loki / Promtail   │
-│   gc + chain│  │                      │   │                     │
-└─────────────┘  └──────────────────────┘   └─────────────────────┘
+╔══════════════════════════════════════════════════════════════════════╗
+║  Hetzner Cloud · CAX-series ARM VM · Falkenstein FSN1, Germany       ║
+║  (provider firewall: 22/80/443 only · all 14 services run inside)    ║
+╠══════════════════════════════════════════════════════════════════════╣
+║                                                                      ║
+║                       ┌──────────────┐                               ║
+║                       │     Caddy    │  auto-HTTPS, single ingress   ║
+║                       │ reverse proxy│                               ║
+║                       └──┬────┬──┬───┘                               ║
+║                          │    │  │                                   ║
+║          ┌───────────────┘    │  └──────────────┐                    ║
+║          │                    │                 │                    ║
+║   ┌──────▼──────┐    ┌────────▼──────┐  ┌───────▼────────┐           ║
+║   │   Web UI    │    │  API Gateway  │  │ Ingest Service │           ║
+║   │  Next 15    │◄──►│  Node + Hono  │  │   .NET 8       │           ║
+║   │  WebCrypto  │ WS │   WebSocket   │  │ Kestrel +      │           ║
+║   │  drag-drop  │    │   rate-limit  │  │ ImageSharp     │           ║
+║   └─────────────┘    └────┬──────────┘  └────┬───────────┘           ║
+║                           │                  │                       ║
+║                      ┌────▼──────────────────▼──────┐                ║
+║                      │      Postgres 16 (RLS)       │                ║
+║                      │      MinIO (S3-compat)       │                ║
+║                      │      Valkey (cache+queue)    │                ║
+║                      │      NATS (pub/sub)          │                ║
+║                      └────┬─────────────────────────┘                ║
+║                           │                                          ║
+║   ┌───────────────────────┼─────────────────────────┐                ║
+║   │                       │                         │                ║
+║ ┌─▼───────────┐  ┌────────▼─────────┐   ┌───────────▼─────────┐      ║
+║ │   Reaper    │  │  Receipt Service │   │   Observability     │      ║
+║ │   Go daemon │  │  .NET 8 + RFC    │   │   Grafana / Prom /  │      ║
+║ │   expiry +  │  │  3161 + Merkle   │   │   Loki / Promtail   │      ║
+║ │   gc + chain│  │  audit log       │   │                     │      ║
+║ └─────────────┘  └──────────────────┘   └─────────────────────┘      ║
+║                                                                      ║
+╚══════════════════════════════════════════════════════════════════════╝
+              │
+              │ inbound 80/443/22 only · DNS via Cloudflare DNS-only
+              ▼
+        slothbox.philipsloth.com  (A record → this VM's public IP)
 ```
 
 Detailed service boundaries, data flow, and ADRs in

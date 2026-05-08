@@ -1,12 +1,13 @@
 # Architecture
 
-SlothBox is a 14-service monorepo. Everything runs in Docker Compose locally and
-in production (one ARM Linux VM in an EU jurisdiction for v0.1 — German data
-centre, no transit through US-jurisdiction infrastructure). The same compose
-file scales horizontally if a deployment outgrows a single VM (split state →
-managed Postgres + S3-compatible object storage, split observability → managed
-Grafana Cloud or shared cluster, the four .NET / Hono / Go services scale
-behind any L7 load balancer with sticky sessions on the WebSocket route).
+SlothBox is a 14-service monorepo. Everything runs in Docker Compose locally
+and in production (one Hetzner Cloud CAX-series ARM VM in Falkenstein FSN1,
+Germany for v0.1 — wholly EU-incorporated provider, no transit through
+US-jurisdiction infrastructure). The same compose file scales horizontally
+if a deployment outgrows a single VM (split state → managed Postgres +
+S3-compatible object storage, split observability → managed Grafana Cloud or
+shared cluster, the four .NET / Hono / Go services scale behind any L7 load
+balancer with sticky sessions on the WebSocket route).
 
 ## System diagram
 
@@ -18,7 +19,7 @@ flowchart TB
         RECV[Recipient browser<br/>libsodium WASM<br/>key from URL fragment]
     end
 
-    subgraph "EU-jurisdiction Linux VM · provider firewall · 22/80/443 only"
+    subgraph "Hetzner Cloud CAX-series VM · Falkenstein FSN1, Germany · provider firewall: 22/80/443"
         CADDY[Caddy 2.8<br/>:443 TLS · :80 redirect<br/>Let's Encrypt auto-renew<br/>HTTP/3 · per-route body caps]
 
         subgraph "Public surfaces"
