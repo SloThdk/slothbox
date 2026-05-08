@@ -102,6 +102,17 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <head>
         {/* Hint browsers that support h3 about HTTP/3 availability. */}
         <meta httpEquiv="x-dns-prefetch-control" content="on" />
+        {/*
+          Build SHA stamp. Injected at build time via NEXT_PUBLIC_BUILD_SHA
+          (apps/web/Dockerfile + docker-compose.yml). The deploy workflow's
+          smoke test grep's for the short SHA in the rendered HTML to catch
+          the failure mode where a deploy succeeds at the workflow level
+          but ships a stale image — see the 2026-05-08 incident postmortem
+          in .github/workflows/deploy.yml. Default "dev" is what local
+          builds without an explicit SHA stamp produce, so a curl against
+          a dev server doesn't accidentally satisfy the production check.
+        */}
+        <meta name="x-build-sha" content={process.env.NEXT_PUBLIC_BUILD_SHA ?? "dev"} />
       </head>
       <body className="flex min-h-screen flex-col font-sans antialiased" data-nonce={nonce}>
         {/*

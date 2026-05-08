@@ -56,6 +56,16 @@ services:
         NEXT_PUBLIC_INGEST_URL: ${NEXT_PUBLIC_INGEST_URL:-http://localhost}
         NEXT_PUBLIC_PUBLIC_URL: ${NEXT_PUBLIC_PUBLIC_URL:-http://localhost}
         NEXT_PUBLIC_MAX_FILE_SIZE_MB: ${NEXT_PUBLIC_MAX_FILE_SIZE_MB:-4096}
+        # Inject the current commit SHA so layout.tsx can stamp it on
+        # every rendered page. The deploy workflow's smoke test then
+        # grep's for the short SHA in the live HTML — if the SHA in the
+        # response doesn't match what the workflow is deploying, the
+        # deploy is failing silently (e.g. the VM's git checkout is
+        # stale, the docker build cache short-circuited, etc).
+        # Local-dev compose without IMAGE_TAG set defaults to "dev" so
+        # we don't bake a stale SHA into images built off a dirty
+        # workspace.
+        NEXT_PUBLIC_BUILD_SHA: ${IMAGE_TAG:-dev}
     container_name: slothbox-web
     restart: unless-stopped
     environment:
