@@ -79,7 +79,7 @@ pnpm db:migrate
 docker compose up -d
 ```
 
-13 services come up. Open <http://localhost:8080>. Caddy routes everything.
+14 services come up. Open <http://localhost>. Caddy fronts everything on port 80 in dev (TLS termination kicks in only when `DOMAIN` is set to a real hostname).
 
 ### Option 2: hot-reload dev (recommended for development)
 

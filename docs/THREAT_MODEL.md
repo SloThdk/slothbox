@@ -40,7 +40,7 @@ of scope.
                             │ TLS 1.3
 ┌─────────────────────────────────────────────────────────┐
 │ SEMI-TRUSTED (best-effort)                              │
-│   slothbox.com Caddy + reverse proxy                    │
+│   slothbox.philipsloth.com Caddy + reverse proxy        │
 └─────────────────────────────────────────────────────────┘
                             │ internal network
 ┌─────────────────────────────────────────────────────────┐

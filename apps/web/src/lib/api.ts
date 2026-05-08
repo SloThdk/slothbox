@@ -46,7 +46,7 @@ export interface CreateShareRequest {
 export interface CreateShareResponse {
   /** Internal UUID — used by the gateway for joins / NATS pub/sub. */
   shareId: string;
-  /** Public URL-safe identifier — what travels in `slothbox.com/s/<shortId>`. */
+  /** Public URL-safe identifier — what travels in `slothbox.philipsloth.com/s/<shortId>`. */
   shortId: string;
   /**
    * Per-chunk PUT URLs the client streams ciphertext to. Built by the gateway
