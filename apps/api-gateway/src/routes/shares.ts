@@ -525,6 +525,29 @@ export function sharesRouter(): Hono<RouterEnv> {
   );
 
   // ── POST /api/shares/:shortId/downloaded ─────────────────────
+  //
+  // Legacy / cooperative endpoint. As of migration 0004 the burn-after-read
+  // trigger lives in the ingest service (`mark_chunk_served` SQL function,
+  // called from DownloadEndpoint.cs after the last byte of the last chunk
+  // physically leaves the server). This endpoint is no longer load-bearing
+  // for the burn decision — by the time a polite client posts here, the
+  // ingest path has already flipped state→destroyed.
+  //
+  // The endpoint stays in place for two reasons:
+  //   1. Older client builds in the wild may still POST here; we want them
+  //      to see 200 OK with the current state, not a confusing 404 just
+  //      because the server-side burn beat them to it.
+  //   2. It's the canonical place to bump download_count for non-burn
+  //      shares (which the ingest path doesn't touch — only the burn-fire
+  //      branch increments via the SQL helper). For shares without
+  //      burn_after_read, a polite client's POST here is what records
+  //      "the recipient saw all chunks land in their browser".
+  //
+  // Idempotency: if the share is already destroyed (server-side burn
+  // already fired, or a previous /downloaded call already flipped it),
+  // we return 200 with the current state instead of throwing 404. This
+  // avoids confusing legacy clients that interpret 404 as "share gone,
+  // I should not have downloaded successfully".
   r.post(
     "/shares/:shortId/downloaded",
     rateLimit(readRules),
@@ -538,9 +561,40 @@ export function sharesRouter(): Hono<RouterEnv> {
       const { shortId } = c.req.valid("param");
       const db = getDb();
 
-      // The increment_download RPC is the source of truth for state
-      // transitions on download — burn-after-read fires destroyed,
-      // hitting maxDownloads fires expired, both atomically.
+      // Phase 1 — check current state. If the share is already destroyed
+      // (almost always: ingest's mark_chunk_served raced us and won), we
+      // short-circuit to 200 OK so legacy clients see a successful
+      // acknowledgement.
+      const [existing] = await db
+        .select({
+          id: shares.id,
+          state: shares.state,
+        })
+        .from(shares)
+        .where(eq(shares.shortId, shortId))
+        .limit(1);
+
+      if (!existing) {
+        throw new HTTPException(404, { message: "share not found" });
+      }
+
+      if (existing.state === "destroyed" || existing.state === "expired") {
+        logger.info(
+          { requestId, event: "share_downloaded_idempotent", state: existing.state },
+          "downloaded called on already-terminal share — server-side burn won the race"
+        );
+        // Don't append a duplicate audit entry; the state-flipping path
+        // already emitted one. Return the current state so the legacy
+        // client knows the share is gone.
+        return c.json({ state: existing.state }, 200);
+      }
+
+      // Phase 2 — the share is still 'ready' (or 'downloaded'). Either
+      // the recipient client called /downloaded faster than the ingest
+      // path's last chunk could complete bookkeeping (rare, but possible
+      // when chunks finish and POST goes out before the SQL function
+      // commits), or this is a non-burn share where we just need to
+      // bump download_count. The increment_download RPC handles both.
       let updated: { id: string; state: ShareState; burnAfterRead: boolean } | null = null;
       try {
         const result = await db.execute(
@@ -555,11 +609,18 @@ export function sharesRouter(): Hono<RouterEnv> {
         const first = rows[0];
         if (first) updated = first;
       } catch (err) {
-        // The RPC raises 'share not available' for any non-eligible
-        // state — turn that into a 404 without leaking the SQL.
+        // The RPC raises 'share not available' when state slipped between
+        // our phase-1 check and the RPC call (e.g. ingest fired the burn
+        // in the gap). Treat as idempotent success — we already saw a
+        // ready/downloaded state in phase 1, so the share legitimately
+        // existed; the gap-flip is the server-side burn doing its job.
         const message = (err as Error).message ?? "";
         if (message.includes("share not available")) {
-          throw new HTTPException(404, { message: "share not found" });
+          logger.info(
+            { requestId, event: "share_downloaded_idempotent_race" },
+            "downloaded racing with server-side burn — share went terminal mid-call"
+          );
+          return c.json({ state: "destroyed" satisfies ShareState }, 200);
         }
         throw err;
       }
@@ -578,6 +639,10 @@ export function sharesRouter(): Hono<RouterEnv> {
           shortId,
           becameDestroyed,
           reason: becameDestroyed ? "burn" : undefined,
+          // Note: when the gateway path fires the burn, we tag the trigger
+          // here so audit-chain readers can distinguish from the
+          // `ingest_last_chunk` trigger emitted by mark_chunk_served.
+          trigger: becameDestroyed ? "gateway_downloaded" : undefined,
         },
         requestId
       );
@@ -589,6 +654,10 @@ export function sharesRouter(): Hono<RouterEnv> {
         // need a non-null assertion across the closure boundary.
         const destroyedShareId = updated.id;
         // Burn-after-read → notify reaper instantly via NATS.
+        // (Reaper's NATS subscription is pending the v0.5 work item;
+        // until then this publish is recorded for replay-debugging
+        // but not actively consumed — the 60 s sweep is the actual
+        // cleanup trigger.)
         void (async () => {
           const nc = await getNats();
           if (!nc) return;

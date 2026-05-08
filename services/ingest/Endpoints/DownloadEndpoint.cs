@@ -3,19 +3,49 @@
 // Streams the ciphertext from MinIO directly into the response body. The nonce
 // is sent as a base64url header (X-Slothbox-Nonce); the body is the raw ciphertext.
 //
-// Download counting model (DOCUMENTED DECISION):
-//   The api-gateway is the canonical place to bump shares.download_count via
-//   the increment_download(short_id) RPC. Ingest does NOT touch download_count
-//   itself, because:
-//     * one logical "download" = chunkCount HTTP fetches; bumping per-chunk
-//       would over-count by chunkCount
-//     * burn-after-read should fire exactly ONCE per receiver session, and the
-//       gateway is the single point where we can know "this is the last GET"
-//   The gateway calls the RPC after the receiver-side decryption succeeds and
-//   the file has been delivered to the user, not when the last byte left ingest.
+// Download counting + burn-after-read trigger (CURRENT MODEL, post-migration 0004):
+//   After `stream.CopyToAsync` returns successfully — i.e. once the bytes
+//   have physically left the server — we call the `mark_chunk_served`
+//   SQL function via IShareRepository.MarkChunkServedAsync. That function:
+//     1. Locks the parent shares row (FOR UPDATE).
+//     2. Stamps share_chunks.served_at and bumps served_count for THIS chunk.
+//     3. If the share is burn_after_read AND state='ready' AND every chunk
+//        now has served_at set, atomically flips state → 'destroyed',
+//        sets destroyed_reason='burn', bumps download_count, and appends a
+//        share_destroyed entry to the audit chain.
+//   The function is idempotent: parallel chunk completions, retries, and
+//   the gateway's separate /downloaded path can race in any order; only
+//   the first call that finds state='ready' fires the burn.
+//
+//   The reaper's existing 60 s sweep picks up state='destroyed' shares
+//   that still have share_chunks rows and removes the MinIO blobs. Until
+//   that next sweep, the share's metadata returns 404 from the gateway
+//   and the chunk endpoint returns 410 Gone (CanServeDownloads is false
+//   on destroyed shares).
+//
+// Why ingest, not the gateway:
+//   The gateway's /downloaded endpoint is a client-cooperative signal —
+//   the recipient's browser politely posts to it after a successful
+//   client-side decrypt. A hostile recipient (browser console intercept,
+//   curl loop, non-browser client) can simply skip that POST, leaving
+//   the share `state = 'ready'` until its TTL. The fix lives here in
+//   ingest because ingest is the only service that actually knows when
+//   bytes left the server. The gateway endpoint stays in place as a
+//   no-op signal for legacy clients but is no longer load-bearing.
+//
+// What this DOES NOT defend against (v0.1 trust-model honesty):
+//   Two simultaneous readers in parallel — say a legitimate recipient
+//   AND a wiretap on transit who both have the URL — can both complete
+//   their downloads if their chunk fetches interleave such that each
+//   chunk is served at least once before any one chunk finishes "last".
+//   Once the first byte of a chunk leaves the server, you can't unsend
+//   it. The defence against THAT case is single-use HMAC chunk tokens
+//   (planned for v0.5 alongside the auth + dashboard milestone — see
+//   shares.ts:138-141 buildUploadUrl TODO).
 
 using Microsoft.AspNetCore.Http;
 using Prometheus;
+using SlothBox.Ingest.Models;
 using SlothBox.Ingest.Services;
 
 namespace SlothBox.Ingest.Endpoints;
@@ -41,6 +71,14 @@ public static class DownloadEndpoint
     private static readonly Histogram DownloadDuration = Metrics.CreateHistogram(
         "slothbox_ingest_chunk_download_duration_seconds",
         "Wall-clock time per chunk download response.");
+
+    private static readonly Counter BurnFiredTotal = Metrics.CreateCounter(
+        "slothbox_ingest_burn_fired_total",
+        "Number of times a chunk-served event atomically triggered burn-after-read.");
+
+    private static readonly Counter MarkServedFailures = Metrics.CreateCounter(
+        "slothbox_ingest_mark_served_failed_total",
+        "Number of times mark_chunk_served threw — bytes left successfully but the bookkeeping write failed. The next sweep + retry will reconcile.");
 
     /// <summary>Wire the route.</summary>
     public static void Map(IEndpointRouteBuilder app)
@@ -154,6 +192,62 @@ public static class DownloadEndpoint
 
         ChunksServed.WithLabels("ok").Inc();
         DownloadBytes.Observe(chunk.CiphertextSize);
+
+        // Bytes have physically left the server. Record the delivery and
+        // — if this happened to be the last unserved chunk on a
+        // burn-after-read share — fire the burn atomically inside the
+        // SQL function. We deliberately do NOT make this part of the
+        // user-visible response: the client got their chunk, and any
+        // bookkeeping failure here is a server-side reconciliation
+        // problem, not a download error.
+        try
+        {
+            var marked = await shares
+                .MarkChunkServedAsync(share.Id, chunkIndex, ct)
+                .ConfigureAwait(false);
+
+            if (marked.BurnFired)
+            {
+                BurnFiredTotal.Inc();
+                logger.LogInformation(
+                    "burn-after-read fired on share {ShareId} via chunk {ChunkIndex} delivery (audit_id={AuditId})",
+                    share.Id, chunkIndex, marked.AuditId);
+            }
+            else if (marked.ShareState != ShareState.Ready)
+            {
+                // The share went terminal between when we started serving
+                // this chunk and when we marked delivery — almost always
+                // because either (a) the gateway's /downloaded path raced
+                // us and won, or (b) a parallel chunk's mark_chunk_served
+                // call won. Either way, no action needed; the row is
+                // already in the right state. Log at debug only — info
+                // would be too noisy under burst delivery.
+                logger.LogDebug(
+                    "chunk {ChunkIndex} on share {ShareId} delivered after share went {State}",
+                    chunkIndex, share.Id, marked.ShareState);
+            }
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            // Client disconnected after the body was sent but before our
+            // bookkeeping committed. Bytes still left the server, so the
+            // burn decision is unsafe to skip — but we can't block the
+            // shutdown path either. Log loud and let the next chunk's
+            // mark_chunk_served call (or the reaper's expiry sweep) catch
+            // up.
+            MarkServedFailures.Inc();
+            logger.LogWarning(
+                "mark_chunk_served cancelled for share {ShareId} chunk {ChunkIndex} after successful body send",
+                share.Id, chunkIndex);
+        }
+        catch (Exception ex)
+        {
+            MarkServedFailures.Inc();
+            logger.LogError(ex,
+                "mark_chunk_served failed for share {ShareId} chunk {ChunkIndex} after successful body send — will reconcile on next chunk delivery or reaper sweep",
+                share.Id, chunkIndex);
+        }
+
         return Results.Empty;
     }
 
