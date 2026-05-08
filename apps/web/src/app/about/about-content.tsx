@@ -62,6 +62,17 @@ export function AboutContent() {
         </p>
 
         <h2 className="font-display text-2xl font-semibold text-[var(--color-fg)]">
+          {t("about.useCases.heading")}
+        </h2>
+        <p>{t("about.useCases.body")}</p>
+        <p>{t("about.useCases.body.notRight")}</p>
+
+        <h2 className="font-display text-2xl font-semibold text-[var(--color-fg)]">
+          {t("about.tradeoffs.heading")}
+        </h2>
+        <p>{t("about.tradeoffs.body")}</p>
+
+        <h2 className="font-display text-2xl font-semibold text-[var(--color-fg)]">
           {t("about.status.heading")}
         </h2>
         <p>

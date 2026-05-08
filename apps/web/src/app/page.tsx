@@ -99,6 +99,140 @@ function Hero() {
 }
 
 // ---------------------------------------------------------------------------
+// WhyNotAlternatives — six-row comparison table that names the competitors
+// by name and cites the specific deal-breaker for each. This section exists
+// because the existing Guarantees + HowItWorks tells the visitor HOW
+// SlothBox works but never answers their first real question: "why this
+// and not WeTransfer, which works fine?" Establishing the gap before the
+// trust claims means a visitor who'd otherwise bounce on Guarantees stays
+// engaged because they now have a felt problem the rest of the page
+// addresses.
+//
+// Layout: bordered glass card, 2-col grid (Service | What it gives up).
+// On mobile the rows collapse to stacked title/body pairs so the table
+// stays readable on a 360 px viewport. The accent colour is reserved for
+// the eyebrow only — the rows themselves stay neutral so no row reads as
+// "the highlighted one".
+// ---------------------------------------------------------------------------
+
+const WHY_NOT_ROWS: ReadonlyArray<{
+  productKey: TranslationKey;
+  bodyKey: TranslationKey;
+}> = [
+  { productKey: "whyNot.row1.product", bodyKey: "whyNot.row1.body" },
+  { productKey: "whyNot.row2.product", bodyKey: "whyNot.row2.body" },
+  { productKey: "whyNot.row3.product", bodyKey: "whyNot.row3.body" },
+  { productKey: "whyNot.row4.product", bodyKey: "whyNot.row4.body" },
+  { productKey: "whyNot.row5.product", bodyKey: "whyNot.row5.body" },
+  { productKey: "whyNot.row6.product", bodyKey: "whyNot.row6.body" },
+];
+
+function WhyNotAlternatives() {
+  const { t } = useLanguage();
+
+  return (
+    <section className="mx-auto w-full max-w-[var(--container-xl)] px-4 py-24 sm:px-6">
+      <div className="divider mb-20" aria-hidden />
+
+      <div className="mb-14 max-w-2xl">
+        <p className="eyebrow">{t("whyNot.eyebrow")}</p>
+        <h2 className="mt-4 text-[2rem] leading-[1.15] font-light text-[var(--color-fg)] sm:text-[2.5rem]">
+          {t("whyNot.heading")}
+        </h2>
+        <p className="mt-6 max-w-[58ch] text-[1.0rem] leading-[1.65] font-light text-[var(--color-fg-2)]">
+          {t("whyNot.lede")}
+        </p>
+      </div>
+
+      {/* Table-as-grid: keeps single-column-on-mobile cleanly and avoids the
+          horizontal-scroll trap that real <table> elements fall into at
+          narrow viewports. Header row is hidden on mobile (visually
+          redundant with the per-row product label) and reappears on sm+. */}
+      <div className="glass overflow-hidden">
+        <div className="hidden sm:grid sm:grid-cols-[minmax(0,200px)_1fr] sm:border-b sm:border-[var(--color-glass-stroke)]">
+          <div className="px-6 py-3 font-mono text-[0.7rem] tracking-[0.18em] text-[var(--color-muted-2)] uppercase">
+            {t("whyNot.col.product")}
+          </div>
+          <div className="border-l border-[var(--color-glass-stroke)] px-6 py-3 font-mono text-[0.7rem] tracking-[0.18em] text-[var(--color-muted-2)] uppercase">
+            {t("whyNot.col.gap")}
+          </div>
+        </div>
+        <ul className="divide-y divide-[var(--color-glass-stroke)]">
+          {WHY_NOT_ROWS.map((row) => (
+            <li
+              key={row.productKey}
+              className="grid grid-cols-1 gap-1 px-6 py-5 sm:grid-cols-[minmax(0,200px)_1fr] sm:gap-0 sm:py-4"
+            >
+              <div className="text-[1rem] font-medium text-[var(--color-fg)] sm:self-center">
+                {t(row.productKey)}
+              </div>
+              <div className="text-[0.95rem] leading-[1.6] font-light text-[var(--color-fg-2)] sm:self-center sm:border-l sm:border-[var(--color-glass-stroke)] sm:pl-6">
+                {t(row.bodyKey)}
+              </div>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// UseCases — four concrete scenarios where someone would actually reach
+// for SlothBox today. Pairs with WhyNotAlternatives to convert "I see why
+// the other tools fall short" into "and here's specifically when I'd pick
+// this instead". Reusing the 2-col card grid from Guarantees keeps the
+// page's visual rhythm consistent.
+// ---------------------------------------------------------------------------
+
+const USE_CASE_KEYS: ReadonlyArray<{
+  titleKey: TranslationKey;
+  bodyKey: TranslationKey;
+}> = [
+  { titleKey: "useCases.item1.title", bodyKey: "useCases.item1.body" },
+  { titleKey: "useCases.item2.title", bodyKey: "useCases.item2.body" },
+  { titleKey: "useCases.item3.title", bodyKey: "useCases.item3.body" },
+  { titleKey: "useCases.item4.title", bodyKey: "useCases.item4.body" },
+];
+
+function UseCases() {
+  const { t } = useLanguage();
+
+  return (
+    <section className="mx-auto w-full max-w-[var(--container-xl)] px-4 py-24 sm:px-6">
+      <div className="divider mb-20" aria-hidden />
+
+      <div className="mb-14 max-w-2xl">
+        <p className="eyebrow">{t("useCases.eyebrow")}</p>
+        <h2 className="mt-4 text-[2rem] leading-[1.15] font-light text-[var(--color-fg)] sm:text-[2.5rem]">
+          {t("useCases.heading")}
+        </h2>
+        <p className="mt-6 max-w-[58ch] text-[1.0rem] leading-[1.65] font-light text-[var(--color-fg-2)]">
+          {t("useCases.lede")}
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        {USE_CASE_KEYS.map((item, i) => (
+          <article
+            key={item.titleKey}
+            className="glass flex flex-col gap-3 p-7 transition-colors hover:border-[var(--color-glass-stroke-strong)]"
+          >
+            <span className="font-mono text-[0.7rem] tracking-[0.18em] text-[var(--color-muted-2)]">
+              {String(i + 1).padStart(2, "0")}
+            </span>
+            <h3 className="text-[1.1rem] font-medium text-[var(--color-fg)]">{t(item.titleKey)}</h3>
+            <p className="text-[0.95rem] leading-[1.6] font-light text-[var(--color-fg-2)]">
+              {t(item.bodyKey)}
+            </p>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Guarantees — four restraint-driven trust claims.
 // ---------------------------------------------------------------------------
 
@@ -201,6 +335,68 @@ function HowItWorks() {
 }
 
 // ---------------------------------------------------------------------------
+// Tradeoffs — the honest "what you give up" list. This section is the
+// counterweight to every marketing claim above; without it the page reads
+// like every other "secure file sharing" landing. Placement at the end is
+// deliberate: visitors who made it here are evaluating seriously, and the
+// honest disclosure does more for trust than another trust badge would.
+//
+// Visual register: monospace numbering + glass card grid, but tighter
+// than UseCases — these are short paragraphs, not feature pitches. The
+// tradeoffs include the v0.1-alpha disclosure (currently surfaced only
+// in the AlphaBanner + /security), bringing the "wait for v1.0 for
+// sensitive use" framing onto the homepage where it belongs.
+// ---------------------------------------------------------------------------
+
+const TRADEOFF_KEYS: ReadonlyArray<{
+  titleKey: TranslationKey;
+  bodyKey: TranslationKey;
+}> = [
+  { titleKey: "tradeoffs.item1.title", bodyKey: "tradeoffs.item1.body" },
+  { titleKey: "tradeoffs.item2.title", bodyKey: "tradeoffs.item2.body" },
+  { titleKey: "tradeoffs.item3.title", bodyKey: "tradeoffs.item3.body" },
+  { titleKey: "tradeoffs.item4.title", bodyKey: "tradeoffs.item4.body" },
+];
+
+function Tradeoffs() {
+  const { t } = useLanguage();
+
+  return (
+    <section className="mx-auto w-full max-w-[var(--container-xl)] px-4 py-24 sm:px-6">
+      <div className="divider mb-20" aria-hidden />
+
+      <div className="mb-14 max-w-2xl">
+        <p className="eyebrow">{t("tradeoffs.eyebrow")}</p>
+        <h2 className="mt-4 text-[2rem] leading-[1.15] font-light text-[var(--color-fg)] sm:text-[2.5rem]">
+          {t("tradeoffs.heading")}
+        </h2>
+        <p className="mt-6 max-w-[58ch] text-[1.0rem] leading-[1.65] font-light text-[var(--color-fg-2)]">
+          {t("tradeoffs.lede")}
+        </p>
+      </div>
+
+      <ol className="grid grid-cols-1 gap-px overflow-hidden rounded-2xl bg-[var(--color-glass-stroke)] md:grid-cols-2">
+        {TRADEOFF_KEYS.map((item, i) => (
+          <li key={item.titleKey} className="flex flex-col gap-4 bg-[var(--color-bg)] p-8">
+            <div className="flex items-baseline justify-between">
+              <span className="font-mono text-[1.6rem] font-light text-[var(--color-muted-2)]">
+                {String(i + 1).padStart(2, "0")}
+              </span>
+            </div>
+            <h3 className="text-[1.05rem] font-medium text-[var(--color-fg)]">
+              {t(item.titleKey)}
+            </h3>
+            <p className="text-[0.95rem] leading-[1.6] font-light text-[var(--color-fg-2)]">
+              {t(item.bodyKey)}
+            </p>
+          </li>
+        ))}
+      </ol>
+    </section>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // CTA — closing
 // ---------------------------------------------------------------------------
 
@@ -244,8 +440,20 @@ export default function HomePage() {
   return (
     <>
       <Hero />
+      {/* WhyNotAlternatives + UseCases establish the felt-problem before
+          the trust claims. Order matters: a visitor who lands cold needs
+          to see "why this not WeTransfer" before "trust the architecture",
+          otherwise the trust claims read as decorative. */}
+      <WhyNotAlternatives />
+      <UseCases />
       <Guarantees />
       <HowItWorks />
+      {/* Tradeoffs is the honesty counterweight — placed after the
+          mechanism explanation so a visitor who's followed the whole
+          flow sees the v0.1-alpha caveats and recipient-needs-the-fragment
+          gotcha before the closing CTA. Without this section the page
+          reads as marketing; with it, it reads as engineering. */}
+      <Tradeoffs />
       <FooterCta />
     </>
   );
