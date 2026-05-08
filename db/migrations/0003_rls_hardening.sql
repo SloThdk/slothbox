@@ -10,9 +10,33 @@
 -- Fix:
 --   * Drop the over-broad anonymous SELECT policy.
 --   * Replace with a policy that reads the current share's shortId from a
---     session-local GUC `app.current_short_id`. The api-gateway sets this
---     before every share fetch via `SET LOCAL app.current_short_id = '<id>'`.
+--     session-local GUC `app.current_short_id`. The intent is for the
+--     api-gateway to set this before every share fetch via
+--     `SET LOCAL app.current_short_id = '<id>'`.
 --   * Audit chain rules stay unchanged (already SECURITY DEFINER).
+--
+-- v0.1 STATUS — what this migration enforces and what it does NOT yet:
+--   The api-gateway currently connects as the `slothbox` role, which is
+--   the table owner. Postgres bypasses RLS for table owners by design,
+--   so this policy DOES NOT fire under v0.1 traffic. The gateway also
+--   does not yet `SET LOCAL app.current_short_id` per-request. The
+--   actual v0.1 scoping comes from the gateway's application-layer
+--   `WHERE short_id = $1` clauses on every read.
+--
+--   This migration intentionally lays the policy groundwork so that
+--   when v0.5 lands the auth refactor — switching the gateway to a
+--   `non_owner_role` whose RLS is enforced AND wrapping every request
+--   in `SET LOCAL app.current_short_id` via Drizzle middleware — the
+--   policy activates without a fresh schema migration.
+--
+--   To activate today (post-v0.5 readiness check):
+--     1. ALTER TABLE shares       FORCE ROW LEVEL SECURITY;
+--     2. ALTER TABLE share_chunks FORCE ROW LEVEL SECURITY;
+--     3. Switch DATABASE_URL to a non-owner role with RLS-applies.
+--     4. Wrap every gateway query in
+--        `await db.execute(sql\`SET LOCAL app.current_short_id = ...\`)`
+--        before the SELECT.
+--   See README.md "Trust model — v0.1" for the user-facing version.
 
 BEGIN;
 
