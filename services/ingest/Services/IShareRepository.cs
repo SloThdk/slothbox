@@ -50,8 +50,58 @@ public interface IShareRepository
     Task<Chunk?> GetChunkAsync(Guid shareId, int chunkIndex, CancellationToken ct);
 
     /// <summary>
+    /// Mark a chunk as fully served back to a downloader. Called by
+    /// DownloadEndpoint AFTER stream.CopyToAsync returns successfully —
+    /// i.e. once the ciphertext has physically left the server.
+    ///
+    /// Inside the underlying SQL function (migration 0004), the call:
+    ///   1. Acquires a FOR UPDATE row lock on the parent shares row, which
+    ///      serialises against parallel chunk completions and against the
+    ///      gateway's `increment_download` path.
+    ///   2. Updates this chunk's served_at (preserved on retry) and
+    ///      served_count (always incremented).
+    ///   3. If the share is burn_after_read AND state='ready' AND every
+    ///      chunk now has served_at set, atomically flips state →
+    ///      'destroyed', sets destroyed_reason='burn', and appends a
+    ///      share_destroyed entry to the audit chain inside the SAME txn.
+    ///
+    /// The returned <see cref="ChunkServedResult.BurnFired"/> tells the
+    /// caller whether this delivery was the one that triggered the burn —
+    /// the ingest endpoint uses it to publish a NATS notification so the
+    /// reaper runs an immediate sweep instead of waiting for its 60 s
+    /// tick.
+    /// </summary>
+    Task<ChunkServedResult> MarkChunkServedAsync(
+        Guid shareId,
+        int chunkIndex,
+        CancellationToken ct);
+
+    /// <summary>
     /// Verify Postgres is reachable. Returns false on any failure so the
     /// /healthz handler can return 503 cleanly.
     /// </summary>
     Task<bool> HealthCheckAsync(CancellationToken ct);
 }
+
+/// <summary>
+/// Result of a <see cref="IShareRepository.MarkChunkServedAsync"/> call.
+/// Mirrors the three-column return shape of the SQL function.
+/// </summary>
+/// <param name="BurnFired">
+/// True iff this call atomically flipped the parent share to
+/// state='destroyed'. False both when the share was not burn-after-read
+/// AND when an earlier call (gateway or parallel chunk) already fired the
+/// burn — both branches are normal, not error states.
+/// </param>
+/// <param name="ShareState">
+/// The share's state after the function commits. Used by the caller for
+/// logging and for the optional NATS notification.
+/// </param>
+/// <param name="AuditId">
+/// The audit_chain.seq of the new share_destroyed entry, or null when
+/// BurnFired = false. Useful for end-to-end correlation in logs.
+/// </param>
+public sealed record ChunkServedResult(
+    bool BurnFired,
+    ShareState ShareState,
+    long? AuditId);

@@ -16,15 +16,26 @@
 > [!WARNING]
 > **v0.1.0-alpha — read this before sending real data.**
 >
-> Two things are deliberately deferred from v0.1 and matter for any visitor
-> evaluating whether to use this build live:
+> Three things are deliberately deferred from v0.1 and matter for any
+> visitor evaluating whether to use this build live:
 >
 > 1. **The shortId is the access secret.** Anyone holding a share URL can
->    destroy or trigger burn-after-read on it — there is no per-share owner
->    token in v0.1. Per-share HMAC tokens land in **v0.5** alongside the
->    Lucia auth + dashboard milestone. Do not paste share URLs into public
->    channels.
-> 2. **The integration code is not yet independently audited.** The
+>    destroy the share or download the ciphertext — there is no per-share
+>    owner token in v0.1. Per-share HMAC tokens land in **v0.5** alongside
+>    the Lucia auth + dashboard milestone. Do not paste share URLs into
+>    public channels.
+> 2. **Burn-after-read defends against hostile recipients, not against
+>    parallel readers.** Migration 0004 moved the burn trigger from the
+>    recipient's browser to the ingest service, so a hostile recipient
+>    (curl loop, browser-console intercept, non-browser client) can no
+>    longer suppress it — see [`SECURITY.md`](SECURITY.md) §"How
+>    burn-after-read works in v0.1". What v0.1 still does NOT defend
+>    against is two simultaneous readers in parallel: a legitimate
+>    recipient and a wiretap on transit who both have the URL can both
+>    complete their downloads if their chunk fetches interleave. Single-use
+>    HMAC chunk tokens close that window in **v0.5**. Until then, treat
+>    the URL as a one-shot capability.
+> 3. **The integration code is not yet independently audited.** The
 >    underlying primitives (libsodium, age) are battle-tested and audited
 >    upstream, but the SlothBox glue has only been internally reviewed.
 >    External cryptographer review is a hard gate for **v1.0** before any
@@ -116,11 +127,20 @@ not by marketing copy:
    _something with this hash was retrieved at this time_, without revealing
    what it was. _(Lands in v0.5.)_
 
-3. **Burn-after-read is verifiable, not just promised.** When a file is
-   destroyed, the destruction event is committed to a public hash chain anyone
-   can audit. The chain entry is a cryptographic receipt that the encryption
-   key is gone — meaning the ciphertext is mathematically unrecoverable, even
-   from server backups. _(Lands in v1.0.)_
+3. **Burn-after-read is server-driven, not honour-system.** The ingest
+   service (`services/ingest/Endpoints/DownloadEndpoint.cs`) calls the
+   `mark_chunk_served` SQL function (migration 0004) after every chunk
+   is successfully streamed back. When every chunk of a
+   `burn_after_read=true` share has been delivered at least once, that
+   function atomically flips state → `'destroyed'` under a row lock and
+   appends a `share_destroyed` audit-chain entry. A hostile recipient
+   cannot suppress the burn by skipping a client-side callback — the
+   trigger is "bytes left the server", not "browser politely
+   self-reported". The reaper's 60 s sweep then deletes the MinIO blobs.
+   The **verifiable** destruction chain (cryptographic receipt that the
+   encryption key is gone, public Merkle root anchor) is the v1.0
+   layer on top of this — the in-database hash chain is already there,
+   public anchoring lands with the verifier CLI in **v1.0**.
 
 4. **The architecture is verifiable.** This repository is the entire
    production stack. `docker compose up -d` brings it online on any machine.

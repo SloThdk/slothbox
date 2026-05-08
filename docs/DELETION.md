@@ -1,29 +1,58 @@
 # Verifiable Deletion
 
-How SlothBox proves a file is gone, not just promises it. **Lands in v1.0.**
+How SlothBox proves a file is gone, not just promises it. **The in-database
+destruction chain is in v0.1; the publicly verifiable Merkle anchor + offline
+verifier CLI land in v1.0.**
 
-## Goal
+## What v0.1 ships today
 
-When a file is destroyed (burn-after-read fires, expiry hits, or the sender
-manually revokes), the sender can verify cryptographically that the encryption
-key has been destroyed — meaning the ciphertext is mathematically
-unrecoverable, even from server backups.
+| Capability                                                   | Status                                                                                                                                                     |
+| ------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Burn-after-read fires on hostile recipients                  | ✅ Migration 0004 — server-driven trigger via `mark_chunk_served`. A non-cooperating client cannot suppress the burn.                                      |
+| State flip atomic with audit-chain entry                     | ✅ The `mark_chunk_served` SQL function commits the state transition and the `share_destroyed` chain entry inside one transaction.                         |
+| MinIO ciphertext removed on destruction                      | ✅ The reaper's 60 s sweep picks up `state='destroyed' AND chunks exist` rows and deletes blobs.                                                           |
+| In-database hash-chained audit log                           | ✅ Every destruction lands in `audit_chain` (SHA-256 prev/entry hash, advisory-locked single-writer ordering — see migration 0002).                        |
+| Public Merkle root anchored to a read-only external endpoint | ❌ **v1.0.** Required to make destruction verifiable without trusting the live database.                                                                   |
+| Offline verifier CLI (`slothbox-verify`)                     | 🚧 Skeleton in v0.1; full verification of receipts and deletion proofs in **v1.0**. Distributable via `brew tap` / `scoop bucket` / `apt`.                 |
+| Per-recipient encryption (`age` sealed boxes)                | ❌ **v1.0.** Today the symmetric key is in the URL fragment, so two parallel readers can both download. Per-recipient `age` makes the URL recipient-bound. |
 
-## How destruction works
+## How destruction works (v0.1)
 
 ```
-1. Trigger fires (burn-after-read, expiry, manual revoke)
-2. The reaper daemon:
-   a. Generates a "destruction record" containing:
-      - shareId
-      - fileHash
-      - destroyedAt (timestamp)
-      - reason (burn / expiry / manual)
-   b. Hashes the destruction record (BLAKE2b)
-   c. Appends the hash to the destruction chain (database append-only table)
-   d. Removes the ciphertext from MinIO (the actual blob)
-   e. Removes the share row from Postgres
-   f. Publishes the destruction-chain leaf to the public Merkle root
+1. Trigger fires:
+     - burn-after-read (server-side, via mark_chunk_served on last
+       chunk delivery — see SECURITY.md and the source notes in
+       services/ingest/Endpoints/DownloadEndpoint.cs)
+     - expiry (TTL elapsed; the reaper picks it up)
+     - max_downloads reached (gateway's increment_download flips state)
+     - manual revoke (POST /api/shares/:shortId/destroy)
+
+2. State flip:
+   The triggering path atomically:
+     - sets shares.state = 'destroyed'
+     - sets destroyed_at = now(), destroyed_reason = <reason>
+     - bumps download_count (only when burn fires on the read path)
+     - appends a `share_destroyed` row to audit_chain
+   All inside one Postgres transaction.
+
+3. Reaper sweep (≤ 60 s later):
+     a. selectReapableSQL picks up state='destroyed' rows that still
+        have share_chunks rows.
+     b. Reads chunk blob_keys from share_chunks.
+     c. Removes blobs from MinIO outside any DB transaction.
+     d. Opens destroy txn:
+          - SELECT ... FOR UPDATE SKIP LOCKED
+          - DELETE FROM share_chunks WHERE share_id = $1
+          - UPDATE shares (idempotent if already destroyed)
+          - append_audit_entry('share_destroyed', share_id, payload)
+     e. Commits.
+
+4. v1.0 only:
+   The reaper publishes the destruction-chain leaf to a public Merkle
+   root anchor (e.g. an OpenTimestamps URL or a static JSON the offline
+   verifier CLI can fetch). v0.1 keeps the chain in-database; tampering
+   is detectable by the verify_audit_chain function (migration 0002)
+   but the chain is not yet anchored externally.
 ```
 
 After this:

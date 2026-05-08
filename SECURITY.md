@@ -28,18 +28,19 @@ SlothBox is appropriate for portfolio review and personal experimentation only.*
 **The `shortId` is the access secret in v0.1.** Anyone holding a share URL can:
 
 - destroy the share (`POST /api/shares/:shortId/destroy`)
-- trigger burn-after-read (`POST /api/shares/:shortId/downloaded`)
+- download the ciphertext (`GET /chunk/:shortId/:chunkIndex` per chunk —
+  the URL fragment `#key=…` is what unlocks plaintext, but anyone who
+  has the full link including the fragment can decrypt)
 - overwrite chunks during the upload window
   (`PUT /chunk/:shortId/:chunkIndex`)
 
 There is no per-share owner token, no auth cookie, no signed timestamp on
 these calls in v0.1. The mitigation is a 12-character random shortId with
-~60 bits of entropy and aggressive rate limiting (120 destroy / 1000 burn
-calls per minute per IP).
+~60 bits of entropy and aggressive rate limiting at the gateway and edge.
 
 This is a **deliberate v0.1 trade-off**, not a bug. Per-share HMAC tokens
-generated at create time and bound to the destroy / burn / chunk-PUT routes
-land in **v0.5** alongside the Lucia auth + dashboard milestone (see
+generated at create time and bound to the destroy / chunk-PUT / chunk-GET
+routes land in **v0.5** alongside the Lucia auth + dashboard milestone (see
 [`MILESTONES.md`](MILESTONES.md)). Until then:
 
 - Treat share URLs the way you would treat a one-time-use door key: do not
@@ -48,12 +49,49 @@ land in **v0.5** alongside the Lucia auth + dashboard milestone (see
 - Prefer short expiry windows (1 h / 24 h) over long ones for sensitive
   content — the smaller the time window in which a leaked URL is valid, the
   smaller the destruction-by-anyone exposure.
-- Use burn-after-read sparingly — a leaked URL hitting the burn endpoint
-  before the legitimate recipient downloads creates a denial primitive.
+- For maximum-confidentiality use, send to a single recipient and follow
+  up with a `POST /api/shares/:shortId/destroy` once they confirm receipt
+  out-of-band — that closes the window even on shares you didn't mark
+  burn-after-read.
 
-This section exists so a public reader can't confuse "shortId is the access
-secret in v0.1" with "we forgot to add auth". The design has owner tokens
-spec'd; v0.5 ships them.
+### How burn-after-read works in v0.1 (post-migration 0004)
+
+The trigger lives on the **server side**, not in the recipient's browser.
+The ingest service (`services/ingest/Endpoints/DownloadEndpoint.cs`) calls
+the `mark_chunk_served` SQL function (migration 0004) after every chunk is
+successfully streamed back. When every chunk of a `burn_after_read=true`
+share has been delivered at least once, that function atomically:
+
+1. Flips `state` → `'destroyed'` on the parent share row (under a `FOR
+UPDATE` lock, so parallel chunk completions can't race the decision).
+2. Sets `destroyed_reason = 'burn'` and `destroyed_at = now()`.
+3. Appends a `share_destroyed` audit-chain entry inside the same
+   transaction so the destruction record is atomic with the state flip.
+4. Returns the new audit-chain seq to the ingest endpoint for logging.
+
+The reaper's existing 60-second sweep then deletes the MinIO ciphertext
+blobs and the `share_chunks` rows on its next tick. During that window
+the share is unfetchable: the gateway returns 404 for
+`/api/shares/:shortId` (state='destroyed' fails the read policy), and
+ingest returns 410 Gone for any further chunk fetch (`CanServeDownloads`
+returns false for terminal states).
+
+**What this defends against:** a hostile recipient — browser console
+override, curl loop, non-browser HTTP client — who downloads the
+ciphertext without cooperating with the gateway's legacy `/downloaded`
+endpoint can no longer keep the share alive. The burn fires from the
+server's view of "bytes left successfully", not from the client's
+voluntary self-report.
+
+**What this does NOT defend against in v0.1:** two simultaneous readers
+in parallel — say a legitimate recipient AND a wiretap on transit who
+both have the URL — can both complete their downloads if their chunk
+fetches interleave such that no single reader is "the last" before the
+other has all chunks. Once the first byte of a chunk leaves the server,
+you can't unsend it. The defence against THAT case is single-use HMAC
+chunk tokens (planned for v0.5 alongside the auth milestone). Until then,
+treat the URL as a one-shot capability and trust the transmission channel
+accordingly.
 
 ---
 

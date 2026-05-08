@@ -78,6 +78,14 @@ public sealed class PostgresShareRepository : IShareRepository
         // refresh the metadata. blob_key is deterministic but we still update
         // ciphertext_size + nonce + uploaded_at so the chunk row reflects the
         // latest successful upload.
+        //
+        // served_at and served_count are explicitly reset to NULL/0 on a
+        // re-upload — a new blob deserves a fresh delivery accounting, and
+        // we don't want a partial earlier upload-attempt's served_at to
+        // carry over (it can't in practice today because re-upload only
+        // happens before state='ready', but the reset is cheap and the
+        // BEFORE UPDATE trigger in migration 0004 enforces the same on any
+        // other write path that might forget it).
         const string sql =
             """
             INSERT INTO share_chunks
@@ -88,7 +96,9 @@ public sealed class PostgresShareRepository : IShareRepository
             SET nonce           = EXCLUDED.nonce,
                 blob_key        = EXCLUDED.blob_key,
                 ciphertext_size = EXCLUDED.ciphertext_size,
-                uploaded_at     = EXCLUDED.uploaded_at
+                uploaded_at     = EXCLUDED.uploaded_at,
+                served_at       = NULL,
+                served_count    = 0
             """;
 
         await using var conn = new NpgsqlConnection(_connectionString);
@@ -103,6 +113,50 @@ public sealed class PostgresShareRepository : IShareRepository
         cmd.Parameters.AddWithValue("uploadedAt", NpgsqlDbType.TimestampTz, uploadedAt);
 
         await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
+    }
+
+    /// <inheritdoc />
+    public async Task<ChunkServedResult> MarkChunkServedAsync(
+        Guid shareId,
+        int chunkIndex,
+        CancellationToken ct)
+    {
+        // The mark_chunk_served SQL function (migration 0004) is the
+        // single place where the burn-after-read decision lives. It
+        // returns three fields; we project them into ChunkServedResult.
+        // The function is idempotent on re-call within the same share
+        // session: a second invocation after the burn already fired
+        // returns BurnFired = false, ShareState = 'destroyed', AuditId =
+        // null — which is the correct shape for the caller.
+        const string sql = "SELECT burn_fired, share_state, audit_id FROM mark_chunk_served(@shareId, @chunkIndex)";
+
+        await using var conn = new NpgsqlConnection(_connectionString);
+        await conn.OpenAsync(ct).ConfigureAwait(false);
+
+        await using var cmd = new NpgsqlCommand(sql, conn);
+        cmd.Parameters.AddWithValue("shareId", NpgsqlDbType.Uuid, shareId);
+        cmd.Parameters.AddWithValue("chunkIndex", NpgsqlDbType.Integer, chunkIndex);
+
+        await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
+        if (!await reader.ReadAsync(ct).ConfigureAwait(false))
+        {
+            // The function always returns one row even when nothing
+            // happened. If we got nothing, treat as a missing share —
+            // log loud and let the caller decide.
+            _logger.LogWarning(
+                "mark_chunk_served returned zero rows for share {ShareId} chunk {ChunkIndex}",
+                shareId, chunkIndex);
+            return new ChunkServedResult(false, ShareState.Destroyed, null);
+        }
+
+        var burnFired = reader.GetBoolean(0);
+        var stateText = reader.GetString(1);
+        var auditId = reader.IsDBNull(2) ? (long?)null : reader.GetInt64(2);
+
+        return new ChunkServedResult(
+            BurnFired: burnFired,
+            ShareState: Share.ParseState(stateText),
+            AuditId: auditId);
     }
 
     /// <inheritdoc />

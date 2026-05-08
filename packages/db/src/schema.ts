@@ -80,6 +80,24 @@ export const shareChunks = pgTable(
     blobKey: text("blob_key").notNull(),
     ciphertextSize: integer("ciphertext_size").notNull(),
     uploadedAt: timestamp("uploaded_at", { withTimezone: true }),
+    /**
+     * First time this chunk's ciphertext was fully streamed back to a
+     * downloader. Set by the ingest service via the `mark_chunk_served`
+     * SQL helper (migration 0004) once `stream.CopyToAsync` returns
+     * successfully. Preserved across legitimate retries (COALESCE on
+     * UPDATE) so the timestamp records the moment of first delivery,
+     * not the moment of last delivery. NULL until the first successful
+     * GET on this chunk.
+     */
+    servedAt: timestamp("served_at", { withTimezone: true }),
+    /**
+     * Total number of times this chunk has been served. Increments on
+     * every successful delivery — legitimate retry, parallel reader,
+     * post-burn-window leftover request, anything. Instrumentation
+     * only; the burn decision uses `servedAt IS NULL` count, never
+     * this counter.
+     */
+    servedCount: integer("served_count").notNull().default(0),
   },
   (t) => ({
     pk: primaryKey({ columns: [t.shareId, t.chunkIndex] }),
