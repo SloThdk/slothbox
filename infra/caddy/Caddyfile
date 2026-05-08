@@ -8,7 +8,7 @@
 #      CSP must include a per-request nonce, which only the Next.js
 #      middleware can mint — see apps/web/src/middleware.ts.
 #   4. Strip the Server header so we don't leak Caddy's version.
-#   5. Cap request bodies per-route (1 MB by default, 5 GB for /chunk/*).
+#   5. Cap request bodies per-route (1 MB by default, 12 MB for /chunk/*).
 #
 # Local development uses :80 and skips TLS — no Caddyfile-level toggle is
 # needed because the dev compose file overrides DOMAIN to "localhost"
@@ -136,8 +136,18 @@ slothbox.philipsloth.com {
 	# ── Body size limits ─────────────────────────────────────
 	# Per-route caps. Anything outside the explicitly listed routes
 	# is bounded to 1 MB which is plenty for /api/* JSON payloads.
+	#
+	# /chunk/* cap is 12 MB — matches the .NET ingest service's
+	# Kestrel MaxChunkBytes of 10 MB plus ~2 MB slack for HTTP
+	# headers and chunked-transfer overhead. Earlier 5 GB ceiling
+	# (closed by the 2026-05-08 abuse-hardening pass) let an
+	# attacker stream 5 GB junk per chunk through Caddy before
+	# ingest 413'd it on the wire — a 500x bandwidth amplification
+	# vs the 10 MB Kestrel actually accepts. Aligning the two caps
+	# rejects oversized chunks AT the edge before the bytes reach
+	# the application layer.
 	request_body /chunk/* {
-		max_size 5GB
+		max_size 12MB
 	}
 	request_body /api/* {
 		max_size 1MB
