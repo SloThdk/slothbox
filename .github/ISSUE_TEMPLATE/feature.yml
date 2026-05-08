@@ -7,7 +7,7 @@ body:
     attributes:
       label: What problem does this solve?
       description: Lead with the user need, not the solution.
-      placeholder: e.g. "When I share a file with my accountant, I'd like proof of when they downloaded it without revealing what was in the file."
+      placeholder: e.g. "When I send a file, I'd like proof of when the recipient downloaded it without revealing what was in the file."
     validations:
       required: true
 
