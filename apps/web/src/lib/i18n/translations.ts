@@ -392,6 +392,28 @@ export const TRANSLATIONS = {
     da: "for trusselsmodellen.",
   },
 
+  // ─── About — when to reach for it (deeper than homepage) ───────
+  "about.useCases.heading": {
+    en: "When this is the right tool",
+    da: "Hvornår det er det rigtige værktøj",
+  },
+  "about.useCases.body": {
+    en: "If you're sending a contract draft, an NDA, an accounting export, a faktura PDF, a medical report, or a build artifact that contains an API key, SlothBox is built for you. The common thread: the file is sensitive enough that you don't want WeTransfer keeping a copy on US infrastructure for seven days, but you also don't want to onboard the recipient onto a paid Proton account just to receive one document. SlothBox sits between the two extremes — encrypted in your browser, EU-only data path, no recipient signup, gone after delivery.",
+    da: "Hvis du sender et udkast til en kontrakt, en NDA, en regnskabseksport, en faktura-PDF, en lægeattest eller en build-artefakt med en API-nøgle, så er SlothBox bygget til dig. Den fælles tråd: filen er følsom nok til, at du ikke vil have WeTransfer liggende på amerikansk infrastruktur i syv dage, men du har heller ikke lyst til at få modtageren til at oprette en betalt Proton-konto bare for at modtage ét dokument. SlothBox ligger imellem de to yderpunkter — krypteret i din browser, kun-EU-datapath, ingen modtagertilmelding, væk efter levering.",
+  },
+  "about.useCases.body.notRight": {
+    en: "If you're sharing a holiday-photo album with family, or a marketing-deck draft with the whole team, or anything where the recipients want a permanent shareable link they can come back to next month — SlothBox is the wrong tool. Use Dropbox, Google Drive, or whatever your workflow is built on. The encryption discipline here costs you the convenience of a permanent URL, and that trade only pays off when the file is actually sensitive.",
+    da: "Hvis du deler et ferie-foto-album med familien, et marketing-deck med hele teamet, eller noget hvor modtagerne ønsker et permanent link, de kan komme tilbage til om en måned — så er SlothBox det forkerte værktøj. Brug Dropbox, Google Drive eller det, din arbejdsgang er bygget på. Krypteringsdisciplinen her koster dig bekvemmeligheden ved et permanent link, og den byttehandel betaler sig kun, når filen faktisk er følsom.",
+  },
+  "about.tradeoffs.heading": {
+    en: "What you give up",
+    da: "Hvad du afgiver",
+  },
+  "about.tradeoffs.body": {
+    en: "Every architectural decision trades something. SlothBox runs on one ARM virtual machine in Falkenstein, Germany — not a global edge network — so a four-gigabyte download from a Tokyo client takes longer than the same file from WeTransfer. Files have an expiry; there is no permanent shareable link. The recipient needs the complete URL including the part after “#”, which means a chat client that strips fragments breaks the share. And v0.1.0-alpha has not been independently audited yet — the underlying primitives (libsodium, age) have, but the SlothBox glue around them is gated on external cryptographer review before any “production-grade” wording lands. Until v1.0, this is appropriate for portfolio review and personal experimentation, not for high-stakes secrets.",
+    da: "Hvert arkitekturvalg er en byttehandel. SlothBox kører på én ARM-virtuel maskine i Falkenstein, Tyskland — ikke et globalt edge-netværk — så en fire-gigabyte-download til en kunde i Tokyo tager længere tid end samme fil fra WeTransfer. Filer udløber; der findes ikke noget permanent delingslink. Modtageren har brug for hele URL'en inklusive delen efter “#”, så en chatklient, der fjerner fragmenter, bryder delingen. Og v0.1.0-alpha er endnu ikke uafhængigt auditeret — de underliggende primitiver (libsodium, age) er, men SlothBox-integrationen omkring dem er gate'et på ekstern kryptografgennemgang, før nogen “production-grade”-formulering rammer pladen. Indtil v1.0 er dette egnet til portfolio-gennemgang og personlig test, ikke til kritiske hemmeligheder.",
+  },
+
   // ─── Security page ────────────────────────────────────────────
   "security.eyebrow": {
     en: "Security",
@@ -538,6 +560,182 @@ export const TRANSLATIONS = {
   "upload.engineLabel": {
     en: "XChaCha20-Poly1305 · 5 MiB chunks",
     da: "XChaCha20-Poly1305 · 5 MiB-bidder",
+  },
+
+  // ─── Landing — "Why this, not WeTransfer" ─────────────────────
+  // Six-row comparison table. Each row names a real product and the
+  // deal-breaker for someone who actually cares about confidentiality.
+  // Sourced from each product's public ToS / privacy policy as of
+  // 2026-05; if any vendor disputes a claim, the README's repo issue
+  // tracker is the place to debate facts.
+  "whyNot.eyebrow": {
+    en: "Against the alternatives",
+    da: "Op imod alternativerne",
+  },
+  "whyNot.heading": {
+    en: "Most “send a file” services scan, store, or sell.",
+    da: "De fleste “send en fil”-tjenester scanner, gemmer eller sælger.",
+  },
+  "whyNot.lede": {
+    en: "Every option below is a fine product for what it does. None of them gives you confidentiality the operator can't break — that's the gap SlothBox fills.",
+    da: "Hver af mulighederne herunder er et fint produkt til sit formål. Ingen af dem giver dig fortrolighed, som operatøren ikke selv kan bryde — det er hullet, SlothBox fylder.",
+  },
+  "whyNot.row1.product": {
+    en: "WeTransfer",
+    da: "WeTransfer",
+  },
+  "whyNot.row1.body": {
+    en: "Scans your file. Keeps a copy. Monetises via ads.",
+    da: "Scanner din fil. Beholder en kopi. Tjener penge på reklamer.",
+  },
+  "whyNot.row2.product": {
+    en: "Dropbox Transfer",
+    da: "Dropbox Transfer",
+  },
+  "whyNot.row2.body": {
+    en: "Reads your content. US-cloud infrastructure — Schrems II contested for EU data.",
+    da: "Læser dit indhold. Amerikansk skyinfrastruktur — Schrems II er bestridt for EU-data.",
+  },
+  "whyNot.row3.product": {
+    en: "Google Drive share",
+    da: "Google Drive-deling",
+  },
+  "whyNot.row3.body": {
+    en: "Same as Dropbox. Plus advertising-graph pings on every link click.",
+    da: "Samme som Dropbox. Plus reklame-graf-pings ved hvert klik på linket.",
+  },
+  "whyNot.row4.product": {
+    en: "Wormhole.app",
+    da: "Wormhole.app",
+  },
+  "whyNot.row4.body": {
+    en: "End-to-end encrypted. No signed delivery proof. No EU-only data path.",
+    da: "End-to-end-krypteret. Intet signeret leveringsbevis. Ingen kun-EU-datapath.",
+  },
+  "whyNot.row5.product": {
+    en: "Proton Drive",
+    da: "Proton Drive",
+  },
+  "whyNot.row5.body": {
+    en: "Encrypted. Account-only, paid, no quick-share for unauthenticated recipients.",
+    da: "Krypteret. Kun for konti, betalt, ingen quick-share til ikke-autentificerede modtagere.",
+  },
+  "whyNot.row6.product": {
+    en: "Email attachment",
+    da: "Email-vedhæftning",
+  },
+  "whyNot.row6.body": {
+    en: "25 MB cap. Stored forever in both inboxes. Indexed by both providers.",
+    da: "25 MB-loft. Gemt for evigt i begge indbakker. Indekseret af begge udbydere.",
+  },
+  "whyNot.col.product": {
+    en: "Service",
+    da: "Tjeneste",
+  },
+  "whyNot.col.gap": {
+    en: "What it gives up",
+    da: "Hvad den giver afkald på",
+  },
+
+  // ─── Landing — "When you'd reach for this" ────────────────────
+  // Four concrete scenarios. Sole-proprietor / Danish-context framing
+  // because that's who Philip actually serves; the patterns generalise
+  // but the specifics make it feel real.
+  "useCases.eyebrow": {
+    en: "When you'd reach for this",
+    da: "Hvornår man rækker ud efter det",
+  },
+  "useCases.heading": {
+    en: "Concrete moments — not abstract claims.",
+    da: "Konkrete situationer — ikke abstrakte påstande.",
+  },
+  "useCases.lede": {
+    en: "If any of these match the file you're about to send, SlothBox is the right tool. If none do, email or WeTransfer is probably fine — pick what fits the threat.",
+    da: "Hvis nogen af disse passer på den fil, du er ved at sende, er SlothBox det rigtige værktøj. Hvis ingen passer, er email eller WeTransfer sikkert fint — vælg det, der matcher truslen.",
+  },
+  "useCases.item1.title": {
+    en: "Sending a contract or NDA to a client",
+    da: "Aftaler og NDA'er til en kunde",
+  },
+  "useCases.item1.body": {
+    en: "An email attachment lives in both inboxes forever. WeTransfer keeps a copy on US infrastructure for seven days. SlothBox burns the share the moment the recipient finishes downloading — the encrypted blob is gone, and because the decryption key never reached the server, even a future backup restore returns ciphertext.",
+    da: "En email-vedhæftning ligger for evigt i begge indbakker. WeTransfer beholder en kopi på amerikansk infrastruktur i syv dage. SlothBox brænder delingen i samme øjeblik, modtageren har downloadet — den krypterede fil er væk, og fordi dekrypteringsnøglen aldrig nåede serveren, vil selv en fremtidig backup-restaurering kun give ciphertext tilbage.",
+  },
+  "useCases.item2.title": {
+    en: "Sharing GDPR-sensitive material",
+    da: "GDPR-følsomt materiale",
+  },
+  "useCases.item2.body": {
+    en: "Medical records, tax documents, HR letters, therapist notes, faktura PDFs. EU-hosted by infrastructure choice — not by a region label on a US cloud. The operator (Philip Sloth, sole-proprietor in Denmark) cannot decrypt anything you upload. A subpoena returns ciphertext.",
+    da: "Patientjournaler, skattedokumenter, HR-breve, terapeutnoter, faktura-PDF'er. EU-hostet via infrastrukturvalget — ikke via et regionsstempel på en amerikansk sky. Operatøren (Philip Sloth, enkeltmandsvirksomhed i Danmark) kan ikke dekryptere noget af det, du uploader. En retskendelse får kun ciphertext.",
+  },
+  "useCases.item3.title": {
+    en: "Source code or build artifacts with secrets",
+    da: "Kildekode eller build-artefakter med hemmeligheder",
+  },
+  "useCases.item3.body": {
+    en: "API keys for a one-time client setup. Infrastructure config. Pre-release builds you don't want a Slack history to retain. No DM kept forever, no GitHub gist that's accidentally public. One link, one download, gone.",
+    da: "API-nøgler til en engangs-kundeopsætning. Infrastruktur-config. Pre-release-builds, du ikke vil have liggende i en Slack-historik. Ingen DM, der bliver liggende for evigt, ingen GitHub-gist, der ved et uheld er offentlig. Ét link, én download, væk.",
+  },
+  "useCases.item4.title": {
+    en: "One-shot drops where the sender stays anonymous",
+    da: "Engangs-drops hvor afsenderen forbliver anonym",
+  },
+  "useCases.item4.body": {
+    en: "No account, no signup. The server hashes the upload IP for rate-limiting and forgets the rest. The recipient gets the URL through whatever channel makes sense. Neither side has an account; the server has no idea who either party is.",
+    da: "Ingen konto, ingen tilmelding. Serveren hasher upload-IP'en til rate-limiting og glemmer resten. Modtageren får URL'en gennem en kanal, der giver mening. Ingen af parterne har en konto; serveren ved ikke, hvem nogen af dem er.",
+  },
+
+  // ─── Landing — "What you give up" ─────────────────────────────
+  // Four tradeoffs. This is the section that makes the rest of the
+  // page credible — without an honest "what we don't do" list, every
+  // marketing claim above looks pre-packaged. The list is also a tool
+  // for the visitor to self-disqualify if SlothBox isn't the right
+  // fit, which saves them disappointment and saves us a support
+  // email.
+  "tradeoffs.eyebrow": {
+    en: "What you give up",
+    da: "Hvad du afgiver",
+  },
+  "tradeoffs.heading": {
+    en: "The honest list.",
+    da: "Den ærlige liste.",
+  },
+  "tradeoffs.lede": {
+    en: "Every architectural decision trades something. These are the ones a visitor evaluating SlothBox should know up front.",
+    da: "Hvert arkitekturvalg er en byttehandel. Det her er dem, en besøgende, der overvejer SlothBox, bør kende på forhånd.",
+  },
+  "tradeoffs.item1.title": {
+    en: "The recipient needs the full URL — including #key=…",
+    da: "Modtageren skal have hele URL'en — inklusive #key=…",
+  },
+  "tradeoffs.item1.body": {
+    en: "If their chat client strips fragments (old Outlook, certain compliance scanners, some forum software), they get nothing decryptable. Test with a small file first if you're not sure your channel preserves fragments.",
+    da: "Hvis modtagerens chatklient fjerner fragmentet (gammel Outlook, visse compliance-scannere, nogle fora), får de ingenting, der kan dekrypteres. Test med en lille fil først, hvis du er i tvivl, om din kanal bevarer fragmentet.",
+  },
+  "tradeoffs.item2.title": {
+    en: "Files have an expiry. No permanent shareable link.",
+    da: "Filer udløber. Intet permanent delingslink.",
+  },
+  "tradeoffs.item2.body": {
+    en: "Maximum seven days in v0.1. Expired shares are gone, not soft-deleted — the encrypted blob is removed from MinIO and the share row is destroyed. If the recipient hasn't downloaded by then, you re-send.",
+    da: "Maks. syv dage i v0.1. Udløbne delinger er væk — ikke soft-slettet. Den krypterede fil fjernes fra MinIO, og share-rækken destrueres. Hvis modtageren ikke har downloadet inden da, sender du igen.",
+  },
+  "tradeoffs.item3.title": {
+    en: "v0.1 is alpha. Sensitive transfers wait for v1.0.",
+    da: "v0.1 er alpha. Følsomme overførsler venter på v1.0.",
+  },
+  "tradeoffs.item3.body": {
+    en: "The cryptographic primitives — libsodium and age — are battle-tested upstream. The SlothBox glue around them has not yet been independently audited. Independent cryptographer review and a third-party pen test gate v1.0 before any “production-grade” framing.",
+    da: "De kryptografiske primitiver — libsodium og age — er gennemtestede upstream. SlothBox-integrationen rundt om dem er endnu ikke uafhængigt auditeret. Uafhængig kryptografgennemgang og tredjeparts pen-test er gate-kravet for v1.0 før nogen “production-grade”-formulering.",
+  },
+  "tradeoffs.item4.title": {
+    en: "No CDN. One EU virtual machine.",
+    da: "Ingen CDN. Én EU-virtuel maskine.",
+  },
+  "tradeoffs.item4.body": {
+    en: "A four-gigabyte file downloads from one server in Falkenstein, Germany. WeTransfer downloads from two hundred edge points of presence. If your recipient is on a 200 ms link from Tokyo, they will feel it. The trade is bandwidth for jurisdiction — pick what matters more for the file in your hand.",
+    da: "En fire-gigabyte fil downloades fra én server i Falkenstein, Tyskland. WeTransfer downloader fra to hundrede edge-punkter. Hvis din modtager sidder på et 200 ms-link fra Tokyo, mærker de det. Byttet er båndbredde mod jurisdiktion — vælg, hvad der vejer tungest for filen, du har i hånden.",
   },
 } as const satisfies Record<string, TranslationEntry>;
 
