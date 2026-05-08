@@ -10,7 +10,7 @@ SlothBox could be written entirely in TypeScript. That would give a smaller
 build matrix, fewer Dockerfiles, and a simpler hire profile. It would also be
 defensible — most modern web SaaS is written that way.
 
-But two parts of the system have honest reasons to be in a different language:
+But two parts of the system hit problems TypeScript handles poorly enough to justify a different runtime:
 
 1. **The chunked upload ingest service.** Files can be 5 GB. Node's stream
    API works but has rougher backpressure semantics than .NET's `PipeReader`.

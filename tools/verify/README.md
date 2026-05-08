@@ -113,7 +113,7 @@ Schema: v1
 Transfer ID: 9b7c...e2d1
 Timestamp: 2026-08-14T09:31:42Z (RFC 3161, signed by SlothBox TSA: OK)
 Merkle inclusion: epoch 4172, leaf #2891 → root 6a93...c4f0 (OK)
-Anchor cross-check: matches https://anchors.slothbox.com/4172.json (OK)
+Anchor cross-check: matches https://anchors.slothbox.philipsloth.com/4172.json (OK)
 
 Verdict: VALID
 ```
@@ -144,7 +144,7 @@ slothbox-verify deletion ./my-deletion-proof.json
 ### Example: pin and verify a Merkle root anchor
 
 ```bash
-slothbox-verify chain https://anchors.slothbox.com/4172.json
+slothbox-verify chain https://anchors.slothbox.philipsloth.com/4172.json
 ```
 
 ---
