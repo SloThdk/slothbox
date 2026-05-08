@@ -8,12 +8,11 @@
 import * as React from "react";
 import Link from "next/link";
 import { use as usePromise } from "react";
-import { AlertTriangle, ExternalLink, Shield } from "lucide-react";
+import { AlertTriangle, Shield } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Decrypt } from "@/components/Decrypt";
 import { fetchShareMetadata, extractKeyFromHash } from "@/lib/download";
 import type { ShareDescriptor } from "@/lib/api";
-import { GITHUB_URL } from "@/lib/config";
 
 type Status =
   | { kind: "loading" }
@@ -195,16 +194,7 @@ function ReceiverFootnote() {
       <Shield className="h-4 w-4 shrink-0 text-[var(--color-accent)]" aria-hidden />
       <p className="leading-relaxed">
         SlothBox runs in the EU. Your browser performs the decryption and the key never leaves this
-        tab — verify the source on{" "}
-        <a
-          href={`${GITHUB_URL}/blob/master/apps/web/src/lib/download.ts`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-1 underline decoration-[var(--color-border)] underline-offset-2 hover:decoration-[var(--color-accent)]"
-        >
-          GitHub <ExternalLink className="h-3 w-3" aria-hidden />
-        </a>
-        .
+        tab.
       </p>
     </div>
   );

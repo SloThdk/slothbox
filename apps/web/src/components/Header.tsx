@@ -1,7 +1,12 @@
 // Sticky top navigation — translucent glass strip with a hairline bottom
 // border, exactly the visionOS / macOS-Tahoe sheet aesthetic. Wordmark on
-// the left, two minimal nav links + GitHub button + language toggle on
-// the right.
+// the left, two minimal nav links + language toggle on the right.
+//
+// 2026-05-08: GitHub button removed from the chrome — the project's
+// developer/source surface lives on philipsloth.com (Philip's
+// portfolio), not on the SlothBox product page itself. SlothBox's
+// official site reads as a polished product, not an open-source repo
+// landing.
 //
 // Marked "use client" because the language toggle and the t() calls for
 // nav labels both need the LanguageContext, which is client-only. The
@@ -11,8 +16,6 @@
 "use client";
 
 import Link from "next/link";
-import { Github } from "lucide-react";
-import { GITHUB_URL } from "@/lib/config";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { LanguageToggle } from "@/components/LanguageToggle";
 
@@ -83,21 +86,11 @@ export function Header() {
           >
             {t("nav.security")}
           </Link>
-          {/* Language toggle. Sits between the text nav and the GitHub
-              button so it reads as part of the "site chrome" cluster
-              rather than as a primary action. */}
+          {/* Language toggle. Sits at the end of the nav cluster as a
+              site-chrome control rather than a primary action. */}
           <div className="ml-1">
             <LanguageToggle compact />
           </div>
-          <a
-            href={GITHUB_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="ml-1 inline-flex h-9 cursor-pointer items-center gap-2 rounded-full border border-[var(--color-glass-stroke)] bg-[var(--color-glass-fill)] px-3.5 text-[0.85rem] font-medium text-[var(--color-fg)] backdrop-blur-md transition-colors hover:border-[var(--color-accent-tint)]"
-          >
-            <Github className="h-3.5 w-3.5" aria-hidden strokeWidth={1.8} />
-            <span className="hidden sm:inline">{t("nav.github")}</span>
-          </a>
         </nav>
       </div>
     </header>

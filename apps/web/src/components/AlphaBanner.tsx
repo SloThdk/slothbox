@@ -28,7 +28,6 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ShieldAlert, X } from "lucide-react";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
-import { GITHUB_URL } from "@/lib/config";
 
 // Bump the version when the warning copy changes substantively — this resets
 // the localStorage flag for every existing visitor so they re-acknowledge the
@@ -88,14 +87,9 @@ export function AlphaBanner() {
           </p>
           <p className="mt-1 text-[0.8rem] leading-relaxed font-light text-[var(--color-fg-2)]">
             {t("alphaBanner.body")}{" "}
-            <a
-              href={`${GITHUB_URL}/blob/master/SECURITY.md`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-amber-300 underline-offset-4 hover:underline"
-            >
+            <Link href="/security" className="text-amber-300 underline-offset-4 hover:underline">
               {t("alphaBanner.readMore")}
-            </a>
+            </Link>
             .
           </p>
         </div>
