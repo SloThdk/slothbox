@@ -158,13 +158,16 @@ Pull requests that touch `packages/crypto-core/` or any code that handles
 encryption keys, IVs, salts, password hashing, or signature verification are held
 to a higher bar:
 
-1. **No new primitives without an audited reference implementation.** We use
-   libsodium and age. We do not add new ciphers, KDFs, or signature schemes.
-2. **Test vectors are mandatory.** If you change a wrapper, the existing test
-   vectors must still pass and you must add new test vectors covering your change.
-3. **Maintainer review is required.** A second independent reviewer (preferably
-   someone with cryptographic background) is encouraged.
-4. **PRs that "roll their own crypto" are auto-closed.** No exceptions.
+1. **No new primitives without an audited reference implementation.** The
+   repo uses libsodium and age. New ciphers, KDFs, or signature schemes
+   are not accepted.
+2. **Test vectors are mandatory.** If a change touches a wrapper, the
+   existing test vectors must still pass and the PR must add new
+   vectors covering the change.
+3. **Maintainer review is required.** CODEOWNERS routes any change
+   under `packages/crypto-core/` to the maintainer; a second reviewer
+   with a cryptographic background is requested when one is available.
+4. **PRs that "roll their own crypto" are closed during review.**
 
 See [`docs/CRYPTO.md`](docs/CRYPTO.md) for what is and isn't audited.
 
@@ -183,7 +186,7 @@ We follow these practices for the deployed service:
 - **Dependency updates** via Dependabot for security updates (daily) and
   patch/minor updates (weekly). Major updates manually reviewed.
 - **Container image scanning** — `trivy image` on every Docker build in CI
-- **Postgres backups** — WAL-G with encrypted offsite copy to provider block storage
+- **Postgres backups** — nightly `pg_dump` (gzipped) to a local Docker volume, 28-day rotation. v0.5 introduces WAL-G continuous archiving with an offsite copy; v0.1 keeps the simpler dump-and-rotate model so the restore drill is just `gunzip | psql`.
 - **TLS** — Caddy with auto-renewing Let's Encrypt certs, TLS 1.3 only
 
 ---

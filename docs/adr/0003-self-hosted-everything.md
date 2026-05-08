@@ -19,7 +19,7 @@ Self-host the data layer on a single EU-jurisdiction Linux VM:
 - **Postgres 16** — `postgres:16.4-alpine` in Docker, on the production VM
 - **MinIO** — `minio/minio` in Docker, on the same VM, S3-compatible API
 - **Auth** — Lucia v3 / better-auth, Postgres-backed, no third-party service
-- **Backups** — WAL-G to provider block storage, encrypted with age
+- **Backups** — nightly `pg_dump` (gzipped) to a local Docker volume with 28-day rotation in v0.1; v0.5 adds WAL-G continuous archiving with an offsite copy on provider block storage
 
 ## Consequences
 

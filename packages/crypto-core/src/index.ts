@@ -1,6 +1,7 @@
 // SlothBox crypto-core — the entire trust boundary lives in this package.
 //
-// Design rules (enforced by CONTRIBUTING.md and the crypto-review CI gate):
+// Design rules (documented in CONTRIBUTING.md; enforced by CODEOWNERS
+// routing every change under this package through maintainer review):
 //
 //   1. AUDITED PRIMITIVES ONLY. No homemade ciphers, KDFs, or AEAD modes.
 //      Everything must reduce to libsodium / age primitives that have already

@@ -88,15 +88,24 @@ receipt/api → web/caddy).
 
 ### Database backups
 
-WAL-G runs as a sidecar service, archiving every WAL segment to provider
-block storage (encrypted at rest). Daily base backups at 03:30 UTC.
+A `pg-backup` sidecar runs on a 02:30 UTC cron and writes a gzipped
+`pg_dump` of the `slothbox` database to a named Docker volume
+(`pg_backups`). Files rotate after 28 days. The exact command lives in
+`docker-compose.prod.yml` under the `pg-backup` service.
 
-Manual base backup:
+This is intentionally the simplest viable backup scheme for v0.1 — one
+`gunzip | psql` away from a clean restore, no WAL replay, no archive
+storage to provision. v0.5 introduces WAL-G continuous archiving with an
+offsite copy on provider block storage; the upgrade is purely additive
+(both schemes can run in parallel during the migration window).
+
+Manual base backup, equivalent to what the sidecar runs nightly:
 
 ```bash
-sudo -u slothbox docker compose exec postgres pg_basebackup \
-  --pgdata=/backups/manual-$(date +%Y%m%d-%H%M) \
-  --wal-method=stream --checkpoint=fast --progress
+sudo -u slothbox docker compose exec postgres \
+  pg_dump --no-owner --no-acl --clean --if-exists slothbox \
+  | gzip -9 \
+  > /var/lib/docker/volumes/slothbox_pg_backups/_data/manual-$(date +%Y%m%d-%H%M).sql.gz
 ```
 
 ### Restoring from backup
@@ -104,23 +113,29 @@ sudo -u slothbox docker compose exec postgres pg_basebackup \
 Worst-case full restore (drill this once a quarter):
 
 ```bash
-# 1. Stop the stack
-sudo -u slothbox docker compose down
+# 1. Identify the dump to restore from. Newest is typically the right
+#    answer; rotation keeps 28 days of history under
+#    /var/lib/docker/volumes/slothbox_pg_backups/_data/.
+ls -lhrt /var/lib/docker/volumes/slothbox_pg_backups/_data/*.sql.gz | tail -5
 
-# 2. Wipe the existing pg_data volume
-docker volume rm slothbox_pg_data
+# 2. Stop the application services that talk to Postgres so they don't
+#    write into the half-restored database.
+sudo -u slothbox docker compose stop api-gateway ingest receipt reaper
 
-# 3. Re-create the volume
-docker volume create slothbox_pg_data
-
-# 4. Restore base backup + replay WAL
-sudo -u slothbox docker compose run --rm postgres-restore
-
-# 5. Verify
+# 3. Bring Postgres up alone (no app traffic).
 sudo -u slothbox docker compose up -d postgres
-sudo -u slothbox docker compose exec postgres psql -U slothbox -c "select count(*) from shares;"
 
-# 6. Bring rest of the stack up
+# 4. Restore. The dump uses --clean --if-exists so it drops + recreates
+#    the schema cleanly without needing to wipe the volume first.
+gunzip -c /var/lib/docker/volumes/slothbox_pg_backups/_data/<dump>.sql.gz \
+  | sudo -u slothbox docker compose exec -T postgres \
+      psql -U slothbox -d slothbox -v ON_ERROR_STOP=1
+
+# 5. Sanity-check the row counts came back.
+sudo -u slothbox docker compose exec postgres psql -U slothbox -d slothbox \
+  -c "select count(*) from shares; select count(*) from audit_chain;"
+
+# 6. Bring the application services back.
 sudo -u slothbox docker compose up -d
 ```
 
