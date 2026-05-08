@@ -490,24 +490,50 @@ it. Nothing on this list is decorative.
 
 ### Hosting
 
-#### Single ARM Linux VM, EU jurisdiction (German data centre)
+#### Hetzner Cloud (CAX-series ARM VM, Falkenstein FSN1, Germany)
 
-- **Role:** runs every service in `docker-compose.prod.yml`. One VM, one
-  operator, one set of credentials.
-- **Why this stack:** for a v0.1 portfolio reference build, VM cost dominates
-  only across multiple regions — and the build deliberately doesn't
-  multi-region, because the EU-only data path is the product, not a limitation.
-  ARM delivers ~30% better price / perf on the compute-bound services (.NET,
-  Go) than x86 at the same provider tier, and Docker Buildx makes multi-arch
-  images a one-line change in the workflow. The migration path off a single VM
-  is straightforward: split state to managed Postgres + S3-compatible storage,
-  scale the four services horizontally behind Caddy with sticky sessions on
-  the WebSocket route. None of the service code has to change.
-- **Alternatives rejected:** AWS / GCP / Azure (US jurisdiction — defeats the
-  Schrems II story); Cloudflare Workers (would be cheaper for the static
-  surface, but the .NET ingest service can't run on that runtime); Kubernetes
-  (overkill for a single-VM deployment; Compose covers this comfortably until
-  the cluster needs >1 host).
+- **Role:** the single production VM that runs every service in
+  `docker-compose.prod.yml`. One Linux box, one operator, one SSH key. The
+  GitHub Actions `Deploy` workflow SSHes into this VM via
+  `appleboy/ssh-action`, runs `docker compose build && up -d --remove-orphans`,
+  and smoke-tests `https://slothbox.philipsloth.com/healthz` until it returns
+  `200 ok` — gated behind `vars.AUTO_DEPLOY` so forks never trigger a
+  production rollout. The DNS A record for the live site (set to "DNS only" in
+  Cloudflare, not proxied) points straight at this VM's public IP.
+- **Why Hetzner specifically:** the EU-jurisdiction premise this whole
+  architecture is built on (browser-side encryption + EU-only data path +
+  hash-chained audit log) only holds if the host is also EU-jurisdiction in
+  the strict reading. Hetzner Online GmbH is a wholly EU-incorporated German
+  company — there is no US parent, so no US CLOUD Act exposure that AWS
+  Frankfurt or Azure Germany silently retain through their US-incorporated
+  ultimate owners. Beyond jurisdiction: the CAX series runs Ampere Altra ARM
+  cores at roughly €5-15/month for the size this build needs, which is 5-10×
+  cheaper than equivalent AWS/GCP compute and keeps a portfolio reference
+  build sustainable on a personal budget. Hetzner's cloud-init + automated
+  reverse-DNS + IPv6 default + flat egress pricing also remove three things
+  that would otherwise be ~30 lines of config on AWS.
+- **Why a single VM (not multi-region, not Kubernetes):** for a v0.1 portfolio
+  reference, a single VM in one EU DC is the right shape — multi-region adds
+  cost without solving any current problem, and the EU-only data path is a
+  product feature, not a limitation. Multi-arch Docker Buildx makes the
+  `linux/arm64` build a one-line change in the workflow, so contributors on
+  AMD64 dev boxes still get usable images via the same matrix. The migration
+  path off a single VM is straightforward when scale ever justifies it: split
+  state out to managed Postgres + S3-compatible storage, scale the four
+  stateless services horizontally behind Caddy with sticky sessions on the
+  WebSocket route. None of the application code has to change.
+- **Alternatives rejected:** AWS Frankfurt / Azure Germany (US-parent CLOUD
+  Act exposure — defeats the Schrems II premise the architecture is built
+  on); Scaleway (French, EU-clean, but ARM tier is more expensive at this
+  size and the Object Storage SDK quirks force a MinIO-vs-S3 decision earlier
+  than necessary); OVHcloud (French, fine, but the cloud product is less
+  mature than Hetzner's and the dedicated-server competitor only makes sense
+  at higher scale); Vultr Frankfurt / DigitalOcean Frankfurt (US-incorporated
+  parents — same Schrems II problem); Cloudflare Workers (can't run the .NET
+  ingest service, has no persistent disk for Postgres + MinIO, body-size cap
+  defeats the multi-GB chunk path); a Kubernetes cluster (overkill for a
+  single-host deployment — Compose covers this comfortably until the cluster
+  needs more than one host, at which point the rewrite is mostly mechanical).
 
 ### Summary table
 
@@ -528,7 +554,7 @@ read the prose above when you want to know why each line is there.
 - **Real-time** — WebSocket (control plane) · WebRTC DataChannels (P2P file path, v1.1)
 - **Cryptography** — libsodium-wrappers (browser) · libsodium-net (C#) · age (asymmetric, v1.0+)
 - **Observability** — Grafana · Prometheus · Loki · Promtail
-- **Host** — single EU-jurisdiction ARM Linux VM with managed firewall (German data centre)
+- **Host** — Hetzner Cloud CAX-series ARM VM (Falkenstein FSN1, Germany) with managed firewall · runs the entire `docker-compose.prod.yml` stack on a single host
 - **CI/CD** — GitHub Actions (CI/Security/Deploy/Dependabot) · GHCR multi-arch (amd64+arm64) · SSH deploy with `vars.AUTO_DEPLOY` gate
 - **TLS** — Caddy 2.8 with Let's Encrypt · HTTP/3 · automatic renewal · per-request CSP nonce middleware
 
