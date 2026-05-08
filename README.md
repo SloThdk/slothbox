@@ -206,12 +206,22 @@ problem rather than picking one language and forcing it everywhere:
 
 ## Quick start
 
+> **Most visitors should use the live reference instance at <https://slothbox.philipsloth.com>** — that's the production deployment, drag-drop a file, get a share link, send it. The steps below are for developers who want to run the stack locally for contribution, audit verification, or self-hosting.
+
 ### Try the live deployment
 
-The reference deployment is at **<https://slothbox.philipsloth.com>** (EU-only). Drag-drop a
-file, get a share link, send it.
+Open **<https://slothbox.philipsloth.com>**. EU-only data path, no signup, no scanning. Drag a file in, copy the share link, send it through whatever channel makes sense.
 
-### Or run the entire stack on your machine
+### Run the entire stack locally (for contribution / audit / self-host)
+
+**Prerequisites**
+
+- Docker Desktop 25+ (or Docker Engine + Compose v2 on Linux). The stack uses Compose v2 syntax — `docker-compose` v1 won't parse it.
+- ~6 GB free disk for image layers and Postgres / MinIO volumes.
+- Ports `80`, `3021-3024`, `5432`, `6379`, `4222`, `9000-9001`, `3000`, `3100`, `9090` available on `localhost`. Caddy binds 80; everything else is `localhost`-only.
+- (Optional, only for hot-reload dev mode) Node 20.10+ and pnpm 9.12.3 — pinned in `packageManager` so `corepack enable` followed by `pnpm install` picks the right version automatically.
+
+**Bring it up**
 
 ```bash
 git clone https://github.com/SloThdk/slothbox.git
@@ -220,27 +230,27 @@ cp .env.example .env
 docker compose up -d
 ```
 
-That's it. 14 services come up. Open <http://localhost>. Caddy fronts everything on port 80 in dev.
+All 14 services come up. Caddy fronts everything on port 80 in dev — open <http://localhost>.
 
-For development with hot-reload on the frontend:
+**Hot-reload frontend dev mode** (keep the rest of the stack in Docker, run Next.js + the api-gateway natively for fast iteration):
 
 ```bash
+corepack enable          # ensures pnpm 9.12.3 is used
 pnpm install
-pnpm db:migrate
-pnpm dev
+pnpm db:migrate          # apply schema to the running Postgres container
+pnpm dev                 # parallel watch on web + api-gateway
 ```
 
-Or on Windows just double-click `start_local_server.bat`.
+On Windows the `start_local_server.bat` in the repo root runs the same flow with one double-click.
 
-### Run with the production hardening overlay
+### Production hardening overlay
 
-The production overlay adds container hardening on top of the base compose:
-read-only root filesystems, `cap_drop: ALL` with explicit allowlists,
-`no-new-privileges`, per-container memory + CPU limits, json-file log rotation,
-loopback-only DB/cache/storage ports, nightly `pg_dump` with 28-day retention.
+The prod overlay layers container hardening on top of the base compose: read-only root filesystems, `cap_drop: ALL` with explicit allowlists, `no-new-privileges`, per-container memory + CPU limits, json-file log rotation, loopback-only Postgres/MinIO/Grafana ports, nightly `pg_dump` with 28-day retention.
 
 ```bash
-# Generate strong secrets first; never use defaults in real prod.
+# Set DOMAIN + BACKUP_RETENTION_DAYS in .env, generate fresh secrets via
+# openssl rand -hex 32 for AUTH_SECRET / INTERNAL_TOKEN / POSTGRES_PASSWORD,
+# then bring it up with both compose files merged.
 docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
 ```
 
