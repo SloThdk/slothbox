@@ -84,14 +84,54 @@ const ConfigSchema = z.object({
   INGEST_PUBLIC_URL: z.string().url().default("http://localhost:3023"),
 
   // ─── Limits ────────────────────────────────────────────────────
-  /** Maximum share lifetime (days) — enforced at create time. */
-  MAX_SHARE_TTL_DAYS: z.coerce.number().int().positive().default(30),
+  /**
+   * Maximum share lifetime (days) — enforced at create time.
+   *
+   * Default lowered from 30 → 7 in 2026-05-08 abuse-hardening. The
+   * higher 30-day ceiling is still available via env override for
+   * legitimate need, but the default-at-rest exposure is now bounded
+   * to one week. Lowering the default cuts the worst-case attacker
+   * storage-squat ceiling by ~4× without any UX impact for the typical
+   * "send a file, recipient downloads within a couple of days" flow.
+   */
+  MAX_SHARE_TTL_DAYS: z.coerce.number().int().positive().default(7),
   /** Maximum chunk size (bytes) — defends against accidental huge requests. */
   MAX_CHUNK_SIZE_BYTES: z.coerce
     .number()
     .int()
     .positive()
     .default(10 * 1024 * 1024),
+  /**
+   * Maximum total ciphertext storage per share (bytes). Mirrors the
+   * client-side 4 GB cap so the server is never the more-permissive
+   * side of the contract.
+   *
+   * Why this matters: without this, the previous Zod schema permitted
+   * `chunkCount.max(100_000) * chunkSize.max(10MB)` = 1 TB declared
+   * per share. Combined with the 100 shares/day/IP create cap, a
+   * single attacker IP could squat ~3 TB/day for the share's TTL —
+   * filling the host disk and OOM-killing Postgres.
+   *
+   * The cap applies to BOTH the plaintext `fileSize` AND the ciphertext
+   * `chunkCount * chunkSize` product. AEAD overhead per chunk is
+   * 40 bytes (24-byte XChaCha20 nonce + 16-byte Poly1305 tag), which
+   * is well under 0.1% of a 4 GB upload at any sane chunk size — so
+   * a single ceiling for both is honest.
+   */
+  MAX_FILE_SIZE_BYTES: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(4 * 1024 * 1024 * 1024), // 4 GB
+  /**
+   * Per-IP WebSocket connection cap. Anonymous WS connections to the
+   * progress stream are otherwise free to open in unbounded numbers,
+   * letting an attacker squat file descriptors / NATS subscriptions.
+   * 20 is generous for a real user (one progress stream per active
+   * upload, capped at a handful of parallel uploads from one machine);
+   * 1000 simultaneous from one IP is a script.
+   */
+  WS_MAX_CONNECTIONS_PER_IP: z.coerce.number().int().positive().default(20),
 });
 
 export type Config = z.infer<typeof ConfigSchema>;
