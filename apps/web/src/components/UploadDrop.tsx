@@ -258,11 +258,11 @@ export function UploadDrop() {
         {/*
           Share-options block. Each control gets a label + a small helper
           paragraph that spells out exactly what the option does — picked
-          deliberately over a bare label-and-checkbox UI so a sender from a
-          regulated profession (lawyer, doctor, accountant) can read the
-          consequence of the toggle BEFORE clicking it. Stacks vertically on
-          mobile, two-column from `sm` upwards. Pointer events are killed
-          during upload so a mid-flight toggle can't trigger a re-upload.
+          deliberately over a bare label-and-checkbox UI so a sender can
+          read the consequence of the toggle BEFORE clicking it. Stacks
+          vertically on mobile, two-column from `sm` upwards. Pointer
+          events are killed during upload so a mid-flight toggle can't
+          trigger a re-upload.
         */}
         <div
           className={cn(

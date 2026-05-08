@@ -99,18 +99,15 @@ auditor:
 
 ## Why this matters
 
-For a regulated professional (the wedge audience):
+The destruction chain inverts the usual retention story. Most file-handling
+systems can prove that a record exists; few can prove that one no longer does.
+SlothBox publishes a tamper-evident chain entry at the moment a share is
+destroyed, so any future inquiry can verify the destruction happened at the
+claimed time without the operator's word being load-bearing.
 
-- **Bogføringsloven** requires a 5-year retention chain. SlothBox proves
-  destruction occurred at a specific time, which is the inverse — proof of
-  end-of-life for transient documents.
-- **GDPR Article 17** "right to erasure" requires a controller to delete
-  personal data on request. SlothBox provides cryptographic proof that the
-  encryption key for that data is destroyed.
-- **Litigation hold** clients can prove that a specific document was, in fact,
-  destroyed before a given date, blocking spoliation claims.
-
-For everyone else, it's a nice-to-have transparency layer.
+For everyone else, it's a transparency layer — confirmation that "deleted"
+actually meant "key destroyed; ciphertext mathematically unrecoverable" rather
+than "soft-deleted in a database somewhere."
 
 ## Limits
 

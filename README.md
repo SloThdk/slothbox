@@ -1,6 +1,6 @@
 # SlothBox
 
-> **End-to-end encrypted file transfer with court-admissible delivery receipts. The server cannot decrypt anything — and the full source code is open so anyone can audit that claim.**
+> **End-to-end encrypted file transfer with tamper-evident delivery receipts. The server cannot decrypt anything — and the full source code is open so anyone can audit that claim.**
 
 **Live: <https://slothbox.philipsloth.com>**
 
@@ -30,9 +30,9 @@
 >    External cryptographer review is a hard gate for **v1.0** before any
 >    "production-ready" framing.
 >
-> Use this build for portfolio review and personal experimentation. Do not
-> use it for legally-sensitive transfers until v1.0. Full threat model and
-> non-goals: [`SECURITY.md`](SECURITY.md).
+> Use this build for portfolio review and personal experimentation, not
+> for sensitive transfers until v1.0. Full threat model and non-goals:
+> [`SECURITY.md`](SECURITY.md).
 
 ---
 
@@ -84,20 +84,17 @@ P2P fallback, MitID for verified senders) is built on top.
 
 ## Why this exists
 
-| Existing service   | Issue                                                                                              |
-| ------------------ | -------------------------------------------------------------------------------------------------- |
-| WeTransfer         | Scans your file, keeps a copy, monetises via ads                                                   |
-| Dropbox Transfer   | Reads your content; US-cloud (Schrems II problem for EU users)                                     |
-| Google Drive share | Same                                                                                               |
-| Wormhole.app       | E2E encrypted, open-source, but no court-admissible delivery proof and no per-recipient encryption |
-| ProtonDrive        | E2E encrypted but paid, account-only, no quick-share, no court-admissible receipt                  |
-| Registered mail    | Paper, days, no encryption inside the envelope                                                     |
+| Existing service   | Issue                                                                                    |
+| ------------------ | ---------------------------------------------------------------------------------------- |
+| WeTransfer         | Scans your file, keeps a copy, monetises via ads                                         |
+| Dropbox Transfer   | Reads your content; US-cloud (Schrems II problem for EU users)                           |
+| Google Drive share | Same                                                                                     |
+| Wormhole.app       | E2E encrypted, open-source, but no signed delivery proof and no per-recipient encryption |
+| ProtonDrive        | E2E encrypted but paid, account-only, no quick-share, no signed delivery receipt         |
+| Registered mail    | Paper, days, no encryption inside the envelope                                           |
 
 There is no **EU-hosted, open-source, end-to-end encrypted file transfer with
-cryptographic delivery receipts** product. SlothBox aims at that gap, with a focus on
-**regulated professions** (lawyers, accountants, journalists, doctors) where both
-confidentiality (`tavshedspligt`) and provable delivery (Bogføringsloven, GDPR audit
-trail) are statutory requirements.
+cryptographic delivery receipts** product. SlothBox aims at that gap.
 
 ---
 
@@ -115,7 +112,7 @@ not by marketing copy:
 
 2. **Delivery is cryptographically provable without revealing content.** When
    the recipient downloads, the system issues an **RFC 3161** signed timestamp
-   receipt over the file's hash. The result is a court-admissible proof that
+   receipt over the file's hash. The result is a tamper-evident proof that
    _something with this hash was retrieved at this time_, without revealing
    what it was. _(Lands in v0.5.)_
 
@@ -553,11 +550,8 @@ Detailed scope per release in [`MILESTONES.md`](MILESTONES.md).
 ## Why EU-hosted
 
 SlothBox runs exclusively in EU regions — the reference deployment is hosted on
-an EU-jurisdiction VM in a German data centre. For users subject to EU data
-protection (GDPR), Danish Bogføringsloven, or any sector-specific confidentiality
-regime (`tavshedspligt`, attorney-client privilege, medical confidentiality),
-this matters: data does not transit US-jurisdiction infrastructure where
-Schrems II compliance is contested.
+an EU-jurisdiction VM in a German data centre. The data path does not transit
+US-jurisdiction infrastructure where Schrems II compliance is contested.
 
 This isn't a marketing claim — it's checked into the infrastructure config. See
 [`docker-compose.prod.yml`](docker-compose.prod.yml) and the deployment runbook

@@ -29,7 +29,7 @@ the project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - WebRTC P2P file transfer
 - MitID OIDC for verified senders
 - Time-locked / deadman's-switch shares
-- Bogføringsloven-compliant audit export
+- Long-retention audit export (CSV / JSON) of share history
 
 ## [0.1.0-alpha.1] — 2026-05-07
 

@@ -79,14 +79,14 @@ The phased plan from scaffold to externally-reviewed v1.0.
 
 ## v1.1.0 — "P2P and Verified Senders"
 
-**Goal:** Last-mile features for the regulated-professions wedge.
+**Goal:** Last-mile features — peer-to-peer paths, verified-sender identity, deferred unlock semantics.
 
 | Area               | Scope                                                                                      |
 | ------------------ | ------------------------------------------------------------------------------------------ |
 | WebRTC P2P         | Browser-to-browser file transfer when both endpoints online (server only relays signaling) |
 | MitID OIDC         | Danish digital ID for verified-sender identity attached to receipts                        |
 | Time-locked shares | Files unlock at a specific future date or after a heartbeat lapse                          |
-| Audit export       | Bogføringsloven-compliant CSV/JSON export of share history for accountants                 |
+| Audit export       | CSV / JSON export of share history with multi-year retention semantics                     |
 
 ---
 
