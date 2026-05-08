@@ -142,47 +142,118 @@ function buildUploadUrl(shortId: string, chunkIndex: number): string {
 
 // ─── Zod schemas ──────────────────────────────────────────────────
 
-/** Body schema for POST /api/shares. */
-const CreateShareSchema = z.object({
-  fileSize: z.number().int().positive().max(Number.MAX_SAFE_INTEGER),
-  fileHash: z
-    .string()
-    .min(1)
-    .max(64)
-    .refine(
-      (v) => decodeBase64Url(v).byteLength === FILE_HASH_BYTES,
-      `fileHash must decode to exactly ${FILE_HASH_BYTES} bytes`
-    ),
-  encryptedMeta: z.string().min(1).max(8192),
-  nonceMeta: z
-    .string()
-    .min(1)
-    .max(64)
-    .refine(
-      (v) => decodeBase64Url(v).byteLength === NONCE_META_BYTES,
-      `nonceMeta must decode to exactly ${NONCE_META_BYTES} bytes`
-    ),
-  chunkCount: z.number().int().positive().max(100_000),
-  chunkSize: z
-    .number()
-    .int()
-    .positive()
-    .max(config.MAX_CHUNK_SIZE_BYTES, "chunkSize exceeds MAX_CHUNK_SIZE_BYTES"),
-  expiresAt: z
-    .string()
-    .datetime({ offset: true })
-    .refine((iso) => {
-      const at = new Date(iso).getTime();
-      return Number.isFinite(at) && at > Date.now();
-    }, "expiresAt must be a future ISO-8601 timestamp")
-    .refine((iso) => {
-      const at = new Date(iso).getTime();
-      const ttlMs = config.MAX_SHARE_TTL_DAYS * 24 * 60 * 60 * 1000;
-      return at - Date.now() <= ttlMs;
-    }, `expiresAt cannot be more than ${config.MAX_SHARE_TTL_DAYS} days from now`),
-  burnAfterRead: z.boolean(),
-  maxDownloads: z.number().int().positive().max(10_000).nullable(),
-});
+/**
+ * Body schema for POST /api/shares.
+ *
+ * Per-field bounds + a cross-field `.superRefine` cap — the audit on
+ * 2026-05-08 surfaced that without the cross-field check, a single
+ * share could legitimately declare `chunkCount × chunkSize` up to
+ * 1 TB (100,000 × 10 MB). Combined with the 100/day/IP create rate
+ * limit, a script could squat ~3 TB/day per IP until expiry. The
+ * cross-field cap keeps both the plaintext `fileSize` and the
+ * ciphertext storage ceiling at `config.MAX_FILE_SIZE_BYTES` (4 GB
+ * by default), matching the client-side cap.
+ */
+const CreateShareSchema = z
+  .object({
+    /**
+     * Plaintext file size in bytes. Capped at MAX_FILE_SIZE_BYTES
+     * (4 GB default) so a malicious client can't declare a
+     * pathological size and force pre-allocation costs downstream.
+     */
+    fileSize: z
+      .number()
+      .int()
+      .positive()
+      .max(config.MAX_FILE_SIZE_BYTES, "fileSize exceeds MAX_FILE_SIZE_BYTES"),
+    fileHash: z
+      .string()
+      .min(1)
+      .max(64)
+      .refine(
+        (v) => decodeBase64Url(v).byteLength === FILE_HASH_BYTES,
+        `fileHash must decode to exactly ${FILE_HASH_BYTES} bytes`
+      ),
+    encryptedMeta: z.string().min(1).max(8192),
+    nonceMeta: z
+      .string()
+      .min(1)
+      .max(64)
+      .refine(
+        (v) => decodeBase64Url(v).byteLength === NONCE_META_BYTES,
+        `nonceMeta must decode to exactly ${NONCE_META_BYTES} bytes`
+      ),
+    chunkCount: z.number().int().positive().max(100_000),
+    chunkSize: z
+      .number()
+      .int()
+      .positive()
+      .max(config.MAX_CHUNK_SIZE_BYTES, "chunkSize exceeds MAX_CHUNK_SIZE_BYTES"),
+    expiresAt: z
+      .string()
+      .datetime({ offset: true })
+      .refine((iso) => {
+        const at = new Date(iso).getTime();
+        return Number.isFinite(at) && at > Date.now();
+      }, "expiresAt must be a future ISO-8601 timestamp")
+      .refine((iso) => {
+        const at = new Date(iso).getTime();
+        const ttlMs = config.MAX_SHARE_TTL_DAYS * 24 * 60 * 60 * 1000;
+        return at - Date.now() <= ttlMs;
+      }, `expiresAt cannot be more than ${config.MAX_SHARE_TTL_DAYS} days from now`),
+    burnAfterRead: z.boolean(),
+    maxDownloads: z.number().int().positive().max(10_000).nullable(),
+  })
+  /**
+   * Cross-field cap on total ciphertext storage. Closes the
+   * cost-amplification vector flagged on 2026-05-08:
+   *
+   *   chunkCount * chunkSize  must be ≤ MAX_FILE_SIZE_BYTES
+   *
+   * Worked examples after the fix (4 GB default cap):
+   *   - chunkSize 10 MB → max chunkCount ≈ 410   (vs 100,000 before)
+   *   - chunkSize 1 MB  → max chunkCount ≈ 4,096
+   *   - chunkSize 64 KB → max chunkCount ≈ 65,536 (still under the
+   *                                                 100k bound)
+   *
+   * AEAD overhead per chunk is ~40 bytes (24-byte XChaCha20 nonce +
+   * 16-byte Poly1305 tag) — well under 0.1% on a 4 GB share at any
+   * sane chunk size, so we don't bother with a separate ciphertext-
+   * overhead allowance.
+   *
+   * Numerical safety: 100_000 * 10_485_760 = 1,048,576,000,000 — this
+   * stays comfortably inside Number.MAX_SAFE_INTEGER (2^53 ≈ 9×10^15)
+   * so the multiplication can never silently lose precision.
+   */
+  .superRefine((data, ctx) => {
+    const totalCiphertext = data.chunkCount * data.chunkSize;
+    if (totalCiphertext > config.MAX_FILE_SIZE_BYTES) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["chunkCount"],
+        message:
+          `chunkCount * chunkSize (${totalCiphertext}) exceeds ` +
+          `MAX_FILE_SIZE_BYTES (${config.MAX_FILE_SIZE_BYTES})`,
+      });
+    }
+    /**
+     * Sanity floor on chunk allocation: the declared ciphertext
+     * capacity must be at least as large as the plaintext fileSize.
+     * Without this, a client could declare a 4 GB plaintext but only
+     * allocate 1 MB of chunk storage — the upload will fail anyway,
+     * but rejecting at the boundary is cheaper than letting the
+     * client burn rate-limit budget on a doomed create.
+     */
+    if (totalCiphertext < data.fileSize) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["chunkCount"],
+        message:
+          `chunkCount * chunkSize (${totalCiphertext}) is smaller ` +
+          `than declared fileSize (${data.fileSize})`,
+      });
+    }
+  });
 
 /** Param schema shared by every :shortId route. */
 const ShortIdParamSchema = z.object({
