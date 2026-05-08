@@ -1,12 +1,11 @@
 # Delivery Receipts
 
-How SlothBox produces court-admissible delivery proofs without ever seeing your
+How SlothBox produces tamper-evident delivery proofs without ever seeing your
 file's content. **Lands in v0.5.**
 
 ## Goal
 
-A regulated professional (lawyer, accountant, journalist, doctor) needs proof
-that:
+A signed, verifiable proof that:
 
 - A specific file (identified by its hash) was retrieved
 - At a specific time
@@ -89,27 +88,25 @@ What the receipt does NOT prove:
 - That the recipient actually read the file (the system can prove the bytes
   were retrieved; the act of reading is opaque to the server)
 
-## Court admissibility
+## What the receipt is and isn't
 
-Receipt admissibility depends on jurisdiction and case type. SlothBox provides
-the technical artifact. The project does not provide legal certification.
+The receipt is a technical artifact: an RFC 3161 timestamped signature over
+the file hash, plus a Merkle proof anchored in a public chain. It is verifiable
+by anyone with the bundled TSA cert and the verifier CLI.
 
-What helps the receipt's admissibility:
+What the receipt does:
 
 - The TSA is an established RFC 3161 authority
 - The Merkle root is published to a public endpoint at issuance time
 - The verifier CLI is independent of any SlothBox server
 - The cryptographic primitives are audited and documented
 
-What may still be required by the relevant jurisdiction:
+What the receipt is not:
 
-- A notarized affidavit from the recipient that they downloaded
-- A separate signed confirmation (e.g. via DocuSign or MitID)
-- Expert testimony for novel technical evidence
-
-For Danish proceedings, pairing SlothBox receipts with a Penneo-signed
-acknowledgment makes the strongest case. **This document is not legal
-advice** — consult a lawyer for any specific case.
+- It is not legal certification of any kind
+- It does not assert the recipient's identity (paired identity proof — Penneo,
+  DocuSign, MitID — is a separate concern, out of scope for v0.5)
+- It does not assert that the recipient acted on the file's content
 
 ## Verification flow
 

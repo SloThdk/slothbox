@@ -124,8 +124,8 @@ export const TRANSLATIONS = {
     da: "v0.1 alpha — læs dette før du sender rigtige data.",
   },
   "alphaBanner.body": {
-    en: "Anyone holding the share URL can destroy or burn the share — the v0.1 access model treats the shortId as the access secret. Court-admissible RFC 3161 receipts arrive in v0.5; per-recipient asymmetric encryption arrives in v1.0. Use this build for portfolio review and personal experimentation, not legally-sensitive transfers.",
-    da: "Alle, der har delingens URL, kan destruere eller brænde delingen — v0.1's adgangsmodel behandler shortId som adgangshemmeligheden. Retsgyldige RFC 3161-kvitteringer kommer i v0.5, og per-modtager asymmetrisk kryptering kommer i v1.0. Brug denne version til portfolio-gennemgang og personlig test, ikke juridisk følsomme overførsler.",
+    en: "Anyone holding the share URL can destroy or burn the share — the v0.1 access model treats the shortId as the access secret. Tamper-evident RFC 3161 receipts arrive in v0.5; per-recipient asymmetric encryption arrives in v1.0. Use this build for portfolio review and personal experimentation, not for sensitive transfers.",
+    da: "Alle, der har delingens URL, kan destruere eller brænde delingen — v0.1's adgangsmodel behandler shortId som adgangshemmeligheden. Manipulationsbeskyttede RFC 3161-kvitteringer kommer i v0.5, og per-modtager asymmetrisk kryptering kommer i v1.0. Brug denne version til portfolio-gennemgang og personlig test, ikke til følsomme overførsler.",
   },
   "alphaBanner.dismiss": {
     en: "I understand",
@@ -306,16 +306,16 @@ export const TRANSLATIONS = {
 
   // ─── Landing — closing CTA ────────────────────────────────────
   "ctaBlock.eyebrow": {
-    en: "Built for regulated work",
-    da: "Bygget til regulerede fag",
+    en: "Built to be inspected",
+    da: "Bygget til at blive inspiceret",
   },
   "ctaBlock.heading": {
-    en: "Lawyers. Accountants. Journalists. Doctors.",
-    da: "Advokater. Revisorer. Journalister. Læger.",
+    en: "Send a file. Prove it arrived.",
+    da: "Send en fil. Bevis at den ankom.",
   },
   "ctaBlock.body": {
-    en: "Anyone bound by tavshedspligt, GDPR, Bogføringsloven, or audit-trail requirements. v0.5 ships court-admissible RFC 3161 delivery receipts.",
-    da: "Alle der er underlagt tavshedspligt, GDPR, Bogføringsloven eller revisionssporkrav. v0.5 leverer retsgyldige RFC 3161-leveringskvitteringer.",
+    en: "Tamper-evident delivery receipts arrive in v0.5: an RFC 3161 timestamp signed over the file hash, anchored in a public Merkle chain. The full source is open — read it before trusting it.",
+    da: "Manipulationsbeskyttede leveringskvitteringer kommer i v0.5: en RFC 3161-tidsstempel signeret over filens hash, forankret i en offentlig Merkle-kæde. Hele kildekoden er åben — læs den før du stoler på den.",
   },
   "ctaBlock.cta": {
     en: "Read the security docs",
@@ -344,8 +344,8 @@ export const TRANSLATIONS = {
     da: "Hvorfor — og hvorfor nu",
   },
   "about.why.body": {
-    en: "WeTransfer scans your file and keeps a copy. Dropbox Transfer reads your content and runs through US infrastructure (Schrems II problem for EU users). ProtonDrive is end-to-end encrypted but paid, account-only, and has no quick-share for unauthenticated recipients. There is no good European, open-source, end-to-end encrypted file transfer with court-admissible delivery receipts. SlothBox aims at that gap, with a focus on the regulated professions where both confidentiality and provable delivery are statutory requirements.",
-    da: "WeTransfer scanner din fil og beholder en kopi. Dropbox Transfer læser dit indhold og kører gennem amerikansk infrastruktur (Schrems II-problem for EU-brugere). ProtonDrive er end-to-end krypteret, men betalt, kontobaseret og uden quick-share til uautentificerede modtagere. Der findes ingen god europæisk, open source, end-to-end krypteret filoverførsel med retsgyldige leveringskvitteringer. SlothBox sigter mod det hul — med fokus på de regulerede fag, hvor både fortrolighed og dokumenterbar levering er lovkrav.",
+    en: "WeTransfer scans your file and keeps a copy. Dropbox Transfer reads your content and runs through US infrastructure (Schrems II problem for EU users). ProtonDrive is end-to-end encrypted but paid, account-only, and has no quick-share for unauthenticated recipients. There is no good European, open-source, end-to-end encrypted file transfer with cryptographic delivery receipts. SlothBox aims at that gap.",
+    da: "WeTransfer scanner din fil og beholder en kopi. Dropbox Transfer læser dit indhold og kører gennem amerikansk infrastruktur (Schrems II-problem for EU-brugere). ProtonDrive er end-to-end krypteret, men betalt, kontobaseret og uden quick-share til uautentificerede modtagere. Der findes ingen god europæisk, open source, end-to-end krypteret filoverførsel med kryptografiske leveringskvitteringer. SlothBox sigter mod det hul.",
   },
   "about.who.heading": {
     en: "Who built it",

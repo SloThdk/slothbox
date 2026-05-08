@@ -2,7 +2,7 @@
   "name": "slothbox",
   "version": "0.1.0-alpha.1",
   "private": true,
-  "description": "End-to-end encrypted file transfer with court-admissible delivery receipts. Server cannot decrypt anything.",
+  "description": "End-to-end encrypted file transfer with tamper-evident delivery receipts. Server cannot decrypt anything.",
   "license": "MIT",
   "author": "Philip Sloth <philipsloth1@gmail.com> (https://philipsloth.com)",
   "homepage": "https://github.com/SloThdk/slothbox",

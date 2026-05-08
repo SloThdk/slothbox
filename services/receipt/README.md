@@ -43,9 +43,9 @@ From [`docs/RECEIPTS.md`](../../docs/RECEIPTS.md):
 
 ## Architecture brief (one-paragraph version)
 
-A regulated professional needs proof that a specific encrypted file was
-retrieved at a specific time without revealing the content. SlothBox produces
-this proof by hashing the file (the encrypted blob — we never see plaintext),
+The receipt service answers a single question: was a specific encrypted file
+retrieved at a specific time? It does so without revealing the content.
+SlothBox produces the proof by hashing the file (the encrypted blob — we never see plaintext),
 asking an RFC 3161 timestamp authority to sign over the hash with the current
 time, and recording the signed token as a leaf in a public Merkle tree. The
 tree's root is published periodically. An auditor verifies a receipt by

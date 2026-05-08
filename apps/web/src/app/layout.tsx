@@ -60,7 +60,6 @@ export const metadata: Metadata = {
     "end-to-end encryption",
     "EU hosted",
     "open source",
-    "GDPR",
     "secure share",
   ],
   authors: [{ name: "Philip Sloth", url: "https://philipsloth.com" }],
