@@ -130,7 +130,22 @@ jobs:
           # user's homedir).
           #
           # Deploy strategy (current):
-          #   git pull → rebuild changed images locally on the box → up -d
+          #   fetch + reset --hard → rebuild changed images locally on the
+          #   box → up -d → ps → prune
+          #
+          # Why fetch + reset --hard rather than `git pull --ff-only`:
+          #   The VM is a deploy target, not a source-of-truth for local
+          #   commits. A previous deploy run on 2026-05-08 silently failed
+          #   the entire content rollout because `git pull --ff-only` hit
+          #   "Diverging branches can't be fast-forwarded, aborting" — the
+          #   SSH-action script then continued (the workflow runner was
+          #   not in `set -e` for the script body) and the build ran
+          #   against the STALE checkout. The image was rebuilt, the
+          #   container was recreated, the smoke test on /healthz passed,
+          #   and the live site served old code. Hard-reset to
+          #   origin/master makes the deploy idempotent regardless of
+          #   the VM's local git state and matches what a deploy step
+          #   should actually mean.
           #
           # We rebuild locally instead of `docker compose pull` because the
           # production overlay leaves `image:` lines commented out — the
@@ -139,9 +154,19 @@ jobs:
           # `up -d` rebuilds any service whose Dockerfile or build context
           # changed since the last run; unchanged services are no-ops.
           # `--remove-orphans` cleans containers from removed services.
+          #
+          # `set -euo pipefail` belt-and-braces: appleboy/ssh-action runs
+          # the script through `bash -e` already, but the prior incident
+          # showed that single-line `git pull` failures didn't reliably
+          # abort the run — explicit bash safety leaves no ambiguity.
           script: |
+            set -euo pipefail
             cd /home/slothbox/slothbox
-            git pull --ff-only origin master
+            echo "→ fetching origin/master"
+            git fetch --prune origin master
+            echo "→ resetting working tree to origin/master ($(git rev-parse --short origin/master))"
+            git reset --hard origin/master
+            echo "→ HEAD is now $(git rev-parse HEAD)"
             export IMAGE_TAG=${{ github.sha }}
             docker compose -f docker-compose.yml -f docker-compose.prod.yml build
             docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --remove-orphans
@@ -153,22 +178,55 @@ jobs:
 
       - name: Smoke test
         # Hits the production domain (defaults to slothbox.philipsloth.com)
-        # to verify the new revision is actually serving HTTP 200.
+        # to verify the new revision is actually serving HTTP 200 AND that
+        # the rendered HTML contains the current commit's short SHA. The
+        # commit-SHA check exists because of the 2026-05-08 incident: the
+        # VM's git pull silently failed, the build ran against stale
+        # source, /healthz still returned 200, and the live site shipped
+        # the previous revision while the workflow reported success. The
+        # SHA stamp is injected at build time via NEXT_PUBLIC_BUILD_SHA in
+        # apps/web/Dockerfile and rendered into the page footer + a
+        # <meta name="x-build-sha"> tag — so an SHA mismatch is a hard
+        # signal that the deployed bundle is not the one we just built.
         # PRODUCTION_DOMAIN can be overridden as a repo secret if we ever
         # move to a different domain.
         env:
           PROD_DOMAIN: ${{ secrets.PRODUCTION_DOMAIN }}
         run: |
+          set -euo pipefail
           DOMAIN="${PROD_DOMAIN:-slothbox.philipsloth.com}"
-          echo "Smoke-testing https://$DOMAIN"
+          SHORT_SHA="${GITHUB_SHA:0:7}"
+          echo "Smoke-testing https://$DOMAIN (expecting build SHA $SHORT_SHA)"
+
+          # 1. /healthz must return 200 — proves the gateway is up.
           for i in {1..30}; do
             CODE=$(curl -fsS -o /dev/null -w "%{http_code}" "https://$DOMAIN/healthz" || echo "000")
             if [ "$CODE" = "200" ]; then
-              echo "deployment healthy (got HTTP $CODE on attempt $i)"
-              exit 0
+              echo "  ✓ /healthz returned 200 on attempt $i"
+              break
             fi
-            echo "attempt $i: got HTTP $CODE, retrying in 2s"
+            if [ "$i" = "30" ]; then
+              echo "  ✗ /healthz never returned 200 — aborting"
+              exit 1
+            fi
+            echo "  attempt $i: got HTTP $CODE, retrying in 2s"
             sleep 2
           done
-          echo "deployment did not become healthy in time"
+
+          # 2. The rendered homepage must contain the current commit's
+          #    short SHA. If not, the VM built against stale source — the
+          #    failure mode the 2026-05-08 incident exposed.
+          for i in {1..15}; do
+            HTML=$(curl -fsS "https://$DOMAIN/" || echo "")
+            if echo "$HTML" | grep -q "$SHORT_SHA"; then
+              echo "  ✓ build SHA $SHORT_SHA found in rendered HTML on attempt $i"
+              echo "deployment verified"
+              exit 0
+            fi
+            echo "  attempt $i: SHA $SHORT_SHA not yet in HTML, retrying in 2s"
+            sleep 2
+          done
+          echo "  ✗ build SHA $SHORT_SHA never appeared in rendered HTML"
+          echo "  this means the deploy ran but the live bundle is from a previous revision"
+          echo "  — most likely the VM's working tree wasn't reset to origin/master."
           exit 1

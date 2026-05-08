@@ -71,6 +71,14 @@ ARG NEXT_PUBLIC_WS_URL=wss://slothbox.philipsloth.com
 ARG NEXT_PUBLIC_INGEST_URL=https://slothbox.philipsloth.com
 ARG NEXT_PUBLIC_PUBLIC_URL=https://slothbox.philipsloth.com
 ARG NEXT_PUBLIC_MAX_FILE_SIZE_MB=4096
+# Build-time SHA stamp. Defaults to "dev" so a bare `docker build .`
+# without --build-arg produces an image that's identifiable as a local
+# build, never as a stale prod build masquerading as a fresh one.
+# Production builds receive the github.sha via docker-compose.yml's
+# build.args block. The smoke test in .github/workflows/deploy.yml
+# verifies this SHA appears in the rendered HTML — if it doesn't,
+# the deploy is failing silently and the live site is on a stale image.
+ARG NEXT_PUBLIC_BUILD_SHA=dev
 
 # Promote ARGs to ENV so Next's webpack inliner sees them as
 # process.env.NEXT_PUBLIC_*. Note: ARG -> ENV bridge is necessary
@@ -79,7 +87,8 @@ ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL} \
     NEXT_PUBLIC_WS_URL=${NEXT_PUBLIC_WS_URL} \
     NEXT_PUBLIC_INGEST_URL=${NEXT_PUBLIC_INGEST_URL} \
     NEXT_PUBLIC_PUBLIC_URL=${NEXT_PUBLIC_PUBLIC_URL} \
-    NEXT_PUBLIC_MAX_FILE_SIZE_MB=${NEXT_PUBLIC_MAX_FILE_SIZE_MB}
+    NEXT_PUBLIC_MAX_FILE_SIZE_MB=${NEXT_PUBLIC_MAX_FILE_SIZE_MB} \
+    NEXT_PUBLIC_BUILD_SHA=${NEXT_PUBLIC_BUILD_SHA}
 
 # Re-apply hoisted .npmrc inside the builder stage too — needed for the
 # implicit pnpm install below. .npmrc must exist BEFORE manifests are
@@ -108,6 +117,7 @@ RUN NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL} \
     NEXT_PUBLIC_INGEST_URL=${NEXT_PUBLIC_INGEST_URL} \
     NEXT_PUBLIC_PUBLIC_URL=${NEXT_PUBLIC_PUBLIC_URL} \
     NEXT_PUBLIC_MAX_FILE_SIZE_MB=${NEXT_PUBLIC_MAX_FILE_SIZE_MB} \
+    NEXT_PUBLIC_BUILD_SHA=${NEXT_PUBLIC_BUILD_SHA} \
     pnpm --filter @slothbox/web build
 
 # --- Stage 4: minimal runtime image -------------------------------------
