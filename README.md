@@ -406,17 +406,27 @@ it. Nothing on this list is decorative.
 
 #### Postgres 16 (self-hosted)
 
-- **Role:** the trust enforcement layer. Every table has row-level security;
-  the `audit_chain` table is hash-linked entry-to-entry; provider-separation
-  triggers on `auth.identities` (v0.5) prevent silent account-takeover via a
-  second OAuth provider.
-- **Why this stack:** Postgres is the only database where the security model
-  belongs in the schema. RLS + triggers + the `pgcrypto`-backed hash chain mean
-  a compromised application server cannot exfiltrate or rewrite data without
-  breaking verification — the trust property is enforced one layer below the
-  language runtime. Self-hosting (rather than managed Supabase) keeps the ops
-  story honest: restore drills, full snapshots, and rebuild-from-compose are
-  all in scope without a vendor in the loop.
+- **Role:** the durability + audit layer. The `audit_chain` table is
+  hash-linked entry-to-entry, and the `pgcrypto`-backed digest chain plus
+  CHECK constraints on every shape-critical column mean a compromised
+  application server cannot rewrite history without breaking verification.
+  RLS policies are wired (`db/migrations/0003_rls_hardening.sql`) but
+  **not yet enforced in v0.1** — see "Trust model" below for the honest
+  framing.
+- **Trust model — v0.1:** the api-gateway connects to Postgres as the
+  `slothbox` role (the table owner), for whom Postgres bypasses RLS by
+  design. The `app.current_short_id` GUC the policy reads is also not yet
+  set by the gateway. So in v0.1 the actual scoping comes from the
+  application's `WHERE short_id = $1` clauses on every read — RLS is
+  there as defence-in-depth groundwork that activates the moment the
+  gateway switches to a non-owner role and starts setting the GUC
+  per-request. Provider-separation triggers on `auth.identities` (v0.5)
+  prevent silent account-takeover via a second OAuth provider.
+- **Why this stack:** Postgres is the only database where the security
+  model can belong in the schema once auth lands. Self-hosting (rather
+  than managed Supabase) keeps the ops story honest: restore drills,
+  full snapshots, and rebuild-from-compose are all in scope without a
+  vendor in the loop.
 - **Alternatives rejected:** managed Supabase (great DX, but defeats the
   "operator can run the whole data tier" demo and adds a vendor); MySQL (no
   RLS, no clean trigger story for the audit chain); Mongo / Dynamo (wrong data
@@ -601,7 +611,9 @@ grep -rn "PutObjectAsync" services/ingest/Services/
 #    reordered or moved between shares:
 grep -rn "buildChunkAad" packages/crypto-core/src/
 
-# 5. RLS + audit chain are enforced in the database, not the application:
+# 5. Audit chain is enforced in the database (RLS is wired for v0.5;
+#    v0.1 trust comes from the gateway's WHERE clauses — see the
+#    "Trust model" note in the Postgres section above):
 grep -rn "ROW LEVEL SECURITY\|append_audit_entry" db/migrations/
 ```
 
