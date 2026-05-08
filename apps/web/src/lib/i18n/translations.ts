@@ -398,8 +398,8 @@ export const TRANSLATIONS = {
     da: "Hvornår det er det rigtige værktøj",
   },
   "about.useCases.body": {
-    en: "If you're sending a contract draft, an NDA, an accounting export, a faktura PDF, a medical report, or a build artifact that contains an API key, SlothBox is built for you. The common thread: the file is sensitive enough that you don't want WeTransfer keeping a copy on US infrastructure for seven days, but you also don't want to onboard the recipient onto a paid Proton account just to receive one document. SlothBox sits between the two extremes — encrypted in your browser, EU-only data path, no recipient signup, gone after delivery.",
-    da: "Hvis du sender et udkast til en kontrakt, en NDA, en regnskabseksport, en faktura-PDF, en lægeattest eller en build-artefakt med en API-nøgle, så er SlothBox bygget til dig. Den fælles tråd: filen er følsom nok til, at du ikke vil have WeTransfer liggende på amerikansk infrastruktur i syv dage, men du har heller ikke lyst til at få modtageren til at oprette en betalt Proton-konto bare for at modtage ét dokument. SlothBox ligger imellem de to yderpunkter — krypteret i din browser, kun-EU-datapath, ingen modtagertilmelding, væk efter levering.",
+    en: "If the file is sensitive enough that you don't want WeTransfer keeping a copy on US infrastructure for seven days — but you also don't want to onboard the recipient onto a paid Proton account just to receive one document — SlothBox sits between the two extremes. Encrypted in your browser, EU-only data path, no recipient signup, gone after delivery.",
+    da: "Hvis filen er følsom nok til, at du ikke vil have WeTransfer liggende på amerikansk infrastruktur i syv dage — men du heller ikke har lyst til at få modtageren til at oprette en betalt Proton-konto bare for at modtage ét dokument — så ligger SlothBox imellem de to yderpunkter. Krypteret i din browser, kun-EU-datapath, ingen modtagertilmelding, væk efter levering.",
   },
   "about.useCases.body.notRight": {
     en: "If you're sharing a holiday-photo album with family, or a marketing-deck draft with the whole team, or anything where the recipients want a permanent shareable link they can come back to next month — SlothBox is the wrong tool. Use Dropbox, Google Drive, or whatever your workflow is built on. The encryption discipline here costs you the convenience of a permanent URL, and that trade only pays off when the file is actually sensitive.",
@@ -662,12 +662,12 @@ export const TRANSLATIONS = {
     da: "En email-vedhæftning ligger for evigt i begge indbakker. WeTransfer beholder en kopi på amerikansk infrastruktur i syv dage. SlothBox brænder delingen i samme øjeblik, modtageren har downloadet — den krypterede fil er væk, og fordi dekrypteringsnøglen aldrig nåede serveren, vil selv en fremtidig backup-restaurering kun give ciphertext tilbage.",
   },
   "useCases.item2.title": {
-    en: "Sharing GDPR-sensitive material",
-    da: "GDPR-følsomt materiale",
+    en: "Files where confidentiality outweighs convenience",
+    da: "Filer hvor fortrolighed vejer tungere end bekvemmelighed",
   },
   "useCases.item2.body": {
-    en: "Medical records, tax documents, HR letters, therapist notes, faktura PDFs. EU-hosted by infrastructure choice — not by a region label on a US cloud. The operator (Philip Sloth, sole-proprietor in Denmark) cannot decrypt anything you upload. A subpoena returns ciphertext.",
-    da: "Patientjournaler, skattedokumenter, HR-breve, terapeutnoter, faktura-PDF'er. EU-hostet via infrastrukturvalget — ikke via et regionsstempel på en amerikansk sky. Operatøren (Philip Sloth, enkeltmandsvirksomhed i Danmark) kan ikke dekryptere noget af det, du uploader. En retskendelse får kun ciphertext.",
+    en: "Anything you don't want sitting on US infrastructure for seven days, indexed by an advertising graph, or read by a content-moderation pipeline. EU-hosted by infrastructure choice — not by a region label on a US cloud. The operator cannot decrypt what you upload. A subpoena returns ciphertext.",
+    da: "Alt det, du ikke vil have liggende på amerikansk infrastruktur i syv dage, indekseret af en reklame-graf eller læst af en indholdsmoderations-pipeline. EU-hostet via infrastrukturvalget — ikke via et regionsstempel på en amerikansk sky. Operatøren kan ikke dekryptere det, du uploader. En retskendelse får kun ciphertext.",
   },
   "useCases.item3.title": {
     en: "Source code or build artifacts with secrets",
