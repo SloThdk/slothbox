@@ -375,16 +375,30 @@ services:
     restart: unless-stopped
     environment:
       - GF_SECURITY_ADMIN_USER=admin
-      - GF_SECURITY_ADMIN_PASSWORD=admin
+      # ── Fail-closed admin password ────────────────────────────
+      # Compose's `${VAR:?message}` syntax aborts `docker compose
+      # up` with a clear error if GRAFANA_ADMIN_PASSWORD isn't set,
+      # so an operator who forgets `-f docker-compose.prod.yml` on
+      # production deploy CANNOT accidentally bring up Grafana with
+      # default `admin/admin` creds. For local dev: export the var
+      # to anything you'll remember (e.g. `export
+      # GRAFANA_ADMIN_PASSWORD=admin`) — one-time per shell.
+      # Closed by the 2026-05-08 abuse-hardening pass: the prod
+      # overlay drops the loopback bind, but base compose still
+      # exposed admin/admin on 127.0.0.1:3030 — a single typo in
+      # the up command on the prod host shipped a Loki-backed
+      # request-log grep tool with default creds.
+      - "GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:?GRAFANA_ADMIN_PASSWORD must be set; see .env.example}"
       - GF_USERS_ALLOW_SIGN_UP=false
       - GF_INSTALL_PLUGINS=
     volumes:
       - grafana_data:/var/lib/grafana
       - ./infra/grafana/provisioning:/etc/grafana/provisioning:ro
     ports:
-      # Loopback-only — Grafana ships with admin/admin in local dev, so we
-      # never want the LAN to reach it. Prod fronts Grafana behind Caddy
-      # under /grafana with proper auth (see docker-compose.prod.yml).
+      # Loopback-only — even with a non-default password, the LAN
+      # never needs to reach Grafana directly in dev. Prod fronts
+      # Grafana behind Caddy under /grafana with proper auth (see
+      # docker-compose.prod.yml).
       - "127.0.0.1:3030:3000"
     networks:
       - internal
