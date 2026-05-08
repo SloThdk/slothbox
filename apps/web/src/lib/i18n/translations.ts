@@ -71,10 +71,6 @@ export const TRANSLATIONS = {
     en: "Security",
     da: "Sikkerhed",
   },
-  "nav.github": {
-    en: "GitHub",
-    da: "GitHub",
-  },
   "nav.homeAria": {
     en: "SlothBox — home",
     da: "SlothBox — forside",
@@ -88,10 +84,6 @@ export const TRANSLATIONS = {
   "footer.col.product": {
     en: "Product",
     da: "Produkt",
-  },
-  "footer.col.openSource": {
-    en: "Open source",
-    da: "Open source",
   },
   "footer.col.legal": {
     en: "Legal",
@@ -108,26 +100,6 @@ export const TRANSLATIONS = {
   "footer.link.security": {
     en: "Security",
     da: "Sikkerhed",
-  },
-  "footer.link.github": {
-    en: "GitHub",
-    da: "GitHub",
-  },
-  "footer.link.licence": {
-    en: "MIT licence",
-    da: "MIT-licens",
-  },
-  "footer.link.securityPolicy": {
-    en: "Security policy",
-    da: "Sikkerhedspolitik",
-  },
-  "footer.link.threatModel": {
-    en: "Threat model",
-    da: "Trusselsmodel",
-  },
-  "footer.link.crypto": {
-    en: "Crypto details",
-    da: "Krypteringsdetaljer",
   },
   "footer.builtBy": {
     en: "Built by",
@@ -247,9 +219,9 @@ export const TRANSLATIONS = {
     en: "How the trust model works",
     da: "Sådan virker tillidsmodellen",
   },
-  "hero.cta.source": {
-    en: "Read the source ↗",
-    da: "Læs kildekoden ↗",
+  "hero.cta.secondary": {
+    en: "How SlothBox works",
+    da: "Sådan virker SlothBox",
   },
 
   // ─── Landing — guarantees section ─────────────────────────────
@@ -360,12 +332,12 @@ export const TRANSLATIONS = {
     da: "Hvad SlothBox er — og hvorfor den findes.",
   },
   "about.intro": {
-    en: "SlothBox is an open-source, EU-hosted, end-to-end encrypted file transfer service. Drop a file, get a link, send the link, your recipient downloads. The bit that's different: the server cannot decrypt anything you upload, and you don't have to take our word for it — the entire stack is on",
-    da: "SlothBox er en open source, EU-hostet, end-to-end krypteret filoverførselstjeneste. Slip en fil, få et link, send linket, modtageren downloader. Det særlige: serveren kan ikke dekryptere noget af det, du uploader, og du behøver ikke tage vores ord for det — hele stakken ligger på",
+    en: "SlothBox is an EU-hosted, end-to-end encrypted file transfer service. Drop a file, get a link, send the link, your recipient downloads. The bit that's different: the server cannot decrypt anything you upload — the architecture itself prevents it, not a marketing promise.",
+    da: "SlothBox er en EU-hostet, end-to-end krypteret filoverførselstjeneste. Slip en fil, få et link, send linket, modtageren downloader. Det særlige: serveren kan ikke dekryptere noget af det, du uploader — det er arkitekturen selv, der forhindrer det, ikke et marketing-løfte.",
   },
   "about.intro.under": {
-    en: "under MIT.",
-    da: "under MIT.",
+    en: "",
+    da: "",
   },
   "about.why.heading": {
     en: "Why this, and why now",
@@ -396,12 +368,12 @@ export const TRANSLATIONS = {
     da: "Status",
   },
   "about.status.body": {
-    en: "v0.1.0-alpha is a portfolio reference build. The cryptographic primitives (libsodium, age) are battle-tested, but the SlothBox integration has not yet been independently audited. Don't use this for high-stakes secrets until v1.0 + external cryptographer review. The full roadmap, exit criteria per release, and known gaps are in",
-    da: "v0.1.0-alpha er en portfolio-referencebygning. De kryptografiske primitiver (libsodium, age) er gennemtestede, men SlothBox-integrationen er endnu ikke uafhængigt auditeret. Brug ikke dette til kritiske hemmeligheder før v1.0 + ekstern kryptografgennemgang. Den fulde roadmap, exit-kriterier pr. release og kendte huller ligger i",
+    en: "v0.1.0-alpha is a portfolio reference build. The cryptographic primitives (libsodium, age) are battle-tested, but the SlothBox integration has not yet been independently audited. Don't use this for high-stakes secrets until v1.0 + external cryptographer review.",
+    da: "v0.1.0-alpha er en portfolio-referencebygning. De kryptografiske primitiver (libsodium, age) er gennemtestede, men SlothBox-integrationen er endnu ikke uafhængigt auditeret. Brug ikke dette til kritiske hemmeligheder før v1.0 + ekstern kryptografgennemgang.",
   },
   "about.status.body.tail": {
-    en: ".",
-    da: ".",
+    en: "",
+    da: "",
   },
   "about.name.heading": {
     en: "Why “sloth”",
@@ -457,10 +429,6 @@ export const TRANSLATIONS = {
     en: "Every container, every config, every cryptographic call lives in one repo under MIT. `docker compose up -d` brings the entire production stack online on your machine. v1.0 ships an offline `slothbox-verify` CLI you can audit independently.",
     da: "Hver container, hver konfiguration, hvert kryptografisk kald ligger i ét repository under MIT. `docker compose up -d` rejser hele produktions-stakken på din maskine. v1.0 leverer en offline `slothbox-verify`-CLI, du selv kan auditere.",
   },
-  "security.architecture.linkSource": {
-    en: "Source on GitHub",
-    da: "Kildekode på GitHub",
-  },
   "security.audit.title": {
     en: "Audit roadmap",
     da: "Audit-roadmap",
@@ -480,10 +448,6 @@ export const TRANSLATIONS = {
   "security.disclose.body.or": {
     en: "or use the contact form at",
     da: "eller brug kontaktformularen på",
-  },
-  "security.disclose.body.rest": {
-    en: ". PGP key fingerprint and disclosure window are documented in",
-    da: ". PGP-nøglens fingeraftryk og responstid er dokumenteret i",
   },
   "security.disclose.body.tail": {
     en: ". v0.1 has no bug bounty; v1.0 will, scope-limited.",

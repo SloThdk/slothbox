@@ -7,7 +7,6 @@
 
 import Link from "next/link";
 import { AlertTriangle, Mail, ShieldX } from "lucide-react";
-import { GITHUB_URL } from "@/lib/config";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 
 // Maintainer contact channels. Two paths offered so a reporter can pick
@@ -105,16 +104,7 @@ export function AbuseContent() {
             className="text-[var(--color-accent)] underline-offset-4 hover:underline"
           >
             /security
-          </Link>{" "}
-          ·{" "}
-          <a
-            href={`${GITHUB_URL}/blob/master/SECURITY.md`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-[var(--color-accent)] underline-offset-4 hover:underline"
-          >
-            SECURITY.md
-          </a>
+          </Link>
         </p>
       </section>
     </article>

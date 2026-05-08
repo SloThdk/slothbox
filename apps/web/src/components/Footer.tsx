@@ -1,5 +1,11 @@
-// Footer — license, GitHub, EU residency, version. Kept tight; the
+// Footer — product nav, EU residency, version. Kept tight; the
 // landing page is the loud part.
+//
+// 2026-05-08: GitHub-hosted doc links (Open Source column + threat-
+// model + crypto) were removed from the chrome. The slothbox product
+// site no longer surfaces its source repo — that lives on
+// philipsloth.com (Philip's portfolio). Internal pages (/security,
+// /abuse) remain because they're hosted on the product domain.
 //
 // Marked "use client" because every visible string runs through the
 // LanguageContext. The static link URLs themselves are server-friendly,
@@ -10,7 +16,7 @@
 "use client";
 
 import Link from "next/link";
-import { APP_NAME, APP_VERSION, GITHUB_URL } from "@/lib/config";
+import { APP_NAME, APP_VERSION } from "@/lib/config";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import type { TranslationKey } from "@/lib/i18n/translations";
 
@@ -25,7 +31,7 @@ export function Footer() {
           <p className="mt-1 max-w-md text-sm text-[var(--color-muted)]">{t("footer.tagline")}</p>
         </div>
 
-        <div className="grid grid-cols-2 gap-x-12 gap-y-2 text-sm md:grid-cols-3">
+        <div className="grid grid-cols-2 gap-x-12 gap-y-2 text-sm">
           <FooterColumn
             titleKey="footer.col.product"
             links={[
@@ -35,37 +41,11 @@ export function Footer() {
             ]}
           />
           <FooterColumn
-            titleKey="footer.col.openSource"
-            links={[
-              { href: GITHUB_URL, labelKey: "footer.link.github", external: true },
-              {
-                href: `${GITHUB_URL}/blob/master/LICENSE`,
-                labelKey: "footer.link.licence",
-                external: true,
-              },
-              {
-                href: `${GITHUB_URL}/blob/master/SECURITY.md`,
-                labelKey: "footer.link.securityPolicy",
-                external: true,
-              },
-            ]}
-          />
-          <FooterColumn
             titleKey="footer.col.legal"
             links={[
-              {
-                href: `${GITHUB_URL}/blob/master/docs/THREAT_MODEL.md`,
-                labelKey: "footer.link.threatModel",
-                external: true,
-              },
-              {
-                href: `${GITHUB_URL}/blob/master/docs/CRYPTO.md`,
-                labelKey: "footer.link.crypto",
-                external: true,
-              },
-              // EU DSA Article 16 notice mechanism. Internal route, not
-              // external — visitors should not have to leave the site to
-              // file a report.
+              // EU DSA Article 16 notice mechanism. Internal route —
+              // visitors should not have to leave the site to file a
+              // report.
               { href: "/abuse", labelKey: "footer.link.abuse" },
             ]}
           />

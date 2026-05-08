@@ -1,3 +1,8 @@
+#!/usr/bin/env bash
+# Husky commit-msg hook. The voice-hook line below is auto-managed by
+# scripts/install-voice-hook.sh in philip-claude-code-workspace --
+# leave it; project-specific checks go below it.
+python "/c/Users/phili/philip-claude-code-workspace/hooks/voice-hook.py" "$1" || exit $?
 #!/usr/bin/env sh
 . "$(dirname -- "$0")/_/husky.sh"
 

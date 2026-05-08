@@ -39,12 +39,6 @@ export const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
 export const CHUNK_SIZE_BYTES = 5 * 1024 * 1024;
 
 /**
- * GitHub link, surfaced from a single constant so legal / footer / about pages
- * never drift.
- */
-export const GITHUB_URL = "https://github.com/SloThdk/slothbox";
-
-/**
  * App identity used in headings, copy, OG metadata.
  */
 export const APP_NAME = "SlothBox";

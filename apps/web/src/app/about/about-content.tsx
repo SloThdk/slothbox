@@ -10,7 +10,6 @@
 "use client";
 
 import Link from "next/link";
-import { GITHUB_URL } from "@/lib/config";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 
 export function AboutContent() {
@@ -29,16 +28,7 @@ export function AboutContent() {
 
       <section className="prose-slothbox space-y-6 text-base leading-relaxed text-[var(--color-fg)]">
         <p>
-          {t("about.intro")}{" "}
-          <a
-            href={GITHUB_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-[var(--color-accent)] underline-offset-4 hover:underline"
-          >
-            GitHub
-          </a>{" "}
-          {t("about.intro.under")}
+          {t("about.intro")} {t("about.intro.under")}
         </p>
 
         <h2 className="font-display text-2xl font-semibold text-[var(--color-fg)]">
@@ -75,15 +65,7 @@ export function AboutContent() {
           {t("about.status.heading")}
         </h2>
         <p>
-          {t("about.status.body")}{" "}
-          <a
-            href={`${GITHUB_URL}/blob/master/MILESTONES.md`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-[var(--color-accent)] underline-offset-4 hover:underline"
-          >
-            MILESTONES.md
-          </a>
+          {t("about.status.body")}
           {t("about.status.body.tail")}
         </p>
 

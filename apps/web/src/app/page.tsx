@@ -18,7 +18,6 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { UploadDrop } from "@/components/UploadDrop";
-import { GITHUB_URL } from "@/lib/config";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import type { TranslationKey } from "@/lib/i18n/translations";
 
@@ -64,7 +63,10 @@ function Hero() {
 
           {/* CTAs — primary uses accent fill, secondary is plain underline.
               The contrast is intentional: only ONE accent-coloured button on
-              the page. Everything else is text + glass. */}
+              the page. Everything else is text + glass.
+              2026-05-08: secondary "Source" CTA removed alongside the
+              header GitHub button — slothbox's official site no longer
+              surfaces its source repo. */}
           <div className="flex flex-wrap items-center gap-4 pt-2">
             <Link
               href="/security"
@@ -77,14 +79,12 @@ function Hero() {
                 strokeWidth={2}
               />
             </Link>
-            <a
-              href={GITHUB_URL}
-              target="_blank"
-              rel="noopener noreferrer"
+            <Link
+              href="/about"
               className="text-sm font-medium text-[var(--color-fg-2)] underline-offset-[5px] transition-colors hover:text-[var(--color-fg)] hover:underline"
             >
-              {t("hero.cta.source")}
-            </a>
+              {t("hero.cta.secondary")}
+            </Link>
           </div>
         </div>
 
