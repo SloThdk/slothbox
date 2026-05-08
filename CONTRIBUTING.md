@@ -62,13 +62,17 @@ is held to a higher bar.
 
 ### Hard rules
 
-1. **No new cryptographic primitives.** We use `libsodium-wrappers` (browser),
-   `libsodium-net` (.NET), and `age` (asymmetric). PRs that introduce new ciphers,
-   KDFs, MACs, or signature schemes will be **auto-closed**.
+1. **No new cryptographic primitives.** This repo uses `libsodium-wrappers`
+   (browser), `libsodium-net` (.NET), and `age` (asymmetric). PRs that
+   introduce new ciphers, KDFs, MACs, or signature schemes will be
+   **closed by the maintainer** during review unless the PR description
+   references an audited reference implementation. CODEOWNERS routes any
+   change under `packages/crypto-core/` to maintainer review.
 
 2. **No "rolling your own".** If your PR contains a function that does
-   key-stretching, signing, encrypting, or random-number generation that doesn't
-   ultimately call into `libsodium` or `age`, it will be **auto-closed**.
+   key-stretching, signing, encrypting, or random-number generation that
+   doesn't ultimately call into `libsodium` or `age`, it will be
+   **closed by the maintainer** under the same review.
 
 3. **Test vectors are mandatory.** Every cryptographic function must have:
    - Round-trip tests (encrypt → decrypt produces input)

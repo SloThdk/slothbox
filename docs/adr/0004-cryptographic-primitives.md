@@ -39,7 +39,7 @@ rules" and in `docs/CRYPTO.md`.
 - Every cryptographic operation is a wrapper around an audited library
   function — no custom crypto in our codebase
 - Library upgrades are reviewed manually with all test vectors re-run
-- PRs that introduce new primitives are auto-closed
+- PRs that introduce new primitives are closed during maintainer review (CODEOWNERS routes any change under `packages/crypto-core/` to the maintainer)
 - Test vectors against published RFC vectors are mandatory for each primitive
 - Cross-language binary compatibility (browser ↔ .NET) requires careful
   testing; we maintain test vectors in both languages

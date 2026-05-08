@@ -10,13 +10,24 @@ file a bug — it shouldn't be here.
 
 ## Primitives in use (v0.1.0-alpha)
 
-| Use                                | Algorithm                 | Library            | Where                     |
-| ---------------------------------- | ------------------------- | ------------------ | ------------------------- |
-| Symmetric authenticated encryption | XChaCha20-Poly1305 (AEAD) | libsodium-wrappers | browser → file encryption |
-| Random key generation              | `randombytes_buf`         | libsodium-wrappers | browser → key per share   |
-| Random IDs                         | `crypto.randomUUID()`     | Web Crypto         | browser → share IDs       |
-| Hashing (file content addressing)  | BLAKE2b-256               | libsodium-wrappers | browser → integrity check |
-| URL-safe encoding                  | base64url (RFC 4648 §5)   | small wrapper      | browser ↔ URL fragment    |
+| Use                                | Algorithm                 | Library            | Where                                      |
+| ---------------------------------- | ------------------------- | ------------------ | ------------------------------------------ |
+| Symmetric authenticated encryption | XChaCha20-Poly1305 (AEAD) | libsodium-wrappers | browser → file encryption                  |
+| Random key generation              | `randombytes_buf`         | libsodium-wrappers | browser → key per share                    |
+| Random IDs                         | `crypto.randomUUID()`     | Web Crypto         | browser → share IDs                        |
+| Hashing (file content addressing)  | BLAKE2b-256               | libsodium-wrappers | browser → integrity check                  |
+| Audit chain entry hash             | SHA-256                   | pgcrypto           | Postgres → tamper-evident chain (see note) |
+| URL-safe encoding                  | base64url (RFC 4648 §5)   | small wrapper      | browser ↔ URL fragment                     |
+
+> **Note on the audit chain hash.** v0.1 uses SHA-256 inside the
+> `append_audit_entry` / `verify_audit_chain` Postgres functions because
+> pgcrypto ships with stock Postgres and does not include BLAKE2. The
+> v0.5 migration moves the chain logic to libsodium-net inside the
+> receipt service so the receipt + the chain entry share the same
+> BLAKE2b-256 hash, which is what the offline `slothbox-verify` CLI
+> recomputes — see the v0.5+ table below. SHA-256 is a perfectly fine
+> tamper-evidence hash on its own; the migration is about end-to-end
+> algorithm consistency, not a security upgrade.
 
 ## Primitives planned (v0.5+)
 

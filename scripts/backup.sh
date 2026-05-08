@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
-# Manual Postgres + MinIO backup. WAL-G handles continuous archiving;
-# this is for one-off snapshots before risky operations.
+# Manual Postgres + MinIO snapshot for one-off operator-driven backups
+# (e.g. before a risky migration or before tearing down the VM). The
+# nightly `pg-backup` sidecar in docker-compose.prod.yml runs an
+# equivalent `pg_dump --clean --if-exists | gzip` on its own cron;
+# this script is the manual lever.
 
 set -euo pipefail
 

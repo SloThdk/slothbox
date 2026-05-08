@@ -18,7 +18,7 @@ ssh "${HETZNER_USER}@${HETZNER_HOST}" \
 
 echo "→ running smoke test"
 for i in {1..30}; do
-    if curl -fsS "https://${PRODUCTION_DOMAIN:-slothbox.com}/healthz"; then
+    if curl -fsS "https://${PRODUCTION_DOMAIN:-slothbox.philipsloth.com}/healthz"; then
         echo "✓ deployment healthy"
         exit 0
     fi

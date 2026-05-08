@@ -45,7 +45,7 @@ the project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   - `tools/verify` — Go standalone verifier CLI skeleton
   - `packages/crypto-core` — libsodium + age wrappers
   - `packages/db` — Drizzle ORM + Postgres schema
-- 13-service `docker-compose.yml` orchestrating frontend + backend + data layer + observability
+- 14-service `docker-compose.yml` orchestrating frontend + backend + data layer + observability (the production overlay adds a 15th sidecar for `pg_dump` rotation)
 - Postgres migrations with RLS, hash-chain audit table, and helper RPCs
 - Cryptography wrappers using audited primitives only (`libsodium-wrappers-sumo`)
 - WebCrypto-based browser encryption with key-in-URL-fragment pattern
@@ -75,8 +75,7 @@ the project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Audited cryptographic primitives only (no roll-your-own)
 - Branch protection requires signed commits + CODEOWNERS review
 - Push protection blocks committed secrets
-- WAL-G continuous Postgres archiving
-- Encrypted backups via `age`
+- Nightly `pg_dump` (gzipped) backups with 28-day rotation on a local Docker volume (WAL-G + offsite + age land in v0.5)
 
 ### Known limitations (tracked for v0.5 / v1.0)
 
