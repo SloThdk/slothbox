@@ -330,6 +330,29 @@ function HowItWorks() {
           </li>
         ))}
       </ol>
+
+      {/* Deep-dive CTA. The 3-step grid above is the scan-and-trust
+          version; visitors who want the full pipeline (every server,
+          every primitive, the ASCII diagram, the grep-to-verify
+          commands) click through to /how. Keeping it as a single
+          subdued underline link rather than a button so the homepage
+          stays restrained — the visit to /how is self-selecting. */}
+      <div className="mt-10 max-w-[58ch]">
+        <Link
+          href="/how"
+          className="group inline-flex items-center gap-2 text-[0.95rem] font-medium text-[var(--color-accent)] underline-offset-[5px] transition-colors hover:underline"
+        >
+          {t("how.cta.link")}
+          <ArrowRight
+            className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5"
+            aria-hidden
+            strokeWidth={2}
+          />
+        </Link>
+        <p className="mt-3 text-[0.85rem] leading-[1.55] font-light text-[var(--color-muted)]">
+          {t("how.cta.help")}
+        </p>
+      </div>
     </section>
   );
 }
