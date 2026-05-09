@@ -1,0 +1,24 @@
+SlothBox
+Copyright (c) 2026 Philip Sloth
+
+Licensed under the MIT License (see LICENSE).
+
+────────────────────────────────────────────────────────────────────────────
+SECURITY DISCLAIMER
+
+SlothBox is provided as a portfolio reference build. The cryptographic
+primitives used (libsodium, age) are audited upstream, but the SlothBox
+integration of those primitives has not been independently reviewed or
+pen-tested as of v0.1.0-alpha.
+
+DO NOT use SlothBox to transmit information whose disclosure could result
+in loss of life, liberty, or significant financial harm UNTIL:
+
+  1. v1.0.0 has been released, AND
+  2. An independent cryptographic review has been published in this
+     repository (see /audits/), AND
+  3. You have read SECURITY.md and accept the documented threat model.
+
+For high-stakes use cases, consider Signal, ProtonDrive, or Tresorit until
+SlothBox completes external review.
+────────────────────────────────────────────────────────────────────────────
