@@ -518,8 +518,8 @@ export const TRANSLATIONS = {
     da: "Brænd efter læsning",
   },
   "upload.burn.help": {
-    en: "The share is destroyed the moment your recipient finishes downloading. Use this for one-shot transfers where you don't want a second download to be possible.",
-    da: "Delingen destrueres i samme øjeblik modtageren har downloadet filen. Brug det til engangs-overførsler, hvor en anden download ikke skal være mulig.",
+    en: "Self-destructs the moment the FIRST complete download finishes. The link still works for whoever opens it first — but anyone clicking it after, including a forwarded copy, sees a “doesn't exist” page. Two people opening the link in the same instant can race and both succeed; treat this as one-shot delivery to a trusted channel, not an unbreakable single-recipient lock.",
+    da: "Destrueres i samme øjeblik den FØRSTE komplette download afsluttes. Linket virker for den, der åbner det først — men alle, der klikker bagefter (også en videresendt kopi), ser en “findes ikke”-side. To personer, der åbner linket i samme øjeblik, kan begge nå at hente filen; brug det som engangslevering til en pålidelig kanal, ikke som ubrydelig modtager-lås.",
   },
   "upload.trust": {
     en: "Encryption happens in your browser. The key never leaves this tab.",
