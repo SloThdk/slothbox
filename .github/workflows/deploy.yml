@@ -286,10 +286,20 @@ jobs:
             docker compose -f docker-compose.yml -f docker-compose.prod.yml build
             docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --remove-orphans
             docker compose -f docker-compose.yml -f docker-compose.prod.yml ps
-            # Prune build cache + dangling images so /var/lib/docker doesn't
-            # grow unbounded on a 40 GB volume. -f skips the y/N prompt.
-            docker image prune -f
+            # Prune build cache + unused images so /var/lib/docker doesn't
+            # grow unbounded on a 40 GB volume. -a (vs bare -f) drops
+            # tagged-but-unused images too, not just dangling ones — every
+            # GHCR push creates a new tagged image per commit SHA, and
+            # without -a the previous SHA's image stays on disk forever.
+            # Rollback is still possible by re-pulling the old SHA tag
+            # from GHCR; the local cache is just a working copy.
+            docker image prune -af
             docker builder prune -f --keep-storage 2GB
+
+            # Garbage-collect orphaned pack files in the deploy clone so
+            # successive force-pushes (history rewrites) don't accumulate
+            # unreachable objects. Cheap (<1s) when there's nothing to GC.
+            git -C /home/slothbox/slothbox gc --auto --quiet || true
 
       - name: Smoke test
         # Hits the production domain (defaults to slothbox.philipsloth.com)
