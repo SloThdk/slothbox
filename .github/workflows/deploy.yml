@@ -104,7 +104,18 @@ jobs:
 
   deploy:
     name: Deploy to production
-    needs: build
+    # Use `needs: [build]` with `if: !cancelled() && ...` so a single
+    # matrix-build failure (e.g. a transient GHCR `permission_denied:
+    # write_package` on one image, which has bitten the reaper job
+    # twice) does NOT block the deploy. The actual production server
+    # rebuilds images LOCALLY from the freshly-checked-out source —
+    # the GHCR push is for distributing images to anyone who wants to
+    # pull them, NOT a hard prerequisite for the deploy itself. We
+    # still want the deploy to wait for builds to *attempt* (so a
+    # syntactic Dockerfile error surfaces in the build job's logs
+    # before we touch prod), but we don't gate on every build's
+    # success status.
+    needs: [build]
     runs-on: ubuntu-24.04
     environment: production
     # Only attempt SSH deploy when AUTO_DEPLOY is enabled in repo variables
@@ -113,8 +124,12 @@ jobs:
     # 3 production secrets (HETZNER_HOST / HETZNER_USER / HETZNER_SSH_KEY).
     # Note: GitHub Actions does not allow `secrets.*` in `if:` clauses, so
     # gating on a repo *variable* (vars.AUTO_DEPLOY) is the canonical
-    # workaround. The single-line form avoids YAML block-scalar quirks.
-    if: github.event_name == 'workflow_dispatch' || (vars.AUTO_DEPLOY == 'true' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v')))
+    # workaround.
+    #
+    # `!cancelled()` lets the deploy run even if `build` failed — the
+    # local rebuild on the VM is what actually matters; GHCR push is
+    # advisory.
+    if: ${{ !cancelled() && (github.event_name == 'workflow_dispatch' || (vars.AUTO_DEPLOY == 'true' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v')))) }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -168,6 +183,57 @@ jobs:
             git reset --hard origin/master
             echo "→ HEAD is now $(git rev-parse HEAD)"
             export IMAGE_TAG=${{ github.sha }}
+
+            # Bring the postgres container up first so `pnpm db:migrate`
+            # below has something to connect to. `up -d postgres` is a
+            # no-op when postgres is already running, and starts it
+            # otherwise. We do this BEFORE the migrations run so the
+            # migration runner doesn't race the postgres init phase.
+            docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d postgres
+
+            # Apply any pending migrations BEFORE the new app images go
+            # live — the new app code may reference columns / functions
+            # that only the new migrations create, so the migrations
+            # have to land first or the app containers crash-loop on
+            # boot. The migrate runner is idempotent (tracks applied
+            # migrations in `_migrations`) so it's safe to call on
+            # every deploy. We invoke it inside a one-shot Node
+            # container that mounts the repo + reads DATABASE_URL from
+            # the same .env the compose stack uses — no extra secrets,
+            # no host-Node dependency.
+            #
+            # Why this lives in deploy and not in an init container:
+            # the docker-compose.yml mounts ./db/migrations into the
+            # postgres image's /docker-entrypoint-initdb.d, which only
+            # runs on FIRST container init — adding a new migration
+            # file after the postgres container has been initialised
+            # silently does nothing. `pnpm db:migrate` is the
+            # idempotent forward path.
+            echo "→ applying pending migrations"
+            # Find the actual compose-created network name. Compose
+            # picks `<project>_default` by default but `<project>` is
+            # whatever directory the stack was started from; we resolve
+            # it here so the deploy doesn't break if someone renames
+            # the install path. The `head -1` guards the rare case
+            # where multiple slothbox-prefixed networks coexist
+            # (cleanup didn't fire on a previous teardown).
+            NETWORK=$(docker network ls --format '{{.Name}}' | grep -E '^slothbox' | head -1)
+            if [ -z "$NETWORK" ]; then
+              echo "  ✗ could not resolve slothbox docker network — aborting"
+              exit 1
+            fi
+            echo "  using network $NETWORK"
+            docker run --rm \
+              --network "$NETWORK" \
+              --env-file .env \
+              -v "$(pwd):/app" \
+              -w /app \
+              node:20-alpine \
+              sh -c "corepack enable && pnpm install --filter @slothbox/db --no-frozen-lockfile && pnpm --filter @slothbox/db migrate"
+
+            # Now bring the rest of the stack up. `up -d` recreates any
+            # container whose image, environment, or build context
+            # changed; unchanged containers stay up.
             docker compose -f docker-compose.yml -f docker-compose.prod.yml build
             docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --remove-orphans
             docker compose -f docker-compose.yml -f docker-compose.prod.yml ps
