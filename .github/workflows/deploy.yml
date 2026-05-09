@@ -224,6 +224,31 @@ jobs:
             # file after the postgres container has been initialised
             # silently does nothing. `pnpm db:migrate` is the
             # idempotent forward path.
+            # ── Baseline _migrations ─────────────────────────────────
+            # Postgres' /docker-entrypoint-initdb.d ran 0000-0003 when
+            # the container first initialised, but it doesn't populate
+            # the _migrations tracking table — so the first time the
+            # idempotent runner is invoked it sees an empty _migrations,
+            # tries to apply 0001_init.sql against a schema where
+            # `shares` already exists, and dies with `relation "shares"
+            # already exists`.
+            #
+            # This bootstrap step inserts the historical migration names
+            # so the runner skips them. It's idempotent (ON CONFLICT DO
+            # NOTHING), safe to run on every deploy, and after this lands
+            # the runner handles all future migrations the normal way.
+            #
+            # The hardcoded list is the migrations that existed BEFORE
+            # the proper runner was wired into the deploy. Migration
+            # 0004 and onwards were added after this baseline, so they
+            # are NOT in the list — the runner will discover and apply
+            # them correctly on the next step.
+            echo "→ baselining _migrations (one-shot — initdb-applied migrations were never tracked)"
+            PG_USER=$(grep '^POSTGRES_USER=' .env | cut -d= -f2)
+            PG_DB=$(grep '^POSTGRES_DB=' .env | cut -d= -f2)
+            docker compose -f docker-compose.yml -f docker-compose.prod.yml exec -T postgres \
+              psql -U "$PG_USER" -d "$PG_DB" -v ON_ERROR_STOP=1 -c "CREATE TABLE IF NOT EXISTS _migrations (name TEXT PRIMARY KEY, applied_at TIMESTAMPTZ NOT NULL DEFAULT now()); INSERT INTO _migrations (name) VALUES ('0000_bootstrap_roles.sql'), ('0001_init.sql'), ('0002_audit_chain_helpers.sql'), ('0003_rls_hardening.sql') ON CONFLICT (name) DO NOTHING;"
+
             echo "→ applying pending migrations"
             # Find the actual compose-created network name. Compose
             # picks `<project>_default` by default but `<project>` is
