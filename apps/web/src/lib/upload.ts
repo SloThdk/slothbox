@@ -142,7 +142,18 @@ export async function uploadFile(file: File, options: UploadOptions = {}): Promi
   });
 
   const expiryHours = clampExpiry(options.expiryHours ?? 168);
-  const expiresAt = new Date(Date.now() + expiryHours * 60 * 60 * 1000).toISOString();
+  // Subtract a 60-second safety margin so a client clock that's even
+  // slightly ahead of the server's doesn't push expiresAt past the
+  // gateway's MAX_SHARE_TTL_DAYS check (`expiresAt - now <= ttl`),
+  // which produces an intermittent 400 on exactly-at-the-cap requests.
+  // Surfaced 2026-05-09 — repro: select 7d expiry, hit the deploy when
+  // the host clock is ahead of the Hetzner VM, get bad_request from
+  // /api/shares with no useful UI hint. The 60 s margin also covers
+  // typical request-in-flight latency.
+  const SAFETY_MARGIN_MS = 60_000;
+  const expiresAt = new Date(
+    Date.now() + expiryHours * 60 * 60 * 1000 - SAFETY_MARGIN_MS
+  ).toISOString();
 
   const createReq: CreateShareRequest = {
     fileSize: file.size,

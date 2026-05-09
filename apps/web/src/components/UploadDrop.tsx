@@ -70,11 +70,16 @@ import type { TranslationKey } from "@/lib/i18n/translations";
 // rendered label, so the dropdown localises with the rest of the UI.
 // Server side has its own clamp via SHARE_MAX_EXPIRY_HOURS — we keep
 // this list shorter than the server max.
+// Expiry options offered to the sender. **Do not exceed the server's
+// MAX_SHARE_TTL_DAYS** (default 7 in production). Surfaced 2026-05-09:
+// the dropdown previously listed a 30-day option which the gateway
+// rejected with HTTP 400 for every selection because the server cap
+// was lower. The 30 d option is dropped until the server cap is
+// loosened in a coordinated server+client commit.
 const EXPIRY_OPTIONS: ReadonlyArray<{ labelKey: TranslationKey; hours: number }> = [
   { labelKey: "upload.expiry.1h", hours: 1 },
   { labelKey: "upload.expiry.24h", hours: 24 },
   { labelKey: "upload.expiry.7d", hours: 24 * 7 },
-  { labelKey: "upload.expiry.30d", hours: 24 * 30 },
 ];
 
 type UploadState =
