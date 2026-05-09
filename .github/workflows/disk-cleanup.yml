@@ -1,0 +1,72 @@
+name: Disk cleanup
+
+# One-shot cleanup workflow for the production VM. Run from the
+# Actions tab when `git fetch` on the deploy step starts failing
+# with `No space left on device` — usually after a force-push that
+# rewrote the deploy clone's history (orphaned pack files) or after
+# many successive deploys (accumulated GHCR images that didn't get
+# pruned). Reuses the same HETZNER_* secrets the deploy workflow
+# uses; introduces no new credentials.
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
+jobs:
+  cleanup:
+    name: Reclaim disk on production VM
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: SSH cleanup
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.HETZNER_HOST }}
+          username: ${{ secrets.HETZNER_USER }}
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          script_stop: true
+          script: |
+            set -euo pipefail
+
+            echo "=== BEFORE ==="
+            df -h /
+            echo ""
+            echo "=== docker disk usage ==="
+            docker system df || true
+            echo ""
+
+            echo "→ pruning unused docker images (keeps containers + named volumes)"
+            docker image prune -af
+
+            echo "→ pruning stopped containers + dangling networks"
+            docker container prune -f
+            docker network prune -f
+
+            echo "→ pruning unused build cache"
+            docker builder prune -af || true
+
+            # The deploy clone's .git accumulates orphaned pack files
+            # after every force-push that rewrites history; `git gc`
+            # collapses them into a single pack and drops unreachable
+            # objects.
+            DEPLOY_DIR="/home/slothbox/slothbox"
+            if [ -d "$DEPLOY_DIR/.git" ]; then
+              echo "→ git gc on deploy clone ($DEPLOY_DIR)"
+              cd "$DEPLOY_DIR"
+              git reflog expire --expire=now --all || true
+              git gc --prune=now --aggressive
+            fi
+
+            # Truncate journald so an unbounded journal can't refill
+            # the disk between cleanups.
+            echo "→ truncating systemd journal to last 200M"
+            sudo journalctl --vacuum-size=200M || true
+
+            echo ""
+            echo "=== AFTER ==="
+            df -h /
+            echo ""
+            docker system df || true
