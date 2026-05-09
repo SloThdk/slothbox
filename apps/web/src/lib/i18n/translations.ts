@@ -246,8 +246,8 @@ export const TRANSLATIONS = {
     da: "Kun EU. Ingen transit gennem USA.",
   },
   "guarantees.item2.body": {
-    en: "EU-jurisdiction servers, German data centre. No CloudFront. No Vercel edge. Schrems II is not a concern because no part of the data path crosses US jurisdiction.",
-    da: "Servere under EU-jurisdiktion, tysk datacenter. Ingen CloudFront. Ingen Vercel edge. Schrems II er irrelevant, fordi ingen del af datapathen krydser amerikansk jurisdiktion.",
+    en: "Hosted on Hetzner Cloud in Falkenstein, Germany. Hetzner is a wholly EU-incorporated German company — no US parent, no CLOUD Act exposure. No CloudFront, no Vercel edge, no CDN. Schrems II is not a concern because no part of the data path crosses US jurisdiction.",
+    da: "Hostet på Hetzner Cloud i Falkenstein, Tyskland. Hetzner er en helejet EU-virksomhed registreret i Tyskland — intet amerikansk moderselskab, ingen eksponering for US CLOUD Act. Ingen CloudFront, ingen Vercel edge, ingen CDN. Schrems II er irrelevant, fordi ingen del af datapathen krydser amerikansk jurisdiktion.",
   },
   "guarantees.item3.title": {
     en: "Open source, every line.",
