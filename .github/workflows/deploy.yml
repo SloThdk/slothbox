@@ -223,13 +223,22 @@ jobs:
               exit 1
             fi
             echo "  using network $NETWORK"
+            # `--ignore-scripts` skips the workspace root's
+            # `"prepare": "husky"` lifecycle hook (and any other postinstall
+            # scripts) — husky isn't in node:20-alpine and shouldn't be
+            # needed for a one-shot migration runner anyway. `HUSKY=0`
+            # is belt-and-braces for the husky binary itself in case any
+            # nested package re-invokes it. The migrate.mjs script only
+            # needs `postgres` (the npm client), which `pnpm install
+            # --filter @slothbox/db` brings in cleanly.
             docker run --rm \
               --network "$NETWORK" \
               --env-file .env \
+              -e HUSKY=0 \
               -v "$(pwd):/app" \
               -w /app \
               node:20-alpine \
-              sh -c "corepack enable && pnpm install --filter @slothbox/db --no-frozen-lockfile && pnpm --filter @slothbox/db migrate"
+              sh -c "corepack enable && pnpm install --filter @slothbox/db --no-frozen-lockfile --ignore-scripts && pnpm --filter @slothbox/db migrate"
 
             # Now bring the rest of the stack up. `up -d` recreates any
             # container whose image, environment, or build context
