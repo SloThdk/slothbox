@@ -144,13 +144,28 @@ async function request<T>(path: string, init: RequestInit, schema: z.ZodType<T>)
     } catch {
       // Body wasn't JSON — fine, we'll throw a generic error.
     }
-    const message =
-      typeof payload === "object" &&
-      payload !== null &&
-      "error" in payload &&
-      typeof (payload as { error: unknown }).error === "string"
-        ? (payload as { error: string }).error
-        : `gateway returned HTTP ${response.status}`;
+    // The gateway emits two response shapes for non-2xx:
+    //   1. {"error": "string message"}         — older Hono error path
+    //   2. {"error": {"code": "...", "message": "...", "requestId": "..."}}
+    //                                          — current Zod-validation path
+    // Surface the most-specific message we can find so the user sees
+    // something actionable ("file too large", "expiresAt cannot be more
+    // than 7 days from now") instead of the previous generic "gateway
+    // returned HTTP 400" that bricked debugging.
+    let message = `gateway returned HTTP ${response.status}`;
+    if (typeof payload === "object" && payload !== null && "error" in payload) {
+      const err = (payload as { error: unknown }).error;
+      if (typeof err === "string") {
+        message = err;
+      } else if (
+        typeof err === "object" &&
+        err !== null &&
+        "message" in err &&
+        typeof (err as { message: unknown }).message === "string"
+      ) {
+        message = (err as { message: string }).message;
+      }
+    }
     throw new ApiError(message, response.status, payload);
   }
 
