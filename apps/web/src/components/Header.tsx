@@ -73,22 +73,27 @@ export function Header() {
           <Wordmark />
         </Link>
 
-        <nav className="flex items-center gap-1 sm:gap-2">
+        {/* Nav cluster. Tight padding + smaller text below `sm` so the
+            three controls (About / Security / language toggle) fit on a
+            320 px viewport — measured at 366 px scrollWidth on a 320 px
+            viewport before this tightening. The `sm:` breakpoint
+            (640 px) restores the comfortable touch-target sizing. */}
+        <nav className="flex items-center gap-0.5 sm:gap-2">
           <Link
             href="/about"
-            className="rounded-full px-3.5 py-2 text-[0.85rem] font-medium text-[var(--color-muted)] transition-colors hover:bg-[var(--color-glass-fill)] hover:text-[var(--color-fg)]"
+            className="rounded-full px-2 py-2 text-[0.8rem] font-medium text-[var(--color-muted)] transition-colors hover:bg-[var(--color-glass-fill)] hover:text-[var(--color-fg)] sm:px-3.5 sm:text-[0.85rem]"
           >
             {t("nav.about")}
           </Link>
           <Link
             href="/security"
-            className="rounded-full px-3.5 py-2 text-[0.85rem] font-medium text-[var(--color-muted)] transition-colors hover:bg-[var(--color-glass-fill)] hover:text-[var(--color-fg)]"
+            className="rounded-full px-2 py-2 text-[0.8rem] font-medium text-[var(--color-muted)] transition-colors hover:bg-[var(--color-glass-fill)] hover:text-[var(--color-fg)] sm:px-3.5 sm:text-[0.85rem]"
           >
             {t("nav.security")}
           </Link>
           {/* Language toggle. Sits at the end of the nav cluster as a
               site-chrome control rather than a primary action. */}
-          <div className="ml-1">
+          <div className="ml-0 sm:ml-1">
             <LanguageToggle compact />
           </div>
         </nav>
