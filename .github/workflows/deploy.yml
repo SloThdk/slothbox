@@ -34,7 +34,17 @@ permissions:
 jobs:
   build:
     name: Build & push ${{ matrix.image }}
-    runs-on: ubuntu-24.04
+    # Native ARM runner. The production VM is arm64 (Hetzner CAX), and
+    # building arm64 images on x86 via QEMU emulation pushes the web
+    # job to 30-50 min; native ARM cuts it to 5-10 min. GitHub-hosted
+    # `ubuntu-24.04-arm` is free for public repos and matches the
+    # production architecture exactly. The amd64 build was dropped
+    # from this workflow's `platforms:` for the same reason — the
+    # production deploy rebuilds images locally on the VM, never
+    # pulls amd64 from GHCR. If a contributor wants amd64 images for
+    # local dev, `docker compose build` from a clone produces them
+    # cleanly without burdening the deploy critical path.
+    runs-on: ubuntu-24.04-arm
     if: github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v')
     strategy:
       fail-fast: false
@@ -93,10 +103,15 @@ jobs:
           context: ${{ matrix.context }}
           file: ${{ matrix.file }}
           push: true
-          # Multi-arch. The production VM is ARM; contributors tend to dev
-          # on AMD64. Both platforms get pushed under the same tag and Docker
-          # pulls the right one based on the host's arch.
-          platforms: linux/amd64,linux/arm64
+          # arm64 only. Production VM is arm64; the deploy step on the
+          # VM rebuilds images locally from source, so the GHCR push
+          # exists for distribution / pull-and-inspect, NOT for the
+          # actual deploy. Dropping amd64 cuts build time roughly in
+          # half AND removes the QEMU-emulation slowness that pushed
+          # the web image to 30-50 min on x86 runners. Contributors
+          # who want amd64 images for local dev produce them via
+          # `docker compose build` from their clone.
+          platforms: linux/arm64
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
