@@ -67,13 +67,35 @@ that passes CI auto-rolls forward via `.github/workflows/deploy.yml`:
 | Observability          | Grafana provisioned at `/grafana` (auth required) with the SlothBox overview dashboard          |
 | Alert rules            | [`infra/prometheus/alerts.yml`](infra/prometheus/alerts.yml) — 11 rules, severity-tagged        |
 
-End-to-end smoke test (run from your laptop):
+End-to-end smoke test — paste into bash, zsh, Git Bash on Windows, or WSL:
 
 ```bash
-curl -fsS https://slothbox.philipsloth.com/healthz                # 200 ok
-curl -fsS -XPOST -H 'Content-Type: application/json' \
-  https://slothbox.philipsloth.com/api/shares                      # 400 (validation)
+curl -sS https://slothbox.philipsloth.com/healthz \
+  -w "\nstatus: %{http_code}\n"
+
+curl -sS -X POST \
+  -H "Content-Type: application/json" \
+  https://slothbox.philipsloth.com/api/shares \
+  -w "\nstatus: %{http_code}\n"
 ```
+
+Expected output:
+
+```text
+ok
+status: 200
+
+{"error":{"code":"bad_request","message":"Malformed JSON in request body","requestId":"<uuid>"}}
+status: 400
+```
+
+The 400 is the success: an empty POST body fails Zod validation at the gateway boundary, and the response is structured JSON carrying a `requestId` correlatable to server logs (Loki query `{service="api-gateway"} |= "<uuid>"`).
+
+Shell notes:
+
+- **Windows `cmd.exe`**: replace single quotes with double quotes and run each `curl` on one line — `cmd.exe` doesn't honour single quotes or backslash line continuations.
+- **PowerShell**: invoke `curl.exe` explicitly. The bare name `curl` in PowerShell is an alias for `Invoke-WebRequest`, which has different flags and will not accept these arguments.
+- **CI scripts**: add `-f` (fail on HTTP ≥ 400) and drop `-w`. The flag-set above is for human inspection — the response body is the load-bearing signal, not the exit code.
 
 ---
 
