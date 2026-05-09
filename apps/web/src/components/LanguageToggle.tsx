@@ -65,7 +65,7 @@ function FlagButton({
       aria-pressed={active}
       aria-label={title}
       title={title}
-      className={`grid h-7 w-9 cursor-pointer place-items-center rounded-full transition-all duration-150 ${
+      className={`grid h-6 w-7 cursor-pointer place-items-center rounded-full transition-all duration-150 sm:h-7 sm:w-9 ${
         active
           ? "bg-[var(--color-fg)]/10 ring-1 ring-[var(--color-fg)]/30"
           : "opacity-50 hover:-translate-y-px hover:opacity-90"
