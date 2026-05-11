@@ -267,7 +267,7 @@ export const TRANSLATIONS = {
   },
   "guarantees.item4.body": {
     en: "v0.5 ships RFC 3161 timestamped delivery receipts. v1.0 adds verifiable burn-after-read via a public hash chain and an offline `slothbox-verify` CLI.",
-    da: "v0.5 leverer RFC 3161-tidsstemplede leveringskvitteringer. v1.0 tilføjer verificerbar burn-after-read via en offentlig hash-kæde og en offline `slothbox-verify`-CLI.",
+    da: "v0.5 leverer RFC 3161-tidsstemplede leveringsbeviser. v1.0 tilføjer verificerbar burn-after-read via en offentlig hash-kæde og en offline `slothbox-verify`-CLI.",
   },
 
   // ─── Landing — how it works ───────────────────────────────────
@@ -501,7 +501,7 @@ export const TRANSLATIONS = {
   },
   "how.roadmap.v05.body": {
     en: "Lucia auth + magic-link, share dashboard with manual revoke, RFC 3161 timestamped delivery receipts, single-use HMAC chunk tokens that close the parallel-readers race in the burn-after-read flow.",
-    da: "Lucia auth + magic-link, delings-dashboard med manuel revoke, RFC 3161-tidsstemplede leveringskvitteringer, single-use HMAC chunk-tokens som lukker parallel-læser-race i burn-after-read-flowet.",
+    da: "Lucia auth + magic-link, delings-dashboard med manuel revoke, RFC 3161-tidsstemplede leveringsbeviser, single-use HMAC chunk-tokens som lukker parallel-læser-race i burn-after-read-flowet.",
   },
   "how.roadmap.v10.label": {
     en: "Production-grade",
@@ -531,7 +531,7 @@ export const TRANSLATIONS = {
   },
   "ctaBlock.body": {
     en: "Tamper-evident delivery receipts arrive in v0.5: an RFC 3161 timestamp signed over the file hash, anchored in a public Merkle chain. The full source is open — read it before trusting it.",
-    da: "Manipulationsbeskyttede leveringskvitteringer kommer i v0.5: en RFC 3161-tidsstempel signeret over filens hash, forankret i en offentlig Merkle-kæde. Hele kildekoden er åben — læs den før du stoler på den.",
+    da: "Manipulationsbeskyttede leveringsbeviser kommer i v0.5: en RFC 3161-tidsstempel signeret over filens hash, forankret i en offentlig Merkle-kæde. Hele kildekoden er åben — læs den før du stoler på den.",
   },
   "ctaBlock.cta": {
     en: "Read the security docs",
@@ -561,7 +561,7 @@ export const TRANSLATIONS = {
   },
   "about.why.body": {
     en: "WeTransfer scans your file and keeps a copy. Dropbox Transfer reads your content and runs through US infrastructure (Schrems II problem for EU users). ProtonDrive is end-to-end encrypted but paid, account-only, and has no quick-share for unauthenticated recipients. There is no good European, open-source, end-to-end encrypted file transfer with cryptographic delivery receipts. SlothBox aims at that gap.",
-    da: "WeTransfer scanner din fil og beholder en kopi. Dropbox Transfer læser dit indhold og kører gennem amerikansk infrastruktur (Schrems II-problem for EU-brugere). ProtonDrive er end-to-end krypteret, men betalt, kontobaseret og uden quick-share til uautentificerede modtagere. Der findes ingen god europæisk, open source, end-to-end krypteret filoverførsel med kryptografiske leveringskvitteringer. SlothBox sigter mod det hul.",
+    da: "WeTransfer scanner din fil og beholder en kopi. Dropbox Transfer læser dit indhold og kører gennem amerikansk infrastruktur (Schrems II-problem for EU-brugere). ProtonDrive er end-to-end krypteret, men betalt, kontobaseret og uden quick-share til uautentificerede modtagere. Der findes ingen god europæisk, open source, end-to-end krypteret filoverførsel med kryptografiske leveringsbeviser. SlothBox sigter mod det hul.",
   },
   "about.who.heading": {
     en: "Who built it",
