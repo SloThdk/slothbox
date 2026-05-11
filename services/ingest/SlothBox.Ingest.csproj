@@ -59,7 +59,7 @@
     <PackageReference Include="Npgsql" Version="8.0.5" />
 
     <!-- Valkey / Redis -->
-    <PackageReference Include="StackExchange.Redis" Version="2.8.16" />
+    <PackageReference Include="StackExchange.Redis" Version="2.12.14" />
 
     <!-- Logging: structured JSON -->
     <PackageReference Include="Serilog.AspNetCore" Version="8.0.2" />
