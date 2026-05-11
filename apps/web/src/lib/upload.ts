@@ -22,13 +22,23 @@
 // is pure typescript with no JSX dependency.
 
 import {
+  AEAD_KEY_BYTES,
+  DEFAULT_MEM_LIMIT_BYTES,
+  DEFAULT_MEM_LIMIT_KIB,
+  DEFAULT_OPS_LIMIT,
   buildChunkAad,
   bytesToBase64Url,
+  deriveAeadKey,
+  deriveChunkToken,
+  deriveKeyFromPassword,
   encryptChunk,
   generateKey,
   generateNonce,
+  generateRevokeToken,
+  generateSalt,
   hashBytes,
   initCrypto,
+  sha256,
   stringToBytes,
 } from "@slothbox/crypto-core";
 import { createShare, type CreateShareRequest, type CreateShareResponse } from "./api";
@@ -45,6 +55,36 @@ export interface UploadOptions {
   burnAfterRead?: boolean;
   /** Optional cap on number of downloads (null = unlimited within expiry). */
   maxDownloads?: number | null;
+  /**
+   * Optional sender-set password. When present (non-empty string), the
+   * sender's browser:
+   *
+   *   1. Generates a fresh 16-byte Argon2id salt.
+   *   2. Derives `pwd_key = Argon2id(password, salt, opsLimit, memLimitBytes)`.
+   *   3. Derives `aead_key = deriveAeadKey({ fragmentKey, passwordKey: pwd_key })`.
+   *   4. Encrypts every chunk + the metadata blob under `aead_key` instead
+   *      of the URL-fragment key directly.
+   *   5. Sends salt + KDF params (NOT the password) to the gateway.
+   *
+   * The password value never leaves the browser; the gateway only learns
+   * the salt + cost parameters so the recipient's browser can re-derive
+   * the same AEAD key after the recipient enters the password into the
+   * password-prompt UI. Empty string is treated as "no password".
+   */
+  password?: string;
+  /**
+   * Optional Argon2id `opsLimit` override (1-10). Defaults to
+   * `DEFAULT_OPS_LIMIT` from crypto-core (3, libsodium MODERATE). Only
+   * read when `password` is set.
+   */
+  passwordKdfOpsLimit?: number;
+  /**
+   * Optional Argon2id `memLimit` override in BYTES. Defaults to
+   * `DEFAULT_MEM_LIMIT_BYTES` from crypto-core (64 MiB). Only read when
+   * `password` is set. The gateway stores the value in KiB on the row;
+   * we convert internally.
+   */
+  passwordKdfMemLimitBytes?: number;
   /** Optional progress callback fired after every chunk completes. */
   onProgress?: (event: UploadProgressEvent) => void;
   /** Optional cancellation signal. */
@@ -71,6 +111,16 @@ export interface UploadResult {
   shortId: string;
   /** When the server says the share will expire. */
   expiresAt: string;
+  /**
+   * 32-byte sender-revoke token, base64url-encoded. Generated locally
+   * during upload; the server only ever saw its SHA-256 hash. The
+   * caller MUST persist this somewhere the sender can find later
+   * (`localStorage` under the SlothBox origin is the default — see
+   * `apps/web/src/lib/myShares.ts`) so the destroy endpoint can be
+   * called without re-authenticating. If lost, the share is no longer
+   * sender-revocable and can only end via TTL / burn-after-read.
+   */
+  revokeToken: string;
 }
 
 export class UploadError extends Error {
@@ -110,9 +160,60 @@ export async function uploadFile(file: File, options: UploadOptions = {}): Promi
   // Ensure libsodium is ready before we start generating keys / nonces.
   await initCrypto();
 
-  // Generate the symmetric key client-side. This is the value that goes into
-  // the URL fragment — never logged, never sent.
-  const key = await generateKey();
+  // Generate the URL-fragment key client-side. This is the value that goes
+  // into `#key=…` — never logged, never sent. When no password is set, this
+  // IS the AEAD key (v0.1 behavior). When a password is set, `deriveAeadKey`
+  // combines this with the Argon2id output below to produce a different
+  // AEAD key that requires both inputs to reproduce.
+  const fragmentKey = await generateKey();
+
+  // ─── Password-protection setup ──────────────────────────────────────────
+  // The password (if any) never travels to the server. We derive the
+  // password-derived key (`pwd_key`) right here and immediately combine it
+  // with `fragmentKey` into `aead_key`. Salt + cost parameters DO travel
+  // to the server so the recipient can re-derive the same `pwd_key` after
+  // the user enters the password into the prompt UI.
+  const hasPassword = typeof options.password === "string" && options.password.length > 0;
+  const passwordOpsLimit = options.passwordKdfOpsLimit ?? DEFAULT_OPS_LIMIT;
+  const passwordMemLimitBytes = options.passwordKdfMemLimitBytes ?? DEFAULT_MEM_LIMIT_BYTES;
+  // Server stores the mem limit in KiB on the row; we convert here so the
+  // gateway never has to do byte-arithmetic on attacker-supplied input.
+  const passwordMemLimitKib = hasPassword
+    ? Math.round(passwordMemLimitBytes / 1024)
+    : DEFAULT_MEM_LIMIT_KIB;
+
+  let passwordSalt: Uint8Array | null = null;
+  let passwordKey: Uint8Array | null = null;
+  if (hasPassword) {
+    passwordSalt = await generateSalt();
+    passwordKey = await deriveKeyFromPassword({
+      password: options.password as string,
+      salt: passwordSalt,
+      opsLimit: passwordOpsLimit,
+      memLimit: passwordMemLimitBytes,
+    });
+  }
+
+  // Derive the actual AEAD key. When no password is set this returns
+  // `fragmentKey` unchanged so the no-password share format stays
+  // byte-identical to the pre-v0.2 layout.
+  const aeadKey = await deriveAeadKey({ fragmentKey, passwordKey });
+
+  // ─── Sender-revoke token (v0.2, migration 0006) ─────────────────────────
+  // The token is 32 bytes uniform random, generated in the browser.
+  // The SERVER only ever sees its SHA-256 hash. The raw token leaves
+  // this function via the UploadResult and is persisted by the caller
+  // (typically the ShareLink component, into localStorage).
+  const revokeToken = await generateRevokeToken();
+  const revokeTokenHash = await sha256(revokeToken);
+  const revokeTokenB64 = bytesToBase64Url(revokeToken);
+  if (aeadKey.length !== AEAD_KEY_BYTES) {
+    // Belt-and-braces — `deriveAeadKey` is the only thing that can produce
+    // an off-size key, and it throws on bad inputs. This guard catches a
+    // future signature change that drifts away from 32 bytes without
+    // updating this file.
+    throw new UploadError(`derived AEAD key has wrong length: ${aeadKey.length}`);
+  }
 
   const chunkSize = CHUNK_SIZE_BYTES;
   const chunkCount = Math.ceil(file.size / chunkSize);
@@ -136,7 +237,7 @@ export async function uploadFile(file: File, options: UploadOptions = {}): Promi
   const metaAad = buildChunkAad("meta", 0);
   const encryptedMeta = await encryptChunk({
     plaintext: metaBytes,
-    key,
+    key: aeadKey,
     nonce: nonceMeta,
     aad: metaAad,
   });
@@ -165,6 +266,20 @@ export async function uploadFile(file: File, options: UploadOptions = {}): Promi
     expiresAt,
     burnAfterRead: options.burnAfterRead ?? false,
     maxDownloads: options.maxDownloads ?? null,
+    passwordProtected: hasPassword,
+    // The four password-protection fields are all-or-nothing, mirroring
+    // the gateway's cross-field check. We spread conditionally so the
+    // off-path stays clean rather than carrying undefined-but-present
+    // JSON keys.
+    ...(hasPassword && passwordSalt
+      ? {
+          passwordSalt: bytesToBase64Url(passwordSalt),
+          passwordKdfOpsLimit: passwordOpsLimit,
+          passwordKdfMemLimitKib: passwordMemLimitKib,
+        }
+      : {}),
+    // The hash, NOT the raw token. The raw token never leaves the browser.
+    revokeTokenHash: bytesToBase64Url(revokeTokenHash),
   };
 
   let descriptor: CreateShareResponse;
@@ -202,7 +317,18 @@ export async function uploadFile(file: File, options: UploadOptions = {}): Promi
 
     const nonce = await generateNonce();
     const aad = buildChunkAad(shortId, i);
-    const ciphertext = await encryptChunk({ plaintext, key, nonce, aad });
+    const ciphertext = await encryptChunk({ plaintext, key: aeadKey, nonce, aad });
+
+    // Single-use chunk token (v0.2, migration 0007).
+    //
+    // Derived deterministically from (fragmentKey, shortId, chunkIndex)
+    // so the recipient computes the same token at download time without
+    // any over-the-wire delivery. The SHA-256 commitment ships with the
+    // PUT so the ingest service can store it on the chunk row; the raw
+    // token never reaches the server during upload (only at download
+    // time, as a bearer credential).
+    const chunkToken = await deriveChunkToken({ fragmentKey, shortId, chunkIndex: i });
+    const chunkTokenHash = await sha256(chunkToken);
 
     const uploadUrl = uploadUrls[i];
     if (!uploadUrl) {
@@ -213,6 +339,7 @@ export async function uploadFile(file: File, options: UploadOptions = {}): Promi
       url: uploadUrl,
       ciphertext,
       nonce,
+      chunkTokenHash: bytesToBase64Url(chunkTokenHash),
       signal: options.signal,
     });
 
@@ -227,11 +354,15 @@ export async function uploadFile(file: File, options: UploadOptions = {}): Promi
     });
   }
 
-  const keyB64 = bytesToBase64Url(key);
+  // The URL fragment always carries the FRAGMENT key, never the derived
+  // AEAD key. When the share is password-protected, the recipient combines
+  // the fragment with the password to reproduce the AEAD key — the salt +
+  // cost parameters travel via the gateway response, not the URL fragment.
+  const keyB64 = bytesToBase64Url(fragmentKey);
   // URL fragment stays client-only by browser design.
   const shareUrl = `${PUBLIC_URL}/s/${encodeURIComponent(shortId)}#key=${keyB64}`;
 
-  return { shareUrl, shortId, expiresAt };
+  return { shareUrl, shortId, expiresAt, revokeToken: revokeTokenB64 };
 }
 
 // ---------------------------------------------------------------------------
@@ -242,6 +373,13 @@ interface PutChunkArgs {
   url: string;
   ciphertext: Uint8Array;
   nonce: Uint8Array;
+  /**
+   * Base64url SHA-256 commitment of the single-use download token for
+   * this chunk. The ingest service stores it on `share_chunks.download_token_hash`
+   * — at download time, the recipient's bearer credential is hashed and
+   * compared against this value.
+   */
+  chunkTokenHash: string;
   signal?: AbortSignal;
 }
 
@@ -260,6 +398,7 @@ async function putChunk(args: PutChunkArgs): Promise<void> {
       headers: {
         "Content-Type": "application/octet-stream",
         "X-Slothbox-Nonce": bytesToBase64Url(args.nonce),
+        "X-Slothbox-Chunk-Token-Hash": args.chunkTokenHash,
       },
       body,
       ...(args.signal ? { signal: args.signal } : {}),

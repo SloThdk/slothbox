@@ -18,11 +18,14 @@
 "use client";
 
 import * as React from "react";
-import { AlertTriangle, Check, Download, FileLock2, RefreshCw } from "lucide-react";
+import { AlertTriangle, Check, Download, FileLock2, Key, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import {
+  DownloadError,
   downloadFile,
   notifyDownloadComplete,
   type DownloadProgressEvent,
@@ -40,21 +43,60 @@ export interface DecryptProps {
 
 type DecryptState =
   | { kind: "ready" }
+  | { kind: "deriving" }
   | { kind: "busy"; progress: DownloadProgressEvent | null; controller: AbortController }
   | { kind: "done"; blob: Blob; fileName: string }
   | { kind: "error"; message: string };
 
 export function Decrypt({ shortId, descriptor, decryptionKey }: DecryptProps) {
   const [state, setState] = React.useState<DecryptState>({ kind: "ready" });
+  /**
+   * Password input value (only used when `descriptor.password.enabled`).
+   * Stays in React state — never logged, never sent anywhere. The
+   * `password_required` early-return below also reads from here, so
+   * pressing "Decrypt" with an empty input lands on a clean validation
+   * message without round-tripping to crypto-core.
+   */
+  const [password, setPassword] = React.useState<string>("");
+  /**
+   * Marks the last attempt as a wrong-password one so the UI can render
+   * an inline error under the password input rather than blowing away
+   * the form with a generic error state.
+   */
+  const [passwordError, setPasswordError] = React.useState<string | null>(null);
+
+  const passwordRequired = descriptor.password.enabled;
 
   const startDownload = React.useCallback(async () => {
+    setPasswordError(null);
+    if (passwordRequired && password.length === 0) {
+      setPasswordError("Enter the password the sender gave you.");
+      return;
+    }
+
+    // For password-protected shares we briefly land in `deriving` so the
+    // UI can show a "hardening password" hint while Argon2id runs (the
+    // single biggest CPU cost in the flow — ~250 ms on a 2022 laptop).
+    // Non-password shares skip straight to `busy`.
+    if (passwordRequired) setState({ kind: "deriving" });
+
     const controller = new AbortController();
-    setState({ kind: "busy", progress: null, controller });
+    let derivedHandedOff = false;
 
     try {
       const result = await downloadFile(shortId, decryptionKey, {
         signal: controller.signal,
+        ...(passwordRequired ? { password } : {}),
         onProgress: (progress) => {
+          // First progress callback also doubles as the "derivation finished,
+          // chunk fetch started" handover. Without this, the UI sits on
+          // "deriving" until the first chunk's progress event fires, which
+          // for tiny files is the only feedback the user gets.
+          if (!derivedHandedOff) {
+            derivedHandedOff = true;
+            setState({ kind: "busy", progress, controller });
+            return;
+          }
           setState((prev) => (prev.kind === "busy" ? { ...prev, progress } : prev));
         },
       });
@@ -71,15 +113,30 @@ export function Decrypt({ shortId, descriptor, decryptionKey }: DecryptProps) {
       // — the reaper will pick up orphans on its sweep.
       void notifyDownloadComplete(shortId);
     } catch (err) {
+      // `wrong_password` and `password_required` route back to the ready
+      // state with an inline hint under the password input — keeps the
+      // form's value so the user can retype the password without losing
+      // context. All other error codes fall through to the generic
+      // error state (the existing v0.1 behaviour).
+      const code = err instanceof DownloadError ? err.code : "unknown";
       const message = err instanceof Error ? err.message : "download failed";
-      if (message === "download cancelled") {
+      if (code === "cancelled" || message === "download cancelled") {
+        setState({ kind: "ready" });
+        return;
+      }
+      if (code === "wrong_password" || code === "password_required") {
+        setPasswordError(
+          code === "wrong_password"
+            ? "Incorrect password — try again."
+            : "Enter the password the sender gave you."
+        );
         setState({ kind: "ready" });
         return;
       }
       setState({ kind: "error", message });
       toast.error(message);
     }
-  }, [shortId, decryptionKey]);
+  }, [shortId, decryptionKey, passwordRequired, password]);
 
   const cancel = React.useCallback(() => {
     if (state.kind === "busy") state.controller.abort();
@@ -111,6 +168,7 @@ export function Decrypt({ shortId, descriptor, decryptionKey }: DecryptProps) {
             {descriptor.burnAfterRead
               ? "self-destructs after this download"
               : `expires ${formatExpiresIn(descriptor.expiresAt)}`}
+            {passwordRequired ? " · password-protected" : null}
           </p>
         </div>
       </div>
@@ -118,13 +176,72 @@ export function Decrypt({ shortId, descriptor, decryptionKey }: DecryptProps) {
       {/* State-specific body */}
       {state.kind === "ready" ? (
         <div className="flex flex-col gap-3">
-          <Button onClick={startDownload} size="lg" className="w-full">
-            <Download className="h-4 w-4" aria-hidden />
-            Download + decrypt
-          </Button>
-          <p className="text-center text-xs text-[var(--color-muted)]">
-            Decryption runs in your browser. Nothing leaves this tab.
-          </p>
+          {/* ── Password prompt (only for password-protected shares) ─────── */}
+          {passwordRequired ? (
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                void startDownload();
+              }}
+              className="flex flex-col gap-2"
+            >
+              <Label htmlFor="decrypt-password" className="flex items-center gap-2 leading-tight">
+                <Key className="h-3.5 w-3.5 text-[var(--color-accent)]" aria-hidden />
+                Password
+              </Label>
+              <Input
+                id="decrypt-password"
+                type="password"
+                autoComplete="current-password"
+                spellCheck={false}
+                autoFocus
+                placeholder="Password the sender gave you"
+                value={password}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  if (passwordError) setPasswordError(null);
+                }}
+                aria-invalid={passwordError !== null}
+                aria-describedby="decrypt-password-help"
+              />
+              <p
+                id="decrypt-password-help"
+                className="text-[0.7rem] leading-snug font-light text-[var(--color-muted)]"
+              >
+                The sender sent the password through a separate channel (Signal, SMS, in-person). It
+                is checked locally — the server never sees it.
+              </p>
+              {passwordError ? (
+                <p className="text-xs font-medium text-[var(--color-danger)]">{passwordError}</p>
+              ) : null}
+              <Button type="submit" size="lg" className="mt-1 w-full">
+                <Download className="h-4 w-4" aria-hidden />
+                Decrypt + download
+              </Button>
+            </form>
+          ) : (
+            <>
+              <Button onClick={startDownload} size="lg" className="w-full">
+                <Download className="h-4 w-4" aria-hidden />
+                Download + decrypt
+              </Button>
+              <p className="text-center text-xs text-[var(--color-muted)]">
+                Decryption runs in your browser. Nothing leaves this tab.
+              </p>
+            </>
+          )}
+        </div>
+      ) : null}
+
+      {state.kind === "deriving" ? (
+        <div className="flex flex-col gap-3">
+          <Progress indeterminate />
+          <div className="flex items-center justify-center text-xs">
+            <span className="flex items-center gap-1.5 text-[var(--color-accent)]">
+              <RefreshCw className="h-3 w-3 animate-spin" aria-hidden />
+              Hardening password (Argon2id)…
+            </span>
+          </div>
         </div>
       ) : null}
 

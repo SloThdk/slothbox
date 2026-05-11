@@ -187,6 +187,46 @@ public static class UploadEndpoint
             return Results.BadRequest(new { error = "invalid_nonce" });
         }
 
+        // 4a. Optional chunk token-hash header (migration 0007 / v0.2).
+        //
+        // When present, the value is the base64url SHA-256 of a
+        // client-derived single-use download token; we store it on the
+        // share_chunks row so the GET path can later compare an
+        // incoming bearer token against it.
+        //
+        // When absent, the chunk is created with a NULL hash — the GET
+        // path then treats this chunk as "no token required" and serves
+        // it under the v0.1 semantics. This back-compat path covers:
+        //   (a) older clients that don't know about chunk tokens
+        //   (b) future server-side abuse tooling that uploads under a
+        //       different identity model and skips the per-chunk token
+        // The hash MUST decode to exactly 32 bytes when present — same
+        // length as a SHA-256 digest, matching the CHECK constraint on
+        // share_chunks.download_token_hash.
+        byte[]? downloadTokenHash = null;
+        if (httpContext.Request.Headers.TryGetValue(
+                "X-Slothbox-Chunk-Token-Hash",
+                out var tokenHashHeaderValues) && tokenHashHeaderValues.Count > 0)
+        {
+            var tokenHashHeader = tokenHashHeaderValues[0];
+            if (string.IsNullOrEmpty(tokenHashHeader))
+            {
+                // Header present but empty — treat as malformed rather than
+                // "absent", so a sender who tried to set the header and
+                // accidentally sent "" gets a clear 400 instead of silently
+                // falling through to the legacy path.
+                ChunksUploaded.WithLabels("bad_token_hash").Inc();
+                return Results.BadRequest(new { error = "empty_chunk_token_hash_header" });
+            }
+            if (!TryDecodeBase64Url(tokenHashHeader, out var decodedHash)
+                || decodedHash.Length != 32)
+            {
+                ChunksUploaded.WithLabels("bad_token_hash").Inc();
+                return Results.BadRequest(new { error = "invalid_chunk_token_hash" });
+            }
+            downloadTokenHash = decodedHash;
+        }
+
         // 5. Stream body to MinIO via the request's PipeReader.
         var blobKey = BuildBlobKey(shortId, chunkIndex);
         var ciphertextSize = (int)contentLength.Value;
@@ -239,6 +279,7 @@ public static class UploadEndpoint
                 blobKey,
                 ciphertextSize,
                 uploadedAt,
+                downloadTokenHash,
                 ct).ConfigureAwait(false);
         }
         catch (Exception ex)

@@ -1,6 +1,6 @@
 {
   "name": "@slothbox/crypto-core",
-  "version": "0.1.0-alpha.1",
+  "version": "0.2.0-alpha.1",
   "private": true,
   "type": "module",
   "main": "./src/index.ts",
@@ -19,7 +19,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "libsodium-wrappers": "^0.7.15"
+    "libsodium-wrappers-sumo": "^0.7.15"
   },
   "devDependencies": {
     "@types/libsodium-wrappers": "^0.7.13",

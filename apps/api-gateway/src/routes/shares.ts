@@ -20,6 +20,7 @@
  * will add owned shares + bearer auth.
  */
 
+import { createHash, timingSafeEqual } from "node:crypto";
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { zValidator } from "@hono/zod-validator";
@@ -52,6 +53,32 @@ const generateShortId = customAlphabet(SHORT_ID_ALPHABET, SHORT_ID_LENGTH);
 const FILE_HASH_BYTES = 32;
 /** 24 bytes = XChaCha20-Poly1305 nonce, base64url-encoded → 32 chars. */
 const NONCE_META_BYTES = 24;
+/** 16 bytes = libsodium `crypto_pwhash_SALTBYTES` for password-protected shares. */
+const PASSWORD_SALT_BYTES = 16;
+/**
+ * Sender-revoke token hash size — 32 bytes (SHA-256 of the
+ * sender-generated raw token). Enforced at the Zod boundary and in the
+ * DB CHECK constraint from migration 0006.
+ */
+const REVOKE_TOKEN_HASH_BYTES = 32;
+/**
+ * Sender-revoke raw token size — 32 bytes uniform random. The token is
+ * never stored on the server; this constant gates the bearer-token
+ * length check on /destroy to fail fast on malformed input before we
+ * reach the constant-time compare.
+ */
+const REVOKE_TOKEN_RAW_BYTES = 32;
+/**
+ * Argon2id cost-parameter bounds, mirrored from migration 0005's
+ * CHECK constraint. Kept in lock-step with the migration so the
+ * gateway rejects invalid params at the Zod layer instead of letting
+ * the DB write fail later — the user-visible error stays close to
+ * the input field that produced it.
+ */
+const PASSWORD_KDF_OPS_LIMIT_MIN = 1;
+const PASSWORD_KDF_OPS_LIMIT_MAX = 10;
+const PASSWORD_KDF_MEM_LIMIT_KIB_MIN = 8192; // 8 MiB
+const PASSWORD_KDF_MEM_LIMIT_KIB_MAX = 1_048_576; // 1 GiB
 
 // ─── Helpers ──────────────────────────────────────────────────────
 
@@ -81,6 +108,46 @@ function encodeBase64Url(buf: Uint8Array | Buffer): string {
     .replace(/\+/g, "-")
     .replace(/\//g, "_")
     .replace(/=+$/, "");
+}
+
+/**
+ * Extract a bearer revoke token from the `Authorization` header and
+ * return the SHA-256 of the raw token bytes — the value that gets
+ * timing-safe-compared against the stored `revoke_token_hash`.
+ *
+ * Returns null when the header is missing, malformed, or carries a
+ * value that doesn't decode to exactly 32 bytes. The caller turns null
+ * into a 401 with a generic "missing or malformed bearer token"
+ * message — never echoing back which specific stage failed, because
+ * that's a probe surface for a token-shape oracle.
+ *
+ * Why hash here and not pass the raw bytes upstream:
+ *   Keeps the raw token out of every other code path's memory
+ *   immediately after parse. The only thing that ever touches the
+ *   raw token in the gateway is this function; everything downstream
+ *   sees the hash.
+ */
+function extractRevokeTokenHash(authHeader: string | undefined): Buffer | null {
+  if (!authHeader) return null;
+  const match = /^Bearer\s+([A-Za-z0-9_-]+)$/.exec(authHeader);
+  if (!match || !match[1]) return null;
+  let raw: Buffer;
+  try {
+    // Pad to a multiple of 4 for Buffer's base64 mode, then map base64url
+    // → standard base64 characters. Same shape as `decodeBase64Url` above
+    // but inlined here so the failure mode is "return null" rather than
+    // "throw HTTPException 400" (which would leak the parse outcome to
+    // the caller as a distinguishable response).
+    const padded = match[1] + "=".repeat((4 - (match[1].length % 4)) % 4);
+    const standard = padded.replace(/-/g, "+").replace(/_/g, "/");
+    raw = Buffer.from(standard, "base64");
+  } catch {
+    return null;
+  }
+  if (raw.byteLength !== REVOKE_TOKEN_RAW_BYTES) {
+    return null;
+  }
+  return createHash("sha256").update(raw).digest();
 }
 
 /**
@@ -203,6 +270,70 @@ const CreateShareSchema = z
       }, `expiresAt cannot be more than ${config.MAX_SHARE_TTL_DAYS} days from now`),
     burnAfterRead: z.boolean(),
     maxDownloads: z.number().int().positive().max(10_000).nullable(),
+    /**
+     * Per-share password protection (v0.2, migration 0005).
+     *
+     * The four fields are all-or-nothing — the `.superRefine` block
+     * below enforces the cross-field invariant that matches the
+     * `shares_password_fields_consistent` DB constraint. Validating
+     * here means a malformed body is rejected with a structured 400
+     * before any DB round-trip, and the operator-visible error
+     * surface stays at the Zod boundary instead of leaking a raw
+     * Postgres CHECK violation upstream.
+     *
+     * The password itself is NEVER part of this payload — only the
+     * salt + cost parameters travel to the server. The sender's
+     * browser already ran Argon2id and combined the result into the
+     * AEAD key; the server's job is to store enough state that the
+     * recipient's browser can re-derive the same AEAD key after
+     * prompting the user for the password.
+     */
+    passwordProtected: z.boolean().default(false),
+    passwordSalt: z
+      .string()
+      .min(1)
+      .max(64)
+      .refine(
+        (v) => decodeBase64Url(v).byteLength === PASSWORD_SALT_BYTES,
+        `passwordSalt must decode to exactly ${PASSWORD_SALT_BYTES} bytes`
+      )
+      .optional(),
+    passwordKdfOpsLimit: z
+      .number()
+      .int()
+      .min(PASSWORD_KDF_OPS_LIMIT_MIN)
+      .max(PASSWORD_KDF_OPS_LIMIT_MAX)
+      .optional(),
+    passwordKdfMemLimitKib: z
+      .number()
+      .int()
+      .min(PASSWORD_KDF_MEM_LIMIT_KIB_MIN)
+      .max(PASSWORD_KDF_MEM_LIMIT_KIB_MAX)
+      .optional(),
+    /**
+     * Sender-revoke token hash (v0.2, migration 0006).
+     *
+     * Base64url-encoded SHA-256 (32 bytes after decode) of a 32-byte
+     * sender-generated random token. The token itself NEVER appears
+     * in this payload — only the hash. The gateway stores the hash on
+     * the share row; the raw token lives only in the sender's
+     * browser `localStorage`.
+     *
+     * Optional in the schema for forward-compat (server-side abuse
+     * tooling may create rows without a token), but in practice every
+     * sender-initiated POST through this route MUST include it so
+     * new shares are revocable. Clients that omit it produce shares
+     * that fall back to legacy /destroy behaviour (TTL / burn only).
+     */
+    revokeTokenHash: z
+      .string()
+      .min(1)
+      .max(64)
+      .refine(
+        (v) => decodeBase64Url(v).byteLength === REVOKE_TOKEN_HASH_BYTES,
+        `revokeTokenHash must decode to exactly ${REVOKE_TOKEN_HASH_BYTES} bytes`
+      )
+      .optional(),
   })
   /**
    * Cross-field cap on total ciphertext storage. Closes the
@@ -251,6 +382,39 @@ const CreateShareSchema = z
         message:
           `chunkCount * chunkSize (${totalCiphertext}) is smaller ` +
           `than declared fileSize (${data.fileSize})`,
+      });
+    }
+    /**
+     * Password-protection cross-field invariant. Mirrors the
+     * `shares_password_fields_consistent` DB constraint from migration
+     * 0005: when `passwordProtected` is true, all three KDF fields must
+     * be present and inside their bounds; when false, all three must
+     * be omitted.
+     */
+    const kdfFieldsAllPresent =
+      data.passwordSalt !== undefined &&
+      data.passwordKdfOpsLimit !== undefined &&
+      data.passwordKdfMemLimitKib !== undefined;
+    const kdfFieldsAllAbsent =
+      data.passwordSalt === undefined &&
+      data.passwordKdfOpsLimit === undefined &&
+      data.passwordKdfMemLimitKib === undefined;
+    if (data.passwordProtected && !kdfFieldsAllPresent) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["passwordProtected"],
+        message:
+          "passwordProtected = true requires passwordSalt + " +
+          "passwordKdfOpsLimit + passwordKdfMemLimitKib",
+      });
+    }
+    if (!data.passwordProtected && !kdfFieldsAllAbsent) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["passwordProtected"],
+        message:
+          "passwordProtected = false rejects passwordSalt / " +
+          "passwordKdfOpsLimit / passwordKdfMemLimitKib — omit all three",
       });
     }
   });
@@ -319,6 +483,19 @@ export function sharesRouter(): Hono<RouterEnv> {
       const fileHashBytes = decodeBase64Url(body.fileHash);
       const nonceMetaBytes = decodeBase64Url(body.nonceMeta);
       const encryptedMetaBytes = decodeBase64Url(body.encryptedMeta);
+      // The password-protection fields are either ALL undefined (no
+      // protection) or ALL set (the Zod cross-field check above
+      // enforces this). We coerce the optional salt to bytes here so
+      // the column write is uniform with the other bytea fields.
+      const passwordSaltBytes = body.passwordSalt ? decodeBase64Url(body.passwordSalt) : null;
+      // Sender-revoke token hash is independent of password protection
+      // and arrives as base64url. Decoded here once so the INSERT only
+      // writes raw bytes — Drizzle's bytea custom type handles the
+      // Buffer wrap. NULL when the client didn't send a hash, in which
+      // case the share is non-revocable (legacy / abuse-only paths).
+      const revokeTokenHashBytes = body.revokeTokenHash
+        ? decodeBase64Url(body.revokeTokenHash)
+        : null;
 
       const db = getDb();
 
@@ -339,6 +516,11 @@ export function sharesRouter(): Hono<RouterEnv> {
           chunkCount: body.chunkCount,
           chunkSize: body.chunkSize,
           state: "pending" satisfies ShareState,
+          passwordProtected: body.passwordProtected,
+          passwordSalt: passwordSaltBytes,
+          passwordKdfOpsLimit: body.passwordKdfOpsLimit ?? null,
+          passwordKdfMemLimitKib: body.passwordKdfMemLimitKib ?? null,
+          revokeTokenHash: revokeTokenHashBytes,
         })
         .returning({
           id: shares.id,
@@ -353,6 +535,14 @@ export function sharesRouter(): Hono<RouterEnv> {
       }
 
       // Audit entry — fire-and-forget on the background path.
+      // `passwordProtected` is added so the audit trail can later show
+      // whether a destroyed share was set up with a password layer,
+      // without exposing any password material (the password itself is
+      // never sent to the server, and the salt is omitted from the
+      // audit payload intentionally — only the boolean fact is logged).
+      // `revocable` records whether the share carries a revoke-token
+      // hash; the hash itself is not in the audit payload, only the
+      // boolean fact.
       void appendAudit(
         "share_created",
         row.id,
@@ -360,6 +550,8 @@ export function sharesRouter(): Hono<RouterEnv> {
           shortId: row.shortId,
           chunkCount: row.chunkCount,
           burnAfterRead: body.burnAfterRead,
+          passwordProtected: body.passwordProtected,
+          revocable: revokeTokenHashBytes !== null,
           ttlSeconds: Math.floor((new Date(body.expiresAt).getTime() - Date.now()) / 1000),
         },
         requestId
@@ -421,6 +613,10 @@ export function sharesRouter(): Hono<RouterEnv> {
           chunkCount: shares.chunkCount,
           chunkSize: shares.chunkSize,
           state: shares.state,
+          passwordProtected: shares.passwordProtected,
+          passwordSalt: shares.passwordSalt,
+          passwordKdfOpsLimit: shares.passwordKdfOpsLimit,
+          passwordKdfMemLimitKib: shares.passwordKdfMemLimitKib,
         })
         .from(shares)
         .where(eq(shares.shortId, shortId))
@@ -452,6 +648,16 @@ export function sharesRouter(): Hono<RouterEnv> {
       // malicious actor ratchet through all shortIds and identify
       // known bad/CSAM files by hash without ever downloading. v1.0
       // will gate the hash behind an authenticated downloader.
+      //
+      // Password-protection fields are returned as either an
+      // `{ enabled: false }` discriminated-union member or an
+      // `{ enabled: true, salt, opsLimit, memLimitKib }` one. Modelling
+      // it as a discriminated union (vs four loose nullable fields)
+      // keeps the recipient's code branch obvious — Zod's discriminated
+      // union on the web side narrows the type so callers can't forget
+      // to handle one of the branches. The salt + KDF params are the
+      // only Argon2id inputs the recipient needs; the password itself
+      // is supplied by the user via the password-prompt UI.
       return c.json(
         {
           shortId: row.shortId,
@@ -463,6 +669,18 @@ export function sharesRouter(): Hono<RouterEnv> {
           chunkCount: row.chunkCount,
           chunkSize: row.chunkSize,
           state: row.state,
+          password:
+            row.passwordProtected &&
+            row.passwordSalt &&
+            row.passwordKdfOpsLimit !== null &&
+            row.passwordKdfMemLimitKib !== null
+              ? {
+                  enabled: true as const,
+                  salt: encodeBase64Url(row.passwordSalt),
+                  opsLimit: row.passwordKdfOpsLimit,
+                  memLimitKib: row.passwordKdfMemLimitKib,
+                }
+              : { enabled: false as const },
         },
         200
       );
@@ -470,9 +688,49 @@ export function sharesRouter(): Hono<RouterEnv> {
   );
 
   // ── POST /api/shares/:shortId/destroy ────────────────────────
+  //
+  // Token-gated as of v0.2 / migration 0006. The caller MUST present
+  // `Authorization: Bearer <base64url(token)>` where `token` is the
+  // 32-byte raw revoke token the sender's browser kept in
+  // `localStorage` at create time. The gateway hashes the incoming
+  // token (SHA-256) and constant-time compares against the stored
+  // `revoke_token_hash`.
+  //
+  // Status-code map (designed so no probe response distinguishes
+  // "share doesn't exist" from "share exists, wrong token" beyond
+  // what the legitimate sender already knew):
+  //
+  //   * 200 OK            — token valid, share flipped to destroyed.
+  //   * 401 Unauthorized  — Authorization header missing or malformed.
+  //                         Same response for "wrong/no Bearer scheme",
+  //                         "base64url decode failed", and "decoded
+  //                         length != 32". A token-shape oracle can
+  //                         only learn what the bearer-token spec
+  //                         already publishes.
+  //   * 403 Forbidden     — header well-formed but the token's hash
+  //                         doesn't match the stored value. Distinct
+  //                         from 401 because the cause is "you gave us
+  //                         a token, but it's not THE token" — different
+  //                         remediation for the caller.
+  //   * 404 Not Found     — share doesn't exist. Treated as a separate
+  //                         class from 403 even though that reveals
+  //                         "this shortId exists" to a token-less prober.
+  //                         Without this distinction, a legitimate
+  //                         sender hitting /destroy after their share
+  //                         expired would get a confusing 403 with no
+  //                         way to recover. The shortId already had to
+  //                         leak via the share URL anyway, so 404 vs
+  //                         403 here is a usability win, not a privacy
+  //                         regression.
+  //   * 410 Gone          — share exists but predates this migration
+  //                         (legacy NULL revoke_token_hash). The sender
+  //                         has no token to present; the share will
+  //                         expire on TTL or be burned. Surfaced as a
+  //                         distinct status so legacy senders see a
+  //                         clear message rather than a generic 403.
   r.post(
     "/shares/:shortId/destroy",
-    rateLimit(readRules), // same low limit — anyone with shortId can destroy in v0.1
+    rateLimit(readRules),
     zValidator("param", ShortIdParamSchema, (result) => {
       if (!result.success) {
         throw new HTTPException(404, { message: "share not found" });
@@ -483,6 +741,76 @@ export function sharesRouter(): Hono<RouterEnv> {
       const { shortId } = c.req.valid("param");
       const db = getDb();
 
+      // Parse the bearer token BEFORE the DB read so a malformed
+      // header short-circuits without burning a query. The function
+      // returns the SHA-256 of the raw token bytes (Buffer); null
+      // means "header missing or malformed" and we surface a 401
+      // without revealing which stage failed.
+      const incomingHash = extractRevokeTokenHash(c.req.header("authorization"));
+      if (!incomingHash) {
+        throw new HTTPException(401, {
+          message: "missing or malformed bearer token",
+        });
+      }
+
+      // Look up the share. We need both the existence check (404 vs
+      // exists) AND the stored hash (403 vs match), so a single SELECT
+      // covers both. The DB CHECK constraint from migration 0006
+      // guarantees `revokeTokenHash` is either NULL or exactly 32
+      // bytes — no application-side length defence needed below.
+      const [existing] = await db
+        .select({
+          id: shares.id,
+          state: shares.state,
+          revokeTokenHash: shares.revokeTokenHash,
+        })
+        .from(shares)
+        .where(eq(shares.shortId, shortId))
+        .limit(1);
+
+      if (!existing) {
+        throw new HTTPException(404, { message: "share not found" });
+      }
+
+      if (existing.state === "destroyed" || existing.state === "expired") {
+        // Idempotent — a sender who hits /destroy twice in a row, or
+        // a sender whose share burned-after-read mid-call, gets a
+        // success-shaped response instead of a confusing 4xx.
+        return c.json({ state: existing.state }, 200);
+      }
+
+      if (existing.revokeTokenHash === null) {
+        // Legacy share, predates migration 0006. No token was ever
+        // minted for it; the sender has nothing to present.
+        throw new HTTPException(410, {
+          message: "this share predates token-based revoke and cannot be revoked manually",
+        });
+      }
+
+      // Constant-time compare. `timingSafeEqual` throws on unequal
+      // length, which the CHECK constraint + the extractor's length
+      // gate already prevent, but the defence-in-depth try/catch keeps
+      // a future schema drift from crashing the request handler.
+      const storedHash = Buffer.from(existing.revokeTokenHash);
+      let match = false;
+      try {
+        match =
+          storedHash.byteLength === incomingHash.byteLength &&
+          timingSafeEqual(storedHash, incomingHash);
+      } catch {
+        match = false;
+      }
+      if (!match) {
+        throw new HTTPException(403, { message: "invalid revoke token" });
+      }
+
+      // Token matches — proceed with the destroy. UPDATE on the
+      // already-locked row would be cleaner with SELECT … FOR UPDATE,
+      // but the v0.1 destroy path didn't grab one and the race window
+      // here is identical (burn-fire vs manual-destroy both flip to
+      // 'destroyed'). The conditional WHERE clause on state guards
+      // against the burn-then-manual race so we never resurrect a
+      // destroyed share's metadata as if it were a fresh manual flip.
       const [updated] = await db
         .update(shares)
         .set({
@@ -494,11 +822,19 @@ export function sharesRouter(): Hono<RouterEnv> {
         .returning({ id: shares.id, state: shares.state });
 
       if (!updated) {
-        throw new HTTPException(404, { message: "share not found" });
+        // Lost the race with another writer (burn-fire, reaper). Treat
+        // as idempotent success — the share IS destroyed, just not by
+        // this transaction.
+        return c.json({ state: "destroyed" satisfies ShareState }, 200);
       }
 
       const destroyedId = updated.id;
-      void appendAudit("share_destroyed", destroyedId, { shortId, reason: "manual" }, requestId);
+      void appendAudit(
+        "share_destroyed",
+        destroyedId,
+        { shortId, reason: "manual", trigger: "sender_revoke_token" },
+        requestId
+      );
       sharesDestroyedTotal.inc({ reason: "manual" });
 
       // Signal the reaper so blobs are purged ASAP. Best-effort.
@@ -518,7 +854,10 @@ export function sharesRouter(): Hono<RouterEnv> {
         }
       })();
 
-      logger.info({ requestId, event: "share_destroyed", reason: "manual" }, "share destroyed");
+      logger.info(
+        { requestId, event: "share_destroyed", reason: "manual", trigger: "sender_revoke_token" },
+        "share destroyed via revoke token"
+      );
 
       return c.json({ state: updated.state }, 200);
     }

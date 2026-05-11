@@ -10,36 +10,40 @@
 [![Security](https://github.com/SloThdk/slothbox/actions/workflows/security.yml/badge.svg)](https://github.com/SloThdk/slothbox/actions/workflows/security.yml)
 [![Deploy](https://github.com/SloThdk/slothbox/actions/workflows/deploy.yml/badge.svg)](https://github.com/SloThdk/slothbox/actions/workflows/deploy.yml)
 [![Crypto: libsodium + age](https://img.shields.io/badge/crypto-libsodium%20%2B%20age-brightgreen)](docs/CRYPTO.md)
-[![Status: v0.1.0-alpha](https://img.shields.io/badge/status-v0.1.0--alpha-orange)](MILESTONES.md)
+[![Status: v0.2.0-alpha](https://img.shields.io/badge/status-v0.2.0--alpha-orange)](MILESTONES.md)
 [![EU-hosted](https://img.shields.io/badge/region-EU--only-blue)](#why-eu-hosted)
 
 > [!WARNING]
-> **v0.1.0-alpha — read this before sending real data.**
+> **v0.2.0-alpha — read this before sending real data.**
 >
-> Three things are deliberately deferred from v0.1 and matter for any
+> One thing is deliberately deferred from v0.2 and matters for any
 > visitor evaluating whether to use this build live:
 >
-> 1. **The shortId is the access secret.** Anyone holding a share URL can
->    destroy the share or download the ciphertext — there is no per-share
->    owner token in v0.1. Per-share HMAC tokens land in **v0.5** alongside
->    the Lucia auth + dashboard milestone. Do not paste share URLs into
->    public channels.
-> 2. **Burn-after-read defends against hostile recipients, not against
->    parallel readers.** Migration 0004 moved the burn trigger from the
->    recipient's browser to the ingest service, so a hostile recipient
->    (curl loop, browser-console intercept, non-browser client) can no
->    longer suppress it — see [`SECURITY.md`](SECURITY.md) §"How
->    burn-after-read works in v0.1". What v0.1 still does NOT defend
->    against is two simultaneous readers in parallel: a legitimate
->    recipient and a wiretap on transit who both have the URL can both
->    complete their downloads if their chunk fetches interleave. Single-use
->    HMAC chunk tokens close that window in **v0.5**. Until then, treat
->    the URL as a one-shot capability.
-> 3. **The integration code is not yet independently audited.** The
->    underlying primitives (libsodium, age) are battle-tested and audited
->    upstream, but the SlothBox glue has only been internally reviewed.
->    External cryptographer review is a hard gate for **v1.0** before any
->    "production-ready" framing.
+> 1. **The integration code is not yet independently audited.** The
+>    underlying primitives (libsodium, age) are audited upstream, but
+>    the SlothBox glue (per-share password KDF combiner, single-use
+>    chunk token construction, revoke-token commitment scheme) has only
+>    been internally reviewed. External cryptographer review is a hard
+>    gate for **v1.0** before any "production-ready" framing.
+>
+> v0.2 closes the two URL-leak risks the v0.1 WARNING block called out:
+>
+> - **Per-share password protection** (sender-opt-in) adds a second
+>   factor on top of the URL fragment via Argon2id + BLAKE2b-keyed,
+>   so a leaked URL alone no longer opens the file. See
+>   [`docs/CRYPTO.md`](docs/CRYPTO.md) §"How password-protected shares
+>   work".
+> - **Sender-revoke tokens** (always-on for new shares) gate the manual
+>   destroy endpoint behind a 32-byte capability that lives only in the
+>   sender's `localStorage`. A third party who scraped the URL from a
+>   chat log cannot revoke the share. See [`SECURITY.md`](SECURITY.md)
+>   §"Sender-revoke token".
+> - **Single-use chunk tokens** (always-on for new uploads) close the
+>   parallel-readers race acknowledged in the v0.1 WARNING. Each chunk
+>   can only be served once; a wiretap and a legitimate recipient who
+>   both have the URL will each get a different subset of chunks and
+>   neither can AEAD-decrypt the reassembled file. See migration
+>   [`db/migrations/0007_single_use_chunk_tokens.sql`](db/migrations/0007_single_use_chunk_tokens.sql).
 >
 > Use this build for portfolio review and personal experimentation, not
 > for sensitive transfers until v1.0. Full threat model and non-goals:

@@ -60,12 +60,57 @@ export const shares = pgTable(
     destroyedReason: text("destroyed_reason").$type<DestroyedReason>(),
     senderIpHash: bytea("sender_ip_hash"),
     senderRegion: text("sender_region"),
+    /**
+     * Per-share password protection (migration 0005).
+     *
+     * When `passwordProtected` is true:
+     *   - `passwordSalt` is the 16-byte Argon2id salt for the share.
+     *   - `passwordKdfOpsLimit` is the Argon2id ops parameter (1-10).
+     *   - `passwordKdfMemLimitKib` is the Argon2id mem limit in KiB
+     *     (8192-1048576, i.e. 8 MiB – 1 GiB).
+     *
+     * When `passwordProtected` is false, all three are NULL. The DB
+     * CHECK constraint `shares_password_fields_consistent` enforces
+     * the either/or so the application never sees a half-populated row.
+     *
+     * The password itself is NEVER stored or sent to the gateway —
+     * the sender's browser derives `pwd_key = Argon2id(password, salt,
+     * ops, mem)` and combines it with the URL-fragment key to produce
+     * the AEAD key. See `packages/crypto-core/src/derivation.ts` →
+     * `deriveAeadKey` and `docs/CRYPTO.md` for the full construction.
+     */
+    passwordProtected: boolean("password_protected").notNull().default(false),
+    passwordSalt: bytea("password_salt"),
+    passwordKdfOpsLimit: integer("password_kdf_ops_limit"),
+    passwordKdfMemLimitKib: integer("password_kdf_mem_limit_kib"),
+    /**
+     * Sender-revoke token hash (migration 0006).
+     *
+     * `revokeTokenHash` is the 32-byte SHA-256 of a sender-generated
+     * token. The token itself is generated in the sender's browser
+     * (libsodium `randombytes_buf(32)`), the hash is sent to the
+     * gateway on share creation, and the raw token never reaches the
+     * server — it lives only in the sender's `localStorage` under the
+     * SlothBox origin.
+     *
+     * To revoke a share, the sender's browser sends
+     * `Authorization: Bearer <base64url(token)>` to the destroy
+     * endpoint. The gateway hashes the incoming token (SHA-256) and
+     * compares it to the stored value via `timingSafeEqual`.
+     *
+     * NULL = legacy share predating this migration; cannot be revoked
+     * by a token (TTL / burn / abuse-admin only). New shares get a
+     * non-NULL hash at create time and ARE revocable.
+     */
+    revokeTokenHash: bytea("revoke_token_hash"),
   },
   (t) => ({
     shortIdIdx: index("shares_short_id_idx").on(t.shortId),
     ownerIdIdx: index("shares_owner_id_idx").on(t.ownerId),
     expiresAtIdx: index("shares_expires_at_idx").on(t.expiresAt),
     stateIdx: index("shares_state_idx").on(t.state),
+    passwordProtectedIdx: index("shares_password_protected_idx").on(t.passwordProtected),
+    revokeTokenPresentIdx: index("shares_revoke_token_present_idx").on(t.createdAt),
   })
 );
 
@@ -98,6 +143,21 @@ export const shareChunks = pgTable(
      * this counter.
      */
     servedCount: integer("served_count").notNull().default(0),
+    /**
+     * Single-use chunk download token commitment (migration 0007).
+     *
+     * 32-byte SHA-256 of a client-derived token. The raw token is
+     * computed deterministically in the browser from the URL fragment
+     * key + shortId + chunkIndex; the server only ever sees the
+     * commitment + the bearer-presented token at chunk-fetch time.
+     *
+     * NULL = legacy chunk predating this migration; the ingest endpoint
+     * treats it as "no token required" and serves anyway. New chunks
+     * carry a non-NULL hash and are token-gated. The "single-use"
+     * property piggybacks on `servedAt` from migration 0004 — once
+     * `servedAt` is non-null, the chunk endpoint returns 410.
+     */
+    downloadTokenHash: bytea("download_token_hash"),
   },
   (t) => ({
     pk: primaryKey({ columns: [t.shareId, t.chunkIndex] }),

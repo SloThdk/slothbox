@@ -72,6 +72,7 @@ public sealed class PostgresShareRepository : IShareRepository
         string blobKey,
         int ciphertextSize,
         DateTimeOffset uploadedAt,
+        byte[]? downloadTokenHash,
         CancellationToken ct)
     {
         // ON CONFLICT DO UPDATE so re-uploads of the same (share_id, chunk_index)
@@ -86,19 +87,25 @@ public sealed class PostgresShareRepository : IShareRepository
         // happens before state='ready', but the reset is cheap and the
         // BEFORE UPDATE trigger in migration 0004 enforces the same on any
         // other write path that might forget it).
+        //
+        // download_token_hash (migration 0007) is overwritten on re-upload
+        // because the client may have re-derived a token under a different
+        // session state. The CHECK constraint on the column enforces the
+        // 32-byte length when not null.
         const string sql =
             """
             INSERT INTO share_chunks
-                (share_id, chunk_index, nonce, blob_key, ciphertext_size, uploaded_at)
+                (share_id, chunk_index, nonce, blob_key, ciphertext_size, uploaded_at, download_token_hash)
             VALUES
-                (@shareId, @chunkIndex, @nonce, @blobKey, @ctSize, @uploadedAt)
+                (@shareId, @chunkIndex, @nonce, @blobKey, @ctSize, @uploadedAt, @tokenHash)
             ON CONFLICT (share_id, chunk_index) DO UPDATE
-            SET nonce           = EXCLUDED.nonce,
-                blob_key        = EXCLUDED.blob_key,
-                ciphertext_size = EXCLUDED.ciphertext_size,
-                uploaded_at     = EXCLUDED.uploaded_at,
-                served_at       = NULL,
-                served_count    = 0
+            SET nonce                = EXCLUDED.nonce,
+                blob_key             = EXCLUDED.blob_key,
+                ciphertext_size      = EXCLUDED.ciphertext_size,
+                uploaded_at          = EXCLUDED.uploaded_at,
+                served_at            = NULL,
+                served_count         = 0,
+                download_token_hash  = EXCLUDED.download_token_hash
             """;
 
         await using var conn = new NpgsqlConnection(_connectionString);
@@ -111,6 +118,13 @@ public sealed class PostgresShareRepository : IShareRepository
         cmd.Parameters.AddWithValue("blobKey", NpgsqlDbType.Text, blobKey);
         cmd.Parameters.AddWithValue("ctSize", NpgsqlDbType.Integer, ciphertextSize);
         cmd.Parameters.AddWithValue("uploadedAt", NpgsqlDbType.TimestampTz, uploadedAt);
+        // Bytea NULL needs an explicit DBNull; Npgsql's AddWithValue + null
+        // would land as a typed default which the CHECK constraint then
+        // rejects. The DBNull route is the documented Npgsql pattern.
+        cmd.Parameters.AddWithValue(
+            "tokenHash",
+            NpgsqlDbType.Bytea,
+            (object?)downloadTokenHash ?? DBNull.Value);
 
         await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
     }
@@ -199,7 +213,8 @@ public sealed class PostgresShareRepository : IShareRepository
     {
         const string sql =
             """
-            SELECT share_id, chunk_index, nonce, blob_key, ciphertext_size, uploaded_at
+            SELECT share_id, chunk_index, nonce, blob_key, ciphertext_size,
+                   uploaded_at, served_at, download_token_hash
             FROM share_chunks
             WHERE share_id = @shareId AND chunk_index = @chunkIndex
             LIMIT 1
@@ -226,6 +241,8 @@ public sealed class PostgresShareRepository : IShareRepository
             BlobKey = reader.GetString(3),
             CiphertextSize = reader.GetInt32(4),
             UploadedAt = reader.IsDBNull(5) ? null : reader.GetFieldValue<DateTimeOffset>(5),
+            ServedAt = reader.IsDBNull(6) ? null : reader.GetFieldValue<DateTimeOffset>(6),
+            DownloadTokenHash = reader.IsDBNull(7) ? null : (byte[])reader.GetValue(7),
         };
     }
 
