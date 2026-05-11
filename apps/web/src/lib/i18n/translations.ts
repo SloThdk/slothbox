@@ -101,6 +101,10 @@ export const TRANSLATIONS = {
     en: "Security",
     da: "Sikkerhed",
   },
+  "footer.link.transparency": {
+    en: "Transparency",
+    da: "Gennemsigtighed",
+  },
   "footer.builtBy": {
     en: "Built by",
     da: "Bygget af",
