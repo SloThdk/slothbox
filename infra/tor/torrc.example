@@ -1,0 +1,36 @@
+# SlothBox Tor hidden-service config (template).
+#
+# Copy to `infra/tor/torrc` before bringing the `tor` profile up:
+#
+#   cp infra/tor/torrc.example infra/tor/torrc
+#   docker compose --profile tor -f docker-compose.yml -f docker-compose.prod.yml up -d tor
+#
+# The container's first start generates the v3 onion address + keypair
+# under /var/lib/tor/hidden_service (mounted to the
+# tor_hidden_service named volume). To read the address:
+#
+#   docker exec slothbox-tor cat /var/lib/tor/hidden_service/hostname
+#
+# The address survives container restarts as long as the volume does.
+# Back the volume up out-of-band — losing it rotates the .onion to a
+# new (and from the visitor's perspective, unrelated) name.
+#
+# We point the hidden service at the internal Caddy on port 80, NOT
+# 443 — Tor terminates TLS already (via the .onion's own Ed25519
+# authentication), and adding HTTPS on top would only help if the
+# visitor was simultaneously circumventing Tor. Caddy's port 80 inside
+# the compose network is reachable only from sibling services, so the
+# clear-HTTP exposure ends at the Tor circuit boundary.
+
+# v3 onion (default for Tor 0.3.5+). Quieter, no need to set explicitly.
+HiddenServiceDir /var/lib/tor/hidden_service
+HiddenServicePort 80 caddy:80
+
+# Hardening — keep Tor itself off everything except the hidden-service
+# port. No SocksPort, no ControlPort, no DNS leak surface.
+SocksPort 0
+
+# Suppress the default Tor exit-node behaviour. This is a HIDDEN service,
+# not an exit relay.
+ExitRelay 0
+ClientOnly 1

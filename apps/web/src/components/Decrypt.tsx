@@ -18,7 +18,7 @@
 "use client";
 
 import * as React from "react";
-import { AlertTriangle, Check, Download, FileLock2, Key, RefreshCw } from "lucide-react";
+import { AlertTriangle, Check, Download, Eye, FileLock2, Key, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,6 +32,7 @@ import {
   triggerBlobDownload,
 } from "@/lib/download";
 import type { ShareDescriptor } from "@/lib/api";
+import { isPreviewable, Preview } from "@/components/Preview";
 import { formatBytes } from "@/lib/utils";
 
 export interface DecryptProps {
@@ -45,7 +46,7 @@ type DecryptState =
   | { kind: "ready" }
   | { kind: "deriving" }
   | { kind: "busy"; progress: DownloadProgressEvent | null; controller: AbortController }
-  | { kind: "done"; blob: Blob; fileName: string }
+  | { kind: "done"; blob: Blob; fileName: string; mimeType: string; savedToDisk: boolean }
   | { kind: "error"; message: string };
 
 export function Decrypt({ shortId, descriptor, decryptionKey }: DecryptProps) {
@@ -101,11 +102,35 @@ export function Decrypt({ shortId, descriptor, decryptionKey }: DecryptProps) {
         },
       });
 
-      // Trigger the browser save-as immediately. We can also keep the blob in
-      // memory so a "Save again" button works without re-fetching.
-      triggerBlobDownload(result.blob, result.fileName);
-      setState({ kind: "done", blob: result.blob, fileName: result.fileName });
-      toast.success("Decrypted. Saved to your downloads folder.");
+      // Decide between two post-decrypt paths:
+      //   - previewable (image / PDF / text / markdown): show the
+      //     preview pane FIRST, let the recipient look at the bytes
+      //     before deciding to save. Lower-friction for "is this the
+      //     right file" verification, especially on burn-after-read
+      //     shares where saving is irreversible.
+      //   - non-previewable: keep the v0.2 behaviour — auto-save to
+      //     the OS download folder + show the "Save again" button.
+      const canPreview = isPreviewable(result.mimeType, result.fileName);
+      if (canPreview) {
+        setState({
+          kind: "done",
+          blob: result.blob,
+          fileName: result.fileName,
+          mimeType: result.mimeType,
+          savedToDisk: false,
+        });
+        toast.success("Decrypted. Preview below — save when ready.");
+      } else {
+        triggerBlobDownload(result.blob, result.fileName);
+        setState({
+          kind: "done",
+          blob: result.blob,
+          fileName: result.fileName,
+          mimeType: result.mimeType,
+          savedToDisk: true,
+        });
+        toast.success("Decrypted. Saved to your downloads folder.");
+      }
 
       // Notify the gateway the download completed. For burn-after-read shares,
       // this is what triggers immediate destruction (gateway flips state and
@@ -145,6 +170,13 @@ export function Decrypt({ shortId, descriptor, decryptionKey }: DecryptProps) {
   const downloadAgain = React.useCallback(() => {
     if (state.kind === "done") {
       triggerBlobDownload(state.blob, state.fileName);
+      // Once a previewed-only file is explicitly saved, flip the
+      // `savedToDisk` flag so the toast + button copy reflects the
+      // new state. The Blob stays in memory so a subsequent click
+      // still works without re-fetching.
+      setState((prev) =>
+        prev.kind === "done" && !prev.savedToDisk ? { ...prev, savedToDisk: true } : prev
+      );
     }
   }, [state]);
 
@@ -268,17 +300,33 @@ export function Decrypt({ shortId, descriptor, decryptionKey }: DecryptProps) {
       ) : null}
 
       {state.kind === "done" ? (
-        <div className="flex flex-col gap-3 rounded-lg border border-[color-mix(in_srgb,var(--color-accent)_50%,var(--color-border))] bg-[color-mix(in_srgb,var(--color-accent)_10%,var(--color-card))] p-4">
-          <p className="flex items-center gap-2 text-sm font-medium text-[var(--color-fg)]">
-            <Check className="h-4 w-4 text-[var(--color-accent)]" aria-hidden />
-            Decrypted and saved.
-            {descriptor.burnAfterRead ? " Share has been destroyed." : " You can close this tab."}
-          </p>
-          <div>
-            <Button variant="secondary" onClick={downloadAgain}>
-              <Download className="h-4 w-4" aria-hidden />
-              Save again
-            </Button>
+        <div className="flex flex-col gap-4">
+          {/* Preview pane appears for image / PDF / text / markdown
+              filetypes; renders nothing otherwise. The Preview
+              component handles its own URL.createObjectURL lifecycle
+              (revokes on unmount), so it's safe to leave mounted as
+              long as the parent done-state holds the Blob. */}
+          {!state.savedToDisk ? (
+            <Preview blob={state.blob} fileName={state.fileName} mimeType={state.mimeType} />
+          ) : null}
+
+          <div className="flex flex-col gap-3 rounded-lg border border-[color-mix(in_srgb,var(--color-accent)_50%,var(--color-border))] bg-[color-mix(in_srgb,var(--color-accent)_10%,var(--color-card))] p-4">
+            <p className="flex items-center gap-2 text-sm font-medium text-[var(--color-fg)]">
+              {state.savedToDisk ? (
+                <Check className="h-4 w-4 text-[var(--color-accent)]" aria-hidden />
+              ) : (
+                <Eye className="h-4 w-4 text-[var(--color-accent)]" aria-hidden />
+              )}
+              {state.savedToDisk
+                ? `Decrypted and saved.${descriptor.burnAfterRead ? " Share has been destroyed." : " You can close this tab."}`
+                : `Decrypted — preview above. Save when you're ready.${descriptor.burnAfterRead ? " The share is destroyed regardless of whether you save." : ""}`}
+            </p>
+            <div>
+              <Button variant={state.savedToDisk ? "secondary" : "primary"} onClick={downloadAgain}>
+                <Download className="h-4 w-4" aria-hidden />
+                {state.savedToDisk ? "Save again" : "Save to downloads"}
+              </Button>
+            </div>
           </div>
         </div>
       ) : null}

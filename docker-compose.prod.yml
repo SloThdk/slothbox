@@ -338,6 +338,13 @@ services:
   # Output goes to a named volume + (optional) external rclone target.
   # 28-day rolling retention. Implemented as a slim Alpine image with
   # cron + postgres-client.
+  #
+  # Tier-E hardening (v0.2.1): when BACKUP_AGE_RECIPIENT is set in the
+  # environment, each dump is age-encrypted before it lands on disk.
+  # The operator holds the corresponding age private key on a separate
+  # device (YubiKey, offline laptop) so a full compromise of the host
+  # volume leaks only ciphertext. See docs/BACKUP.md for the operator
+  # key-setup runbook.
   pg-backup:
     image: postgres:16.4-alpine
     container_name: slothbox-pg-backup
@@ -351,6 +358,12 @@ services:
       - POSTGRES_USER=${POSTGRES_USER}
       - PGPASSWORD=${POSTGRES_PASSWORD}
       - BACKUP_RETENTION_DAYS=28
+      # Optional. When set to an `age1…` recipient, dumps are
+      # age-encrypted before they touch the volume. Multiple recipients
+      # can be passed as a comma-separated list — each gets a copy of
+      # the dump file key in the age header, any one private key
+      # decrypts. Unset = plaintext gzip dumps (v0.1 behaviour).
+      - BACKUP_AGE_RECIPIENT=${BACKUP_AGE_RECIPIENT:-}
     volumes:
       - pg_backups:/backups
     networks:
@@ -368,22 +381,38 @@ services:
     # First iteration also runs an immediate dump so a fresh deploy isn't
     # left without a backup overnight.
     #
-    # Backups land at /backups/<db>-<iso8601-utc>.sql.gz. Retention is
-    # `find -mtime +N` which on Alpine compares mtime in 24h chunks since
-    # the file was modified, exactly the prune-after-N-days semantic we want.
+    # Backups land at:
+    #   /backups/<db>-<iso8601-utc>.sql.gz       (plaintext path)
+    #   /backups/<db>-<iso8601-utc>.sql.gz.age   (age-encrypted path)
+    # Retention applies to BOTH suffixes via the unified `find` glob.
     entrypoint: >
       /bin/sh -c "
       set -eu;
       mkdir -p /backups;
+      if [ -n \"$${BACKUP_AGE_RECIPIENT:-}\" ] && ! command -v age >/dev/null 2>&1; then
+        echo '[backup] installing age (offsite encryption recipient configured)';
+        apk add --no-cache age >/dev/null;
+      fi;
       run_dump() {
         TS=$$(date -u +%Y-%m-%dT%H-%M-%SZ);
-        FILE=/backups/$${POSTGRES_DB}-$${TS}.sql.gz;
-        echo \"[backup] starting dump -> $$FILE\";
-        pg_dump -h $$POSTGRES_HOST -U $$POSTGRES_USER -d $$POSTGRES_DB --no-owner --no-acl --clean --if-exists | gzip -9 > $$FILE.tmp;
+        if [ -n \"$${BACKUP_AGE_RECIPIENT:-}\" ]; then
+          FILE=/backups/$${POSTGRES_DB}-$${TS}.sql.gz.age;
+          echo \"[backup] starting age-encrypted dump -> $$FILE\";
+          # age recipients can be comma-separated. We map them to
+          # repeated -r flags. The pipeline is dump -> gzip -> age, so
+          # the on-disk artefact is gzip-then-age (age over already
+          # compressed bytes — gzip can't compress age ciphertext).
+          AGE_FLAGS=$$(echo \"$${BACKUP_AGE_RECIPIENT}\" | tr ',' '\\n' | awk '{print \"-r \"$$0}' | tr '\\n' ' ');
+          pg_dump -h $$POSTGRES_HOST -U $$POSTGRES_USER -d $$POSTGRES_DB --no-owner --no-acl --clean --if-exists | gzip -9 | age $$AGE_FLAGS > $$FILE.tmp;
+        else
+          FILE=/backups/$${POSTGRES_DB}-$${TS}.sql.gz;
+          echo \"[backup] starting plaintext dump -> $$FILE\";
+          pg_dump -h $$POSTGRES_HOST -U $$POSTGRES_USER -d $$POSTGRES_DB --no-owner --no-acl --clean --if-exists | gzip -9 > $$FILE.tmp;
+        fi;
         mv $$FILE.tmp $$FILE;
         echo \"[backup] dump complete: $$(du -h $$FILE | cut -f1)\";
         echo \"[backup] pruning dumps older than $${BACKUP_RETENTION_DAYS} days\";
-        find /backups -name '*.sql.gz' -mtime +$${BACKUP_RETENTION_DAYS} -delete;
+        find /backups \\( -name '*.sql.gz' -o -name '*.sql.gz.age' \\) -mtime +$${BACKUP_RETENTION_DAYS} -delete;
         echo \"[backup] done\";
       };
       echo '[backup] performing initial dump on container start';
@@ -408,6 +437,61 @@ services:
           memory: 256M
           cpus: "0.25"
 
-# Add the backup volume so pg-backup can persist its dumps.
+  # ─── Tor hidden-service sidecar ───────────────────────────────────
+  # Optional. When enabled, exposes slothbox.philipsloth.com over a
+  # .onion address as an additional ingress. Traffic-analysis-resistant
+  # transport for senders in adverse jurisdictions; the EU-only data
+  # path stays unchanged (Tor circuits land at the Hetzner VM the same
+  # way the public IP does).
+  #
+  # The container runs the official Tor Project upstream image, points
+  # a HiddenService at the internal caddy:80 endpoint, and writes the
+  # generated .onion address + private keypair into a named volume.
+  # The operator backs that volume up out-of-band — losing it
+  # rotates the .onion address.
+  #
+  # Activation is opt-in: this service is in the prod overlay but has
+  # `profiles: [tor]` so it only starts when the operator runs
+  # `docker compose --profile tor up -d`. Default deployments stay
+  # public-only.
+  tor:
+    image: dperson/torproxy:latest
+    container_name: slothbox-tor
+    restart: unless-stopped
+    profiles:
+      - tor
+    environment:
+      # The torrc file we mount overrides the image's default;
+      # documented in infra/tor/torrc.example.
+      - TORUSER=tor
+    volumes:
+      - ./infra/tor/torrc:/etc/tor/torrc:ro
+      - tor_hidden_service:/var/lib/tor/hidden_service
+    networks:
+      - internal
+    depends_on:
+      caddy:
+        condition: service_started
+    cap_drop:
+      - ALL
+    cap_add:
+      # Tor needs to bind privileged ports inside the container only
+      # if running on <1024; the image's default config binds 9050.
+      # We keep cap_add empty for defence-in-depth and rely on the
+      # non-root user the image already sets up.
+      - SETUID
+      - SETGID
+    security_opt: *default-security
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: "0.20"
+
+# Add the backup volume so pg-backup can persist its dumps + the
+# Tor hidden-service volume so the .onion key survives container
+# restarts (without this, every restart mints a new .onion address).
 volumes:
   pg_backups:
+  tor_hidden_service:

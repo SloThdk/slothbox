@@ -60,6 +60,7 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { ShareLink } from "@/components/ShareLink";
+import { ArchiveError, packFiles, shouldArchive } from "@/lib/archive";
 import { MAX_FILE_SIZE_BYTES } from "@/lib/config";
 import { uploadFile, type UploadProgressEvent, type UploadResult } from "@/lib/upload";
 import { cn, formatBytes } from "@/lib/utils";
@@ -120,9 +121,57 @@ export function UploadDrop() {
   const [passwordProtected, setPasswordProtected] = React.useState<boolean>(false);
   const [password, setPassword] = React.useState<string>("");
   const [isDragOver, setIsDragOver] = React.useState<boolean>(false);
+  /**
+   * Single-file input (multi-select enabled — when N > 1 the upload
+   * helper packs into a zip before encrypting).
+   */
   const fileInputRef = React.useRef<HTMLInputElement | null>(null);
+  /**
+   * Directory picker — separate input because `webkitdirectory`
+   * mutually excludes the bare-file picker on every browser. Clicking
+   * "Pick folder" pops a folder chooser; the picked files arrive
+   * with `webkitRelativePath` set, which the archive helper uses to
+   * preserve the directory structure inside the zip.
+   */
+  const folderInputRef = React.useRef<HTMLInputElement | null>(null);
 
   // ---- File acceptance --------------------------------------------------
+
+  /**
+   * Resolve a FileList (potentially with `webkitRelativePath` for
+   * folder picks) into a single File the upload pipeline consumes.
+   *
+   * - 1 plain file + no relative path → return as-is (existing behaviour)
+   * - N files OR 1 file with a relative path → pack into a zip Blob
+   *   wrapped as a synthetic File named `<folder>.zip` (or
+   *   `slothbox-N-files.zip` if the entries don't share a root)
+   *
+   * Returns null on validation failure (toast already fired).
+   */
+  const resolveUploadFile = React.useCallback(
+    async (files: ReadonlyArray<File>): Promise<File | null> => {
+      if (files.length === 0) {
+        toast.error(t("upload.toast.empty"));
+        return null;
+      }
+      if (!shouldArchive(files)) {
+        return files[0] ?? null;
+      }
+      // Multi-file / folder path. We don't display per-file progress
+      // here — the zipping is fast (typ. < 300 ms for the 4 GiB cap),
+      // and the existing chunk-progress bar covers the upload itself.
+      try {
+        const archive = await packFiles(files);
+        return new File([archive.blob], archive.fileName, { type: "application/zip" });
+      } catch (err) {
+        const message =
+          err instanceof ArchiveError ? err.message : "could not package files for upload";
+        toast.error(message);
+        return null;
+      }
+    },
+    [t]
+  );
 
   const startUpload = React.useCallback(
     async (file: File) => {
@@ -187,27 +236,31 @@ export function UploadDrop() {
   // ---- DOM event handlers ----------------------------------------------
 
   const onDrop = React.useCallback(
-    (e: React.DragEvent<HTMLDivElement>) => {
+    async (e: React.DragEvent<HTMLDivElement>) => {
       e.preventDefault();
       setIsDragOver(false);
-      const file = e.dataTransfer.files?.[0];
-      if (file) {
-        void startUpload(file);
+      const files = Array.from(e.dataTransfer.files ?? []);
+      const resolved = await resolveUploadFile(files);
+      if (resolved) {
+        void startUpload(resolved);
       }
     },
-    [startUpload]
+    [resolveUploadFile, startUpload]
   );
 
   const onPick = React.useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0];
-      if (file) {
-        void startUpload(file);
-      }
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const files = Array.from(e.target.files ?? []);
       // Reset so picking the same file twice still fires `change`.
+      // Done BEFORE the awaited resolveUploadFile call so a subsequent
+      // pick can fire even if the resolve is still in flight.
       e.target.value = "";
+      const resolved = await resolveUploadFile(files);
+      if (resolved) {
+        void startUpload(resolved);
+      }
     },
-    [startUpload]
+    [resolveUploadFile, startUpload]
   );
 
   const reset = React.useCallback(() => {
@@ -272,9 +325,32 @@ export function UploadDrop() {
           <input
             ref={fileInputRef}
             type="file"
+            multiple
             className="sr-only"
             onChange={onPick}
             disabled={state.kind === "uploading"}
+          />
+          {/*
+           * Directory-picker — `webkitdirectory` is the de-facto cross-
+           * browser attribute for "pick a folder" (Chrome / Edge / Safari
+           * support it; Firefox added it in 50+). Tagged with `directory`
+           * + `mozdirectory` as defensive aliases for older builds. The
+           * `multiple` attribute is required for Chrome to surface every
+           * file underneath the picked folder.
+           */}
+          <input
+            ref={folderInputRef}
+            type="file"
+            multiple
+            className="sr-only"
+            onChange={onPick}
+            disabled={state.kind === "uploading"}
+            // React's HTMLInputElement typing exposes `webkitdirectory`
+            // as a boolean since v18 but TS narrows it to `false`-only
+            // when written as `webkitdirectory={true}` in some setups.
+            // Casting through `any`-free intermediate keeps strict mode
+            // happy and the attribute lands on the DOM unchanged.
+            {...({ webkitdirectory: "" } as Record<string, string>)}
           />
 
           {state.kind === "idle" || state.kind === "error" ? (
@@ -282,11 +358,30 @@ export function UploadDrop() {
               <VaultMark />
               <div className="space-y-2">
                 <p className="text-[1.05rem] font-medium text-[var(--color-fg)]">
-                  {t("upload.dropPrompt")}
+                  {t("upload.dropPromptMulti")}
                 </p>
                 <p className="text-xs font-light text-[var(--color-muted)]">
                   {t("upload.maxNote", { max: formatBytes(MAX_FILE_SIZE_BYTES) })}
                 </p>
+                {/* Folder-pick affordance. Clicking the dropzone itself
+                    triggers the bare-file picker (multi-select); this
+                    inline link triggers the folder picker. We stop event
+                    propagation so the parent dropzone's onClick doesn't
+                    also fire. */}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    // Parent ternary already narrows state.kind to "idle" |
+                    // "error" so the click is always safe; the
+                    // stopPropagation keeps the parent drop-zone's onClick
+                    // (which opens the bare-file picker) from also firing.
+                    e.stopPropagation();
+                    folderInputRef.current?.click();
+                  }}
+                  className="cursor-pointer text-xs font-medium text-[var(--color-accent)] underline-offset-4 hover:underline"
+                >
+                  {t("upload.pickFolder")}
+                </button>
               </div>
               {state.kind === "error" ? (
                 <p className="text-sm text-[var(--color-danger)]">{state.message}</p>

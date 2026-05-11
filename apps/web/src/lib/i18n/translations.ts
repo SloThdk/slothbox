@@ -101,6 +101,10 @@ export const TRANSLATIONS = {
     en: "Security",
     da: "Sikkerhed",
   },
+  "footer.link.transparency": {
+    en: "Transparency",
+    da: "Gennemsigtighed",
+  },
   "footer.builtBy": {
     en: "Built by",
     da: "Bygget af",
@@ -696,6 +700,14 @@ export const TRANSLATIONS = {
   "upload.maxNote": {
     en: "Up to {max} · sealed in your browser before upload",
     da: "Op til {max} · forseglet i din browser før upload",
+  },
+  "upload.dropPromptMulti": {
+    en: "Drop a file, a folder, or many — encrypted before upload",
+    da: "Slip en fil, en mappe eller flere — krypteret før upload",
+  },
+  "upload.pickFolder": {
+    en: "or pick a folder",
+    da: "eller vælg en mappe",
   },
   "upload.expires": {
     en: "Expires after",
