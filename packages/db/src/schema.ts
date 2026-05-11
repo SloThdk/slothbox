@@ -143,6 +143,21 @@ export const shareChunks = pgTable(
      * this counter.
      */
     servedCount: integer("served_count").notNull().default(0),
+    /**
+     * Single-use chunk download token commitment (migration 0007).
+     *
+     * 32-byte SHA-256 of a client-derived token. The raw token is
+     * computed deterministically in the browser from the URL fragment
+     * key + shortId + chunkIndex; the server only ever sees the
+     * commitment + the bearer-presented token at chunk-fetch time.
+     *
+     * NULL = legacy chunk predating this migration; the ingest endpoint
+     * treats it as "no token required" and serves anyway. New chunks
+     * carry a non-NULL hash and are token-gated. The "single-use"
+     * property piggybacks on `servedAt` from migration 0004 — once
+     * `servedAt` is non-null, the chunk endpoint returns 410.
+     */
+    downloadTokenHash: bytea("download_token_hash"),
   },
   (t) => ({
     pk: primaryKey({ columns: [t.shareId, t.chunkIndex] }),

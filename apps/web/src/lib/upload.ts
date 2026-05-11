@@ -29,6 +29,7 @@ import {
   buildChunkAad,
   bytesToBase64Url,
   deriveAeadKey,
+  deriveChunkToken,
   deriveKeyFromPassword,
   encryptChunk,
   generateKey,
@@ -318,6 +319,17 @@ export async function uploadFile(file: File, options: UploadOptions = {}): Promi
     const aad = buildChunkAad(shortId, i);
     const ciphertext = await encryptChunk({ plaintext, key: aeadKey, nonce, aad });
 
+    // Single-use chunk token (v0.2, migration 0007).
+    //
+    // Derived deterministically from (fragmentKey, shortId, chunkIndex)
+    // so the recipient computes the same token at download time without
+    // any over-the-wire delivery. The SHA-256 commitment ships with the
+    // PUT so the ingest service can store it on the chunk row; the raw
+    // token never reaches the server during upload (only at download
+    // time, as a bearer credential).
+    const chunkToken = await deriveChunkToken({ fragmentKey, shortId, chunkIndex: i });
+    const chunkTokenHash = await sha256(chunkToken);
+
     const uploadUrl = uploadUrls[i];
     if (!uploadUrl) {
       throw new UploadError(`missing upload URL for chunk ${i}`);
@@ -327,6 +339,7 @@ export async function uploadFile(file: File, options: UploadOptions = {}): Promi
       url: uploadUrl,
       ciphertext,
       nonce,
+      chunkTokenHash: bytesToBase64Url(chunkTokenHash),
       signal: options.signal,
     });
 
@@ -360,6 +373,13 @@ interface PutChunkArgs {
   url: string;
   ciphertext: Uint8Array;
   nonce: Uint8Array;
+  /**
+   * Base64url SHA-256 commitment of the single-use download token for
+   * this chunk. The ingest service stores it on `share_chunks.download_token_hash`
+   * — at download time, the recipient's bearer credential is hashed and
+   * compared against this value.
+   */
+  chunkTokenHash: string;
   signal?: AbortSignal;
 }
 
@@ -378,6 +398,7 @@ async function putChunk(args: PutChunkArgs): Promise<void> {
       headers: {
         "Content-Type": "application/octet-stream",
         "X-Slothbox-Nonce": bytesToBase64Url(args.nonce),
+        "X-Slothbox-Chunk-Token-Hash": args.chunkTokenHash,
       },
       body,
       ...(args.signal ? { signal: args.signal } : {}),
