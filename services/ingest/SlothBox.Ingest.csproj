@@ -50,7 +50,7 @@
          severity stack-overflow advisory (GHSA-8g4q-xg66-9fp4 — large
          JSON depth bypass of recursion guard). 8.0.5 ships the fix.
          Pinning explicitly here forces NuGet's resolver to upgrade. -->
-    <PackageReference Include="System.Text.Json" Version="8.0.5" />
+    <PackageReference Include="System.Text.Json" Version="10.0.7" />
 
     <!-- Storage -->
     <PackageReference Include="Minio" Version="6.0.3" />
