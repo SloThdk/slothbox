@@ -68,9 +68,15 @@ jobs:
           GOOS: ${{ matrix.os }}
           GOARCH: ${{ matrix.arch }}
           CGO_ENABLED: "0"
+        # Build the root main package only (`.`, not `./...`). The
+        # verify module has three packages — `main`, `cmd`, and
+        # `internal/version` — and `go build -o <file> ./...` refuses
+        # to write multiple package outputs to one filename, which
+        # failed every release run since v0.1. The other packages
+        # still get pulled in as dependencies of `main`.
         run: |
           go build -trimpath -ldflags="-s -w -X 'github.com/SloThdk/slothbox/tools/verify/internal/version.Version=${GITHUB_REF_NAME}' -X 'github.com/SloThdk/slothbox/tools/verify/internal/version.GitSHA=${GITHUB_SHA}'" \
-            -o slothbox-verify-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.ext }} ./...
+            -o slothbox-verify-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.ext }} .
 
       - name: Compute SHA256
         working-directory: tools/verify
