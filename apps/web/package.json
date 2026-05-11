@@ -28,6 +28,7 @@
     "fflate": "^0.8.2",
     "libsodium-wrappers": "^0.7.15",
     "lucide-react": "^0.454.0",
+    "marked": "^18.0.3",
     "next": "^15.5.18",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
