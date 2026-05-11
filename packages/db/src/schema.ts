@@ -83,6 +83,26 @@ export const shares = pgTable(
     passwordSalt: bytea("password_salt"),
     passwordKdfOpsLimit: integer("password_kdf_ops_limit"),
     passwordKdfMemLimitKib: integer("password_kdf_mem_limit_kib"),
+    /**
+     * Sender-revoke token hash (migration 0006).
+     *
+     * `revokeTokenHash` is the 32-byte SHA-256 of a sender-generated
+     * token. The token itself is generated in the sender's browser
+     * (libsodium `randombytes_buf(32)`), the hash is sent to the
+     * gateway on share creation, and the raw token never reaches the
+     * server — it lives only in the sender's `localStorage` under the
+     * SlothBox origin.
+     *
+     * To revoke a share, the sender's browser sends
+     * `Authorization: Bearer <base64url(token)>` to the destroy
+     * endpoint. The gateway hashes the incoming token (SHA-256) and
+     * compares it to the stored value via `timingSafeEqual`.
+     *
+     * NULL = legacy share predating this migration; cannot be revoked
+     * by a token (TTL / burn / abuse-admin only). New shares get a
+     * non-NULL hash at create time and ARE revocable.
+     */
+    revokeTokenHash: bytea("revoke_token_hash"),
   },
   (t) => ({
     shortIdIdx: index("shares_short_id_idx").on(t.shortId),
@@ -90,6 +110,7 @@ export const shares = pgTable(
     expiresAtIdx: index("shares_expires_at_idx").on(t.expiresAt),
     stateIdx: index("shares_state_idx").on(t.state),
     passwordProtectedIdx: index("shares_password_protected_idx").on(t.passwordProtected),
+    revokeTokenPresentIdx: index("shares_revoke_token_present_idx").on(t.createdAt),
   })
 );
 

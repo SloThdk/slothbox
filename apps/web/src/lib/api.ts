@@ -60,6 +60,21 @@ export interface CreateShareRequest {
   passwordKdfOpsLimit?: number;
   /** Argon2id `memLimit` in KiB (8 MiB – 1 GiB). Present iff `passwordProtected`. */
   passwordKdfMemLimitKib?: number;
+  /**
+   * Sender-revoke token COMMITMENT (v0.2, migration 0006).
+   *
+   * Base64url-encoded SHA-256 (32 bytes after decode) of the
+   * sender-generated 32-byte raw revoke token. The raw token is
+   * NEVER part of any request — it stays in the sender's browser
+   * `localStorage` under the SlothBox origin and re-appears only as
+   * the bearer credential on the destroy endpoint.
+   *
+   * Optional in the schema so a future server-side abuse-tooling
+   * path can create rows without a token, but every sender-initiated
+   * POST through the web app MUST send this field — without it, the
+   * share is non-revocable and can only be destroyed via TTL / burn.
+   */
+  revokeTokenHash?: string;
 }
 
 export interface CreateShareResponse {
@@ -290,13 +305,29 @@ export async function markDownloaded(
 }
 
 /**
- * Manually destroy the share — used by the sender from a future dashboard
- * (v0.5+). For v0.1 it's exposed as the explicit "burn now" action.
+ * Manually destroy the share. As of v0.2 / migration 0006, this requires
+ * the sender-held 32-byte revoke token (base64url-encoded) that the
+ * browser saved to `localStorage` at share-create time. The gateway
+ * hashes the incoming token with SHA-256 and compares the hash against
+ * the stored `revoke_token_hash` via constant-time equality.
+ *
+ * Distinct error shapes from the gateway:
+ *   - 401  missing or malformed bearer token
+ *   - 403  token did not match the stored hash
+ *   - 410  share is legacy (predates this feature) — TTL / burn only
+ *   - 404  share doesn't exist (or already expired)
+ *   - 200  destroyed (idempotent on already-destroyed shares)
  */
-export async function destroyShare(shortId: string): Promise<{ state: ShareDescriptor["state"] }> {
+export async function destroyShare(
+  shortId: string,
+  revokeTokenBase64Url: string
+): Promise<{ state: ShareDescriptor["state"] }> {
   return request(
     `/api/shares/${encodeURIComponent(shortId)}/destroy`,
-    { method: "POST" },
+    {
+      method: "POST",
+      headers: { Authorization: `Bearer ${revokeTokenBase64Url}` },
+    },
     StateOnlyResponseSchema
   );
 }
