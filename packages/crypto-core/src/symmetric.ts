@@ -9,8 +9,8 @@
 // stretching here, no hand-rolled MAC. If you find such code in this file,
 // it's a bug — please file an issue.
 
-import sodium from "libsodium-wrappers";
-import { concatBytes, uint32ToBytesBE, stringToBytes } from "./utils.js";
+import sodium from "libsodium-wrappers-sumo";
+import { concatBytes, sha256, stringToBytes, uint32ToBytesBE } from "./utils.js";
 
 let ready: Promise<void> | null = null;
 async function ensureReady(): Promise<void> {
@@ -126,4 +126,79 @@ export async function decryptChunk(params: {
 export async function hashBytes(input: Uint8Array): Promise<Uint8Array> {
   await ensureReady();
   return sodium.crypto_generichash(32, input);
+}
+
+/**
+ * Domain-separation label baked into `deriveChunkToken`'s input. Same
+ * convention as `AEAD_KDF_LABEL` in derivation.ts — encodes the
+ * protocol family + a version tag so a future construction change
+ * can't produce the same token from the same `(fragmentKey, shortId,
+ * chunkIndex)` triple. The `v1` here ticks independently of the
+ * SemVer release.
+ */
+export const CHUNK_TOKEN_LABEL = stringToBytes("slothbox-chunk-token-v1");
+
+/** Zero byte separator between the label and the key material. */
+const CHUNK_TOKEN_SEPARATOR = new Uint8Array([0x00]);
+
+/**
+ * Derive the 32-byte single-use download token for one chunk.
+ *
+ * Construction:
+ *
+ *     token = SHA-256(
+ *         CHUNK_TOKEN_LABEL ||
+ *         0x00 ||
+ *         fragmentKey ||
+ *         length_prefixed_shortId ||
+ *         u32_be(chunkIndex)
+ *     )
+ *
+ * Both sides of the wire compute the same token without exchanging it —
+ * the sender derives it at upload time and ships the SHA-256 commitment
+ * to the server; the recipient derives the same token at download
+ * time and presents it as a bearer credential. The server's
+ * verification step hashes the incoming token and constant-time
+ * compares against the stored commitment.
+ *
+ * SECURITY NOTES:
+ *   - This is a one-shot capability per chunk, not a session token —
+ *     replay protection lives in the server's `served_at` column.
+ *     Once a chunk has been served, a second request returns 410
+ *     even with the same valid token.
+ *   - The "one-way" property of SHA-256 means a leaked commitment
+ *     (DB dump) is uninvertible — an attacker who steals
+ *     `download_token_hash` cannot derive the corresponding
+ *     `fragmentKey` or token. The defender's URL stays a secret.
+ *   - The construction is NOT length-extension-vulnerable in
+ *     practice because the server never accepts an attacker-controlled
+ *     suffix — it only validates an exact-equal hash compare against
+ *     a fixed-length 32-byte commitment.
+ *
+ * @param params.fragmentKey  the 32-byte key carried in the URL fragment
+ * @param params.shortId      the public 12-char short identifier
+ * @param params.chunkIndex   the chunk's 0-based index
+ *
+ * @returns a fresh 32-byte token (NOT the hash — that's the caller's job
+ *          via `sha256(token)` when shipping the commitment to the server)
+ */
+export async function deriveChunkToken(params: {
+  fragmentKey: Uint8Array;
+  shortId: string;
+  chunkIndex: number;
+}): Promise<Uint8Array> {
+  if (params.fragmentKey.length !== KEY_BYTES) {
+    throw new Error(`fragmentKey must be ${KEY_BYTES} bytes`);
+  }
+  // We reuse `buildChunkAad`'s length-prefixed-shortId + u32-BE shape
+  // so the input layout is identical to the AEAD AAD construction
+  // — same injectivity proof carries over.
+  const aadShape = buildChunkAad(params.shortId, params.chunkIndex);
+  const message = concatBytes(
+    CHUNK_TOKEN_LABEL,
+    CHUNK_TOKEN_SEPARATOR,
+    params.fragmentKey,
+    aadShape
+  );
+  return sha256(message);
 }

@@ -6,7 +6,7 @@ The phased plan from scaffold to externally-reviewed v1.0.
 
 ## v0.1.0-alpha — "Symmetric MVP"
 
-**Status:** in progress (this scaffold)
+**Status:** shipped 2026-05-07
 **Goal:** the core encrypted-transfer flow works end-to-end locally.
 
 | Area         | Scope                                                                 |
@@ -30,6 +30,28 @@ The phased plan from scaffold to externally-reviewed v1.0.
 - Drag a file at <http://localhost:3021>, get a share link, open in another browser, file downloads decrypted
 - All security gates green in CI
 - README + SECURITY published
+
+---
+
+## v0.2.0-alpha — "URL-leak hardening" ✅ shipped 2026-05-11
+
+**Status:** released
+**Goal:** close both v0.1 WARNING-block gaps that did not require a full auth system.
+
+| Area        | Scope                                                                                       |
+| ----------- | ------------------------------------------------------------------------------------------- |
+| Crypto      | Per-share password protection — Argon2id + BLAKE2b-keyed combiner (sender-opt-in)           |
+| Crypto      | Single-use chunk tokens — SHA-256 commitment, derived from URL fragment, enforced by ingest |
+| Lifecycle   | Sender-revoke tokens — 32-byte capability, localStorage-only, gates POST /destroy           |
+| Web         | `/my-shares` sender dashboard — device-local list with revoke + remove-local actions        |
+| Crypto-core | Move from libsodium-wrappers (slim) to libsodium-wrappers-sumo for Argon2id                 |
+| Tests       | 57/57 crypto-core tests green, typecheck clean across all four TS packages                  |
+
+**Exit criteria — all met:**
+
+- v0.1 WARNING block shrunk from three paragraphs to one (external audit remains a v1.0 gate)
+- No behaviour change for legacy v0.1 shares (NULL hash columns → v0.1 semantics)
+- Web typecheck + crypto-core test suite + dotnet build all clean
 
 ---
 

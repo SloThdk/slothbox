@@ -41,6 +41,40 @@ export interface CreateShareRequest {
   burnAfterRead: boolean;
   /** Optional cap on number of downloads (null = unlimited within expiry). */
   maxDownloads: number | null;
+  /**
+   * Per-share password protection (v0.2). All four fields are
+   * all-or-nothing: either every field is set with `passwordProtected = true`,
+   * or every field is omitted with `passwordProtected = false`. The gateway
+   * rejects half-populated requests at the Zod boundary.
+   *
+   * The password itself NEVER appears in this payload. The sender's
+   * browser ran Argon2id locally and combined the output with the URL
+   * fragment to derive the AEAD key — the server only stores the salt +
+   * cost parameters so the recipient can re-derive after entering the
+   * password into the password-prompt UI.
+   */
+  passwordProtected: boolean;
+  /** 16-byte Argon2id salt, base64url. Present iff `passwordProtected`. */
+  passwordSalt?: string;
+  /** Argon2id `opsLimit` (1-10). Present iff `passwordProtected`. */
+  passwordKdfOpsLimit?: number;
+  /** Argon2id `memLimit` in KiB (8 MiB – 1 GiB). Present iff `passwordProtected`. */
+  passwordKdfMemLimitKib?: number;
+  /**
+   * Sender-revoke token COMMITMENT (v0.2, migration 0006).
+   *
+   * Base64url-encoded SHA-256 (32 bytes after decode) of the
+   * sender-generated 32-byte raw revoke token. The raw token is
+   * NEVER part of any request — it stays in the sender's browser
+   * `localStorage` under the SlothBox origin and re-appears only as
+   * the bearer credential on the destroy endpoint.
+   *
+   * Optional in the schema so a future server-side abuse-tooling
+   * path can create rows without a token, but every sender-initiated
+   * POST through the web app MUST send this field — without it, the
+   * share is non-revocable and can only be destroyed via TTL / burn.
+   */
+  revokeTokenHash?: string;
 }
 
 export interface CreateShareResponse {
@@ -55,6 +89,23 @@ export interface CreateShareResponse {
   uploadUrls: string[];
 }
 
+/**
+ * Password-protection facet on the descriptor. Discriminated-union shape
+ * so callers can't read `salt` without first having narrowed `enabled`
+ * to `true`. Mirrors the gateway's JSON output of the same shape.
+ */
+export type SharePasswordFacet =
+  | { enabled: false }
+  | {
+      enabled: true;
+      /** Base64url Argon2id salt (16 bytes when decoded). */
+      salt: string;
+      /** Argon2id `opsLimit`. */
+      opsLimit: number;
+      /** Argon2id `memLimit` in KiB. */
+      memLimitKib: number;
+    };
+
 /** Shape returned by GET /api/shares/:shortId. fileSize comes back as a string
  *  (gateway serialises bigint → string for JSON safety). */
 export interface ShareDescriptor {
@@ -67,6 +118,8 @@ export interface ShareDescriptor {
   chunkCount: number;
   chunkSize: number;
   state: "pending" | "uploading" | "ready" | "downloaded" | "expired" | "destroyed";
+  /** Password-protection facet — discriminated union (see `SharePasswordFacet`). */
+  password: SharePasswordFacet;
 }
 
 // ---------------------------------------------------------------------------
@@ -79,6 +132,23 @@ const CreateShareResponseSchema: z.ZodType<CreateShareResponse> = z.object({
   uploadUrls: z.array(z.string().url()),
 });
 
+/**
+ * Discriminated-union schema for the password facet. Using
+ * `z.discriminatedUnion` (rather than two `z.object` schemas glued with
+ * `z.union`) means TypeScript narrows correctly when the consumer
+ * checks `descriptor.password.enabled` — the `salt` field becomes
+ * accessible only inside the `true` branch.
+ */
+const SharePasswordFacetSchema = z.discriminatedUnion("enabled", [
+  z.object({ enabled: z.literal(false) }),
+  z.object({
+    enabled: z.literal(true),
+    salt: z.string().min(1).max(64),
+    opsLimit: z.number().int().min(1).max(10),
+    memLimitKib: z.number().int().min(8192).max(1_048_576),
+  }),
+]);
+
 const ShareDescriptorSchema: z.ZodType<ShareDescriptor> = z.object({
   shortId: z.string().min(1).max(64),
   expiresAt: z.string().datetime({ offset: true }),
@@ -89,6 +159,7 @@ const ShareDescriptorSchema: z.ZodType<ShareDescriptor> = z.object({
   chunkCount: z.number().int().positive(),
   chunkSize: z.number().int().positive(),
   state: z.enum(["pending", "uploading", "ready", "downloaded", "expired", "destroyed"]),
+  password: SharePasswordFacetSchema,
 });
 
 const StateOnlyResponseSchema = z.object({
@@ -234,13 +305,29 @@ export async function markDownloaded(
 }
 
 /**
- * Manually destroy the share — used by the sender from a future dashboard
- * (v0.5+). For v0.1 it's exposed as the explicit "burn now" action.
+ * Manually destroy the share. As of v0.2 / migration 0006, this requires
+ * the sender-held 32-byte revoke token (base64url-encoded) that the
+ * browser saved to `localStorage` at share-create time. The gateway
+ * hashes the incoming token with SHA-256 and compares the hash against
+ * the stored `revoke_token_hash` via constant-time equality.
+ *
+ * Distinct error shapes from the gateway:
+ *   - 401  missing or malformed bearer token
+ *   - 403  token did not match the stored hash
+ *   - 410  share is legacy (predates this feature) — TTL / burn only
+ *   - 404  share doesn't exist (or already expired)
+ *   - 200  destroyed (idempotent on already-destroyed shares)
  */
-export async function destroyShare(shortId: string): Promise<{ state: ShareDescriptor["state"] }> {
+export async function destroyShare(
+  shortId: string,
+  revokeTokenBase64Url: string
+): Promise<{ state: ShareDescriptor["state"] }> {
   return request(
     `/api/shares/${encodeURIComponent(shortId)}/destroy`,
-    { method: "POST" },
+    {
+      method: "POST",
+      headers: { Authorization: `Bearer ${revokeTokenBase64Url}` },
+    },
     StateOnlyResponseSchema
   );
 }

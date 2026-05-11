@@ -23,36 +23,51 @@ SlothBox is appropriate for portfolio review and personal experimentation only.*
 
 ---
 
-## v0.1 trust assumption (READ FIRST)
+## v0.2 trust assumption (READ FIRST)
 
-**The `shortId` is the access secret in v0.1.** Anyone holding a share URL can:
+The `shortId` is no longer the only access secret. v0.2 closes the two
+URL-leak risks that the v0.1 SECURITY.md called out:
 
-- destroy the share (`POST /api/shares/:shortId/destroy`)
-- download the ciphertext (`GET /chunk/:shortId/:chunkIndex` per chunk —
-  the URL fragment `#key=…` is what unlocks plaintext, but anyone who
-  has the full link including the fragment can decrypt)
-- overwrite chunks during the upload window
-  (`PUT /chunk/:shortId/:chunkIndex`)
+| Action                                            | v0.1 ("shortId is enough") | v0.2                                                              |
+| ------------------------------------------------- | -------------------------- | ----------------------------------------------------------------- |
+| Download ciphertext (`GET /chunk/...`)            | Anyone with URL            | Requires per-chunk single-use token derived from URL fragment     |
+| Decrypt the file                                  | URL fragment alone         | URL fragment **AND** sender-set password (if `passwordProtected`) |
+| Destroy the share (`POST /destroy`)               | Anyone with URL            | Requires 32-byte sender revoke token (localStorage-only)          |
+| Overwrite chunks during upload (`PUT /chunk/...`) | Anyone with URL            | Anyone with URL (gated by share state — uploadable only)          |
 
-There is no per-share owner token, no auth cookie, no signed timestamp on
-these calls in v0.1. The mitigation is a 12-character random shortId with
-~60 bits of entropy and aggressive rate limiting at the gateway and edge.
+### What v0.2 closes
 
-This is a **deliberate v0.1 trade-off**, not a bug. Per-share HMAC tokens
-generated at create time and bound to the destroy / chunk-PUT / chunk-GET
-routes land in **v0.5** alongside the Lucia auth + dashboard milestone (see
-[`MILESTONES.md`](MILESTONES.md)). Until then:
+- **Single-use chunk tokens** (always-on for new uploads). Each chunk's
+  download requires a bearer token derived deterministically from the URL
+  fragment + shortId + chunkIndex. The server stores only the SHA-256
+  commitment; the raw token lives in the recipient's browser at GET time.
+  Once a chunk is served, `served_at` is stamped and any second request
+  returns 410 Gone — a parallel-reader race ends with both parties holding
+  incomplete chunk sets, and neither can AEAD-decrypt the reassembled file.
+- **Per-share password protection** (sender-opt-in). When set, the AEAD
+  key is `BLAKE2b-keyed(Argon2id(password, salt, ops, mem), url_fragment_key)`.
+  Both the URL and the password are required to decrypt — neither alone
+  works. The server never sees the password; wrong guesses fail as AEAD-tag
+  mismatches with no online oracle. See [`docs/CRYPTO.md`](docs/CRYPTO.md)
+  §"How password-protected shares work".
+- **Sender-revoke tokens** (always-on for new shares). A 32-byte random
+  capability lives only in the sender's `localStorage` under
+  `slothbox.myShares.v1`. The destroy endpoint validates a bearer token
+  against the stored SHA-256 hash via `crypto.timingSafeEqual`. A third
+  party who scraped the URL alone cannot revoke the share.
 
-- Treat share URLs the way you would treat a one-time-use door key: do not
-  paste them into shared chat history, public Slack channels, ticketing
-  comments, or anywhere else where a non-recipient might see them.
-- Prefer short expiry windows (1 h / 24 h) over long ones for sensitive
-  content — the smaller the time window in which a leaked URL is valid, the
-  smaller the destruction-by-anyone exposure.
-- For maximum-confidentiality use, send to a single recipient and follow
-  up with a `POST /api/shares/:shortId/destroy` once they confirm receipt
-  out-of-band — that closes the window even on shares you didn't mark
-  burn-after-read.
+### What v0.2 still does NOT close
+
+- **Cryptographer review.** The integration code (KDF combiner, chunk-token
+  derivation, revoke-token commitment) has only been internally reviewed.
+  External cryptographer sign-off is a hard gate for **v1.0** before any
+  "production-ready" framing.
+- **Compromised sender or recipient device.** Treated as out-of-scope —
+  the password lives in the user's head, the revoke token lives in their
+  browser; if either is breached, SlothBox cannot help.
+- **Legacy shares created before migration 0006 / 0007.** Have NULL
+  `revoke_token_hash` and `download_token_hash` columns — they fall back
+  to v0.1 semantics until they expire on TTL.
 
 ### How burn-after-read works in v0.1 (post-migration 0004)
 
@@ -83,15 +98,17 @@ endpoint can no longer keep the share alive. The burn fires from the
 server's view of "bytes left successfully", not from the client's
 voluntary self-report.
 
-**What this does NOT defend against in v0.1:** two simultaneous readers
-in parallel — say a legitimate recipient AND a wiretap on transit who
-both have the URL — can both complete their downloads if their chunk
-fetches interleave such that no single reader is "the last" before the
-other has all chunks. Once the first byte of a chunk leaves the server,
-you can't unsend it. The defence against THAT case is single-use HMAC
-chunk tokens (planned for v0.5 alongside the auth milestone). Until then,
-treat the URL as a one-shot capability and trust the transmission channel
-accordingly.
+**Parallel-readers race (closed in v0.2):** two simultaneous readers — a
+legitimate recipient AND a wiretap on transit who both have the URL —
+used to be able to both complete their downloads if their chunk fetches
+interleaved. Migration 0007 closes that race with single-use chunk
+tokens: each chunk can only be served once. The first request per chunk
+wins; the second arrival receives 410 Gone. Both parties end up with
+incomplete chunk sets, neither can AEAD-decrypt the reassembled file —
+the defender's content stays undelivered to BOTH (the sender re-uploads
+and re-shares). See
+[`db/migrations/0007_single_use_chunk_tokens.sql`](../db/migrations/0007_single_use_chunk_tokens.sql)
+for the construction.
 
 ---
 
@@ -269,4 +286,4 @@ TBD
 
 ---
 
-_Last updated: scaffold of v0.1.0-alpha._
+_Last updated: v0.2.0-alpha — URL-leak hardening (per-share password, sender-revoke tokens, single-use chunk tokens)._

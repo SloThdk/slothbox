@@ -24,6 +24,11 @@ public interface IShareRepository
     /// exists, update it in place (the client may legitimately retry an upload — for
     /// example after a TCP reset — and we want the latest blob_key/nonce/size to win).
     /// </summary>
+    /// <param name="downloadTokenHash">
+    /// 32-byte SHA-256 commitment of the client-derived single-use
+    /// download token (migration 0007), or null for v0.1-style uploads
+    /// that don't carry the `X-Slothbox-Chunk-Token-Hash` header.
+    /// </param>
     Task UpsertChunkAsync(
         Guid shareId,
         int chunkIndex,
@@ -31,6 +36,7 @@ public interface IShareRepository
         string blobKey,
         int ciphertextSize,
         DateTimeOffset uploadedAt,
+        byte[]? downloadTokenHash,
         CancellationToken ct);
 
     /// <summary>

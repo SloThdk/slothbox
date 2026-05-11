@@ -733,6 +733,26 @@ export const TRANSLATIONS = {
     en: "Self-destructs the moment the FIRST complete download finishes. The link still works for whoever opens it first — but anyone clicking it after, including a forwarded copy, sees a “doesn't exist” page. Two people opening the link in the same instant can race and both succeed; treat this as one-shot delivery to a trusted channel, not an unbreakable single-recipient lock.",
     da: "Destrueres i samme øjeblik den FØRSTE komplette download afsluttes. Linket virker for den, der åbner det først — men alle, der klikker bagefter (også en videresendt kopi), ser en “findes ikke”-side. To personer, der åbner linket i samme øjeblik, kan begge nå at hente filen; brug det som engangslevering til en pålidelig kanal, ikke som ubrydelig modtager-lås.",
   },
+  "upload.password": {
+    en: "Password protect",
+    da: "Beskyt med adgangskode",
+  },
+  "upload.password.placeholder": {
+    en: "Set a password (optional)",
+    da: "Sæt en adgangskode (valgfri)",
+  },
+  "upload.password.help": {
+    en: "Adds a second factor on top of the URL fragment. The recipient needs both the link AND the password to decrypt. The server never sees the password — wrong guesses look identical to a corrupted file, so there is no online brute-force oracle. Send the password through a different channel (Signal, SMS, in-person) than the link.",
+    da: "Tilføjer en ekstra faktor oven på URL-fragmentet. Modtageren skal have både linket OG adgangskoden for at dekryptere. Serveren ser aldrig adgangskoden — forkerte gæt ligner en korrupt fil, så der findes ingen online brute-force-orakel. Send adgangskoden gennem en anden kanal (Signal, SMS, personligt) end linket.",
+  },
+  "upload.password.deriving": {
+    en: "Hardening password (Argon2id)…",
+    da: "Hærder adgangskode (Argon2id)…",
+  },
+  "upload.password.tooShort": {
+    en: "Password must be at least {min} characters",
+    da: "Adgangskoden skal være mindst {min} tegn",
+  },
   "upload.trust": {
     en: "Encryption happens in your browser. The key never leaves this tab.",
     da: "Krypteringen sker i din browser. Nøglen forlader aldrig denne fane.",

@@ -17,15 +17,16 @@ import { fileURLToPath } from "node:url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-// libsodium-wrappers v0.7.16 ships a broken ESM build (the .mjs entry imports
-// a sibling libsodium.mjs that is not present in the published `files` array —
-// see https://github.com/jedisct1/libsodium.js/issues/308). We force the CJS
+// libsodium-wrappers (slim + sumo) v0.7.16 ships a broken ESM build — the
+// .mjs entry imports a sibling libsodium*.mjs that pnpm hoisting puts in a
+// different package's dist directory (see
+// https://github.com/jedisct1/libsodium.js/issues/308). We force the CJS
 // entry via a webpack alias. Same workaround appears in
 // packages/crypto-core/vitest.config.ts.
 //
-// With node-linker=hoisted (see .npmrc), libsodium-wrappers lives at the
-// workspace root node_modules. Build the absolute path so the alias is
-// stable regardless of which workspace package triggers the import.
+// With node-linker=hoisted (see .npmrc), both packages live at the workspace
+// root node_modules. Build the absolute path so the alias is stable
+// regardless of which workspace package triggers the import.
 const libsodiumCjsEntry = resolve(
   __dirname,
   "..",
@@ -34,6 +35,20 @@ const libsodiumCjsEntry = resolve(
   "libsodium-wrappers",
   "dist",
   "modules",
+  "libsodium-wrappers.js"
+);
+// Sumo build — required for Argon2id (`crypto_pwhash`) used by
+// `deriveKeyFromPassword` in @slothbox/crypto-core. The CJS bundle ships
+// both the wrappers and the native module under one file, so a single
+// alias is enough to bypass the broken relative ESM import.
+const libsodiumSumoCjsEntry = resolve(
+  __dirname,
+  "..",
+  "..",
+  "node_modules",
+  "libsodium-wrappers-sumo",
+  "dist",
+  "modules-sumo",
   "libsodium-wrappers.js"
 );
 
@@ -120,6 +135,11 @@ const nextConfig = {
 
     config.resolve.alias = {
       ...(config.resolve.alias ?? {}),
+      // Sumo build (Argon2id) is aliased first so its more-specific name
+      // resolves before the slim-build alias would. Both co-exist so a
+      // legacy `import "libsodium-wrappers"` still lands on the slim CJS
+      // bundle without breakage.
+      "libsodium-wrappers-sumo$": libsodiumSumoCjsEntry,
       "libsodium-wrappers$": libsodiumCjsEntry,
     };
 
