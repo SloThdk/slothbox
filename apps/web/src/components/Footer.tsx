@@ -38,6 +38,7 @@ export function Footer() {
               { href: "/", labelKey: "footer.link.send" },
               { href: "/about", labelKey: "footer.link.about" },
               { href: "/security", labelKey: "footer.link.security" },
+              { href: "/transparency", labelKey: "footer.link.transparency" },
             ]}
           />
           <FooterColumn
