@@ -60,12 +60,36 @@ export const shares = pgTable(
     destroyedReason: text("destroyed_reason").$type<DestroyedReason>(),
     senderIpHash: bytea("sender_ip_hash"),
     senderRegion: text("sender_region"),
+    /**
+     * Per-share password protection (migration 0005).
+     *
+     * When `passwordProtected` is true:
+     *   - `passwordSalt` is the 16-byte Argon2id salt for the share.
+     *   - `passwordKdfOpsLimit` is the Argon2id ops parameter (1-10).
+     *   - `passwordKdfMemLimitKib` is the Argon2id mem limit in KiB
+     *     (8192-1048576, i.e. 8 MiB – 1 GiB).
+     *
+     * When `passwordProtected` is false, all three are NULL. The DB
+     * CHECK constraint `shares_password_fields_consistent` enforces
+     * the either/or so the application never sees a half-populated row.
+     *
+     * The password itself is NEVER stored or sent to the gateway —
+     * the sender's browser derives `pwd_key = Argon2id(password, salt,
+     * ops, mem)` and combines it with the URL-fragment key to produce
+     * the AEAD key. See `packages/crypto-core/src/derivation.ts` →
+     * `deriveAeadKey` and `docs/CRYPTO.md` for the full construction.
+     */
+    passwordProtected: boolean("password_protected").notNull().default(false),
+    passwordSalt: bytea("password_salt"),
+    passwordKdfOpsLimit: integer("password_kdf_ops_limit"),
+    passwordKdfMemLimitKib: integer("password_kdf_mem_limit_kib"),
   },
   (t) => ({
     shortIdIdx: index("shares_short_id_idx").on(t.shortId),
     ownerIdIdx: index("shares_owner_id_idx").on(t.ownerId),
     expiresAtIdx: index("shares_expires_at_idx").on(t.expiresAt),
     stateIdx: index("shares_state_idx").on(t.state),
+    passwordProtectedIdx: index("shares_password_protected_idx").on(t.passwordProtected),
   })
 );
 

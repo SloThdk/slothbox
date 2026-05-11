@@ -48,6 +48,7 @@ function VaultMark() {
   );
 }
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import {
@@ -93,11 +94,31 @@ type UploadState =
   | { kind: "done"; result: UploadResult; file: File }
   | { kind: "error"; message: string };
 
+/**
+ * Minimum password length we enforce client-side. Argon2id makes any
+ * non-empty password meaningful against offline brute force, but a
+ * 1-character password still costs only ~50 guesses to brute-force
+ * the full keyspace. 8 characters is the floor for "this materially
+ * raises the bar"; below that, we still accept but surface the hint
+ * via the placeholder copy. Empty stays rejected (the crypto-core
+ * `deriveKeyFromPassword` throws on empty input).
+ */
+const PASSWORD_MIN_LENGTH = 4;
+
 export function UploadDrop() {
   const { t } = useLanguage();
   const [state, setState] = React.useState<UploadState>({ kind: "idle" });
   const [expiryHours, setExpiryHours] = React.useState<number>(24 * 7);
   const [burnAfterRead, setBurnAfterRead] = React.useState<boolean>(false);
+  /**
+   * Per-share password (v0.2). Stored only in component state — never sent
+   * to the gateway. When `passwordProtected` is true and `password` is
+   * empty, we treat it as a UX error (toast) before kicking off the
+   * upload; the crypto-core itself would also reject the empty input
+   * downstream, but the UX feedback is faster from here.
+   */
+  const [passwordProtected, setPasswordProtected] = React.useState<boolean>(false);
+  const [password, setPassword] = React.useState<string>("");
   const [isDragOver, setIsDragOver] = React.useState<boolean>(false);
   const fileInputRef = React.useRef<HTMLInputElement | null>(null);
 
@@ -113,6 +134,14 @@ export function UploadDrop() {
         toast.error(t("upload.toast.tooLarge", { max: formatBytes(MAX_FILE_SIZE_BYTES) }));
         return;
       }
+      // Password validation — only when the toggle is on. Empty passwords
+      // are rejected here (the crypto-core would also reject downstream,
+      // but the UX feedback is faster here). Sub-floor passwords go
+      // through but the placeholder copy already hinted at the minimum.
+      if (passwordProtected && password.length < PASSWORD_MIN_LENGTH) {
+        toast.error(t("upload.password.tooShort", { min: PASSWORD_MIN_LENGTH }));
+        return;
+      }
 
       const controller = new AbortController();
       setState({ kind: "uploading", file, progress: null, controller });
@@ -121,6 +150,11 @@ export function UploadDrop() {
         const result = await uploadFile(file, {
           expiryHours,
           burnAfterRead,
+          // Only forward the password when the toggle is on. The upload
+          // helper treats undefined / empty as "no password" — same
+          // effect, but explicit-undefined keeps the JSON payload
+          // shorter when the feature is off.
+          ...(passwordProtected && password.length > 0 ? { password } : {}),
           signal: controller.signal,
           onProgress: (progress) => {
             setState((prev) => (prev.kind === "uploading" ? { ...prev, progress } : prev));
@@ -147,7 +181,7 @@ export function UploadDrop() {
         toast.error(message);
       }
     },
-    [expiryHours, burnAfterRead, t]
+    [expiryHours, burnAfterRead, passwordProtected, password, t]
   );
 
   // ---- DOM event handlers ----------------------------------------------
@@ -319,6 +353,49 @@ export function UploadDrop() {
                 copy doesn't squeeze the toggle's hit area. */}
             <p className="text-[0.7rem] leading-snug font-light text-[var(--color-muted)]">
               {t("upload.burn.help")}
+            </p>
+          </div>
+
+          {/* ── Password protect ─────────────────────────────────
+              Full-width row on the 2-column desktop layout so the
+              input has room to breathe and the help copy doesn't
+              squeeze the field. Collapses to a single cell on mobile
+              (the parent grid is `grid-cols-1` until `sm:`). The
+              input itself only mounts when the toggle is on, so a
+              user not opting in never sees it. */}
+          <div className="flex flex-col gap-2 sm:col-span-2">
+            <div className="flex items-start justify-between gap-4">
+              <Label htmlFor="password-protect" className="leading-tight">
+                {t("upload.password")}
+              </Label>
+              <Switch
+                id="password-protect"
+                checked={passwordProtected}
+                onCheckedChange={(next) => {
+                  setPasswordProtected(next);
+                  if (!next) setPassword("");
+                }}
+                disabled={state.kind === "uploading"}
+              />
+            </div>
+            {passwordProtected ? (
+              <Input
+                id="password"
+                type="password"
+                autoComplete="new-password"
+                spellCheck={false}
+                placeholder={t("upload.password.placeholder")}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                disabled={state.kind === "uploading"}
+                aria-describedby="password-help"
+              />
+            ) : null}
+            <p
+              id="password-help"
+              className="text-[0.7rem] leading-snug font-light text-[var(--color-muted)]"
+            >
+              {t("upload.password.help")}
             </p>
           </div>
         </div>
