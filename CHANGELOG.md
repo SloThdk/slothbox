@@ -17,6 +17,64 @@ the project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Stripe billing for free vs pro tiers
 - Grafana dashboards published
 
+## [0.2.1] — 2026-05-11
+
+Tier-B (recipient + sender UX), Tier-D (operator transparency), and
+Tier-E (operational hardening) on top of the v0.2.0-alpha trust
+upgrades.
+
+### Added
+
+- **Folder + multi-file uploads.** Sender drops a folder or many
+  files; client packs them into a single zip (`fflate`, `level: 0`)
+  and feeds the archive into the existing single-file encryption
+  pipeline. Recipient downloads `<folder>.zip` and extracts on their
+  OS. Path-traversal entries (`..`, leading `/`, NUL bytes) and
+  duplicate paths are rejected at pack-time.
+- **In-browser preview** for images, PDFs, plain text, and markdown
+  on the receiver page. PDFs render in `<iframe sandbox="">` (no
+  scripts allowed); markdown goes through `marked` v15 → HTML inside
+  the same sandboxed iframe. Object URLs revoke on unmount. Files
+  outside the previewable allowlist keep the v0.2 auto-save
+  behaviour.
+- **Installable PWA + offline-shell service worker.** New
+  `app/manifest.ts` emits `/manifest.webmanifest`; new `public/sw.js`
+  precaches the shell URLs and uses stale-while-revalidate for
+  subsequent GETs. `/api/*` + `/chunk/*` are explicitly bypassed so
+  the single-use chunk-token semantics from v0.2.0-alpha are not
+  undermined by a cached 200.
+- **`/transparency` page** — Schrems II evidence pack with operator
+  legal entity, sub-processor inventory (zero non-EU in the data
+  path), cookie policy (none), audit-status table, and concrete
+  verification commands for visitors.
+- **Optional age-encrypted Postgres dumps.** When
+  `BACKUP_AGE_RECIPIENT` is set in the deploy env, each dump is
+  age-encrypted before it touches the volume. Multiple recipients
+  comma-separated for key redundancy. Operator runbook in
+  `docs/BACKUP.md`.
+- **Optional Tor hidden-service sidecar** behind a `tor` compose
+  profile. v3 onion address points at internal `caddy:80`; default
+  deployments stay public-only.
+
+### Fixed
+
+- `release.yml` no longer fails on every tag push. The verifier-CLI
+  matrix build used `go build -o <file> ./...` against a multi-package
+  module, which Go refuses (`cannot write multiple packages to
+non-directory`). Switched to `.` so only the root main package
+  builds, with `cmd/` and `internal/version/` pulled in as deps.
+
+### Deliberate deferrals (tracked for v0.2.2 / v1.0)
+
+- **Web Share Target API** in the manifest — requires non-trivial
+  service-worker intercept of POST multipart/form-data.
+- **Sigstore / cosign attestation on Docker images** — separate CI
+  workflow PR.
+- **DSA Article 16 notice-and-action endpoint** — pending Danish
+  business-lawyer review of the procedural copy.
+- **WAL-G continuous archiving** — sufficient at v0.2 dataset size to
+  keep the nightly `pg_dump` story; full WAL-G lands with v0.5.
+
 ## [0.2.0-alpha.1] — 2026-05-11
 
 ### Added
