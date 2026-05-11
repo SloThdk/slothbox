@@ -18,6 +18,8 @@ file a bug — it shouldn't be here.
 | Hashing (file content addressing)   | BLAKE2b-256                | libsodium-wrappers | browser → integrity check                  | v0.1  |
 | Password stretching (per-share pwd) | Argon2id (`crypto_pwhash`) | libsodium-wrappers | browser → password-protected shares        | v0.2  |
 | AEAD-key combiner (URL + password)  | BLAKE2b-keyed              | libsodium-wrappers | browser → password-protected shares        | v0.2  |
+| Sender-revoke token generation      | `randombytes_buf` (32 B)   | libsodium-wrappers | browser → revoke token per share           | v0.2  |
+| Sender-revoke token commitment      | SHA-256                    | Web Crypto / Node  | browser ↔ gateway → bearer hash compare    | v0.2  |
 | Audit chain entry hash              | SHA-256                    | pgcrypto           | Postgres → tamper-evident chain (see note) | v0.1  |
 | URL-safe encoding                   | base64url (RFC 4648 §5)    | small wrapper      | browser ↔ URL fragment                     | v0.1  |
 
@@ -36,7 +38,6 @@ file a bug — it shouldn't be here.
 | Use                                   | Algorithm                                 | Library              | Where                 |
 | ------------------------------------- | ----------------------------------------- | -------------------- | --------------------- |
 | Single-use chunk tokens               | HMAC-SHA-256                              | Web Crypto           | v0.2 — burn-race fix  |
-| Sender-revoke tokens                  | HMAC-SHA-256                              | Web Crypto           | v0.2 — sender revoke  |
 | Account password hashing              | Argon2id                                  | libsodium-wrappers   | v0.5 — Lucia accounts |
 | Asymmetric encryption (per-recipient) | Curve25519 + XChaCha20-Poly1305 (via age) | age                  | v1.0 — recipient keys |
 | Timestamp signatures                  | RFC 3161 (RSA / ECDSA)                    | Bouncy Castle (.NET) | v0.5 — receipts       |

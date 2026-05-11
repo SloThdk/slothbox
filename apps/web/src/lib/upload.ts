@@ -33,9 +33,11 @@ import {
   encryptChunk,
   generateKey,
   generateNonce,
+  generateRevokeToken,
   generateSalt,
   hashBytes,
   initCrypto,
+  sha256,
   stringToBytes,
 } from "@slothbox/crypto-core";
 import { createShare, type CreateShareRequest, type CreateShareResponse } from "./api";
@@ -108,6 +110,16 @@ export interface UploadResult {
   shortId: string;
   /** When the server says the share will expire. */
   expiresAt: string;
+  /**
+   * 32-byte sender-revoke token, base64url-encoded. Generated locally
+   * during upload; the server only ever saw its SHA-256 hash. The
+   * caller MUST persist this somewhere the sender can find later
+   * (`localStorage` under the SlothBox origin is the default — see
+   * `apps/web/src/lib/myShares.ts`) so the destroy endpoint can be
+   * called without re-authenticating. If lost, the share is no longer
+   * sender-revocable and can only end via TTL / burn-after-read.
+   */
+  revokeToken: string;
 }
 
 export class UploadError extends Error {
@@ -185,6 +197,15 @@ export async function uploadFile(file: File, options: UploadOptions = {}): Promi
   // `fragmentKey` unchanged so the no-password share format stays
   // byte-identical to the pre-v0.2 layout.
   const aeadKey = await deriveAeadKey({ fragmentKey, passwordKey });
+
+  // ─── Sender-revoke token (v0.2, migration 0006) ─────────────────────────
+  // The token is 32 bytes uniform random, generated in the browser.
+  // The SERVER only ever sees its SHA-256 hash. The raw token leaves
+  // this function via the UploadResult and is persisted by the caller
+  // (typically the ShareLink component, into localStorage).
+  const revokeToken = await generateRevokeToken();
+  const revokeTokenHash = await sha256(revokeToken);
+  const revokeTokenB64 = bytesToBase64Url(revokeToken);
   if (aeadKey.length !== AEAD_KEY_BYTES) {
     // Belt-and-braces — `deriveAeadKey` is the only thing that can produce
     // an off-size key, and it throws on bad inputs. This guard catches a
@@ -256,6 +277,8 @@ export async function uploadFile(file: File, options: UploadOptions = {}): Promi
           passwordKdfMemLimitKib: passwordMemLimitKib,
         }
       : {}),
+    // The hash, NOT the raw token. The raw token never leaves the browser.
+    revokeTokenHash: bytesToBase64Url(revokeTokenHash),
   };
 
   let descriptor: CreateShareResponse;
@@ -326,7 +349,7 @@ export async function uploadFile(file: File, options: UploadOptions = {}): Promi
   // URL fragment stays client-only by browser design.
   const shareUrl = `${PUBLIC_URL}/s/${encodeURIComponent(shortId)}#key=${keyB64}`;
 
-  return { shareUrl, shortId, expiresAt };
+  return { shareUrl, shortId, expiresAt, revokeToken: revokeTokenB64 };
 }
 
 // ---------------------------------------------------------------------------

@@ -227,9 +227,13 @@ export function UploadDrop() {
       <div className="glass-elevated w-full max-w-[480px] p-7 sm:p-8">
         <ShareLink
           url={state.result.shareUrl}
+          shortId={state.result.shortId}
           expiresAt={state.result.expiresAt}
           fileName={state.file.name}
           fileSize={state.file.size}
+          revokeToken={state.result.revokeToken}
+          burnAfterRead={burnAfterRead}
+          passwordProtected={passwordProtected}
           onSendAnother={reset}
         />
       </div>
