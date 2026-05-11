@@ -9,7 +9,6 @@
 // — no version-drift risk.
 
 declare module "libsodium-wrappers-sumo" {
-  // eslint-disable-next-line @typescript-eslint/consistent-type-imports
   import sodium from "libsodium-wrappers";
   export default sodium;
   export * from "libsodium-wrappers";
