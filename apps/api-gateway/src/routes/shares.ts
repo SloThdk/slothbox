@@ -52,6 +52,19 @@ const generateShortId = customAlphabet(SHORT_ID_ALPHABET, SHORT_ID_LENGTH);
 const FILE_HASH_BYTES = 32;
 /** 24 bytes = XChaCha20-Poly1305 nonce, base64url-encoded → 32 chars. */
 const NONCE_META_BYTES = 24;
+/** 16 bytes = libsodium `crypto_pwhash_SALTBYTES` for password-protected shares. */
+const PASSWORD_SALT_BYTES = 16;
+/**
+ * Argon2id cost-parameter bounds, mirrored from migration 0005's
+ * CHECK constraint. Kept in lock-step with the migration so the
+ * gateway rejects invalid params at the Zod layer instead of letting
+ * the DB write fail later — the user-visible error stays close to
+ * the input field that produced it.
+ */
+const PASSWORD_KDF_OPS_LIMIT_MIN = 1;
+const PASSWORD_KDF_OPS_LIMIT_MAX = 10;
+const PASSWORD_KDF_MEM_LIMIT_KIB_MIN = 8192; // 8 MiB
+const PASSWORD_KDF_MEM_LIMIT_KIB_MAX = 1_048_576; // 1 GiB
 
 // ─── Helpers ──────────────────────────────────────────────────────
 
@@ -203,6 +216,46 @@ const CreateShareSchema = z
       }, `expiresAt cannot be more than ${config.MAX_SHARE_TTL_DAYS} days from now`),
     burnAfterRead: z.boolean(),
     maxDownloads: z.number().int().positive().max(10_000).nullable(),
+    /**
+     * Per-share password protection (v0.2, migration 0005).
+     *
+     * The four fields are all-or-nothing — the `.superRefine` block
+     * below enforces the cross-field invariant that matches the
+     * `shares_password_fields_consistent` DB constraint. Validating
+     * here means a malformed body is rejected with a structured 400
+     * before any DB round-trip, and the operator-visible error
+     * surface stays at the Zod boundary instead of leaking a raw
+     * Postgres CHECK violation upstream.
+     *
+     * The password itself is NEVER part of this payload — only the
+     * salt + cost parameters travel to the server. The sender's
+     * browser already ran Argon2id and combined the result into the
+     * AEAD key; the server's job is to store enough state that the
+     * recipient's browser can re-derive the same AEAD key after
+     * prompting the user for the password.
+     */
+    passwordProtected: z.boolean().default(false),
+    passwordSalt: z
+      .string()
+      .min(1)
+      .max(64)
+      .refine(
+        (v) => decodeBase64Url(v).byteLength === PASSWORD_SALT_BYTES,
+        `passwordSalt must decode to exactly ${PASSWORD_SALT_BYTES} bytes`
+      )
+      .optional(),
+    passwordKdfOpsLimit: z
+      .number()
+      .int()
+      .min(PASSWORD_KDF_OPS_LIMIT_MIN)
+      .max(PASSWORD_KDF_OPS_LIMIT_MAX)
+      .optional(),
+    passwordKdfMemLimitKib: z
+      .number()
+      .int()
+      .min(PASSWORD_KDF_MEM_LIMIT_KIB_MIN)
+      .max(PASSWORD_KDF_MEM_LIMIT_KIB_MAX)
+      .optional(),
   })
   /**
    * Cross-field cap on total ciphertext storage. Closes the
@@ -251,6 +304,39 @@ const CreateShareSchema = z
         message:
           `chunkCount * chunkSize (${totalCiphertext}) is smaller ` +
           `than declared fileSize (${data.fileSize})`,
+      });
+    }
+    /**
+     * Password-protection cross-field invariant. Mirrors the
+     * `shares_password_fields_consistent` DB constraint from migration
+     * 0005: when `passwordProtected` is true, all three KDF fields must
+     * be present and inside their bounds; when false, all three must
+     * be omitted.
+     */
+    const kdfFieldsAllPresent =
+      data.passwordSalt !== undefined &&
+      data.passwordKdfOpsLimit !== undefined &&
+      data.passwordKdfMemLimitKib !== undefined;
+    const kdfFieldsAllAbsent =
+      data.passwordSalt === undefined &&
+      data.passwordKdfOpsLimit === undefined &&
+      data.passwordKdfMemLimitKib === undefined;
+    if (data.passwordProtected && !kdfFieldsAllPresent) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["passwordProtected"],
+        message:
+          "passwordProtected = true requires passwordSalt + " +
+          "passwordKdfOpsLimit + passwordKdfMemLimitKib",
+      });
+    }
+    if (!data.passwordProtected && !kdfFieldsAllAbsent) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["passwordProtected"],
+        message:
+          "passwordProtected = false rejects passwordSalt / " +
+          "passwordKdfOpsLimit / passwordKdfMemLimitKib — omit all three",
       });
     }
   });
@@ -319,6 +405,11 @@ export function sharesRouter(): Hono<RouterEnv> {
       const fileHashBytes = decodeBase64Url(body.fileHash);
       const nonceMetaBytes = decodeBase64Url(body.nonceMeta);
       const encryptedMetaBytes = decodeBase64Url(body.encryptedMeta);
+      // The password-protection fields are either ALL undefined (no
+      // protection) or ALL set (the Zod cross-field check above
+      // enforces this). We coerce the optional salt to bytes here so
+      // the column write is uniform with the other bytea fields.
+      const passwordSaltBytes = body.passwordSalt ? decodeBase64Url(body.passwordSalt) : null;
 
       const db = getDb();
 
@@ -339,6 +430,10 @@ export function sharesRouter(): Hono<RouterEnv> {
           chunkCount: body.chunkCount,
           chunkSize: body.chunkSize,
           state: "pending" satisfies ShareState,
+          passwordProtected: body.passwordProtected,
+          passwordSalt: passwordSaltBytes,
+          passwordKdfOpsLimit: body.passwordKdfOpsLimit ?? null,
+          passwordKdfMemLimitKib: body.passwordKdfMemLimitKib ?? null,
         })
         .returning({
           id: shares.id,
@@ -353,6 +448,11 @@ export function sharesRouter(): Hono<RouterEnv> {
       }
 
       // Audit entry — fire-and-forget on the background path.
+      // `passwordProtected` is added so the audit trail can later show
+      // whether a destroyed share was set up with a password layer,
+      // without exposing any password material (the password itself is
+      // never sent to the server, and the salt is omitted from the
+      // audit payload intentionally — only the boolean fact is logged).
       void appendAudit(
         "share_created",
         row.id,
@@ -360,6 +460,7 @@ export function sharesRouter(): Hono<RouterEnv> {
           shortId: row.shortId,
           chunkCount: row.chunkCount,
           burnAfterRead: body.burnAfterRead,
+          passwordProtected: body.passwordProtected,
           ttlSeconds: Math.floor((new Date(body.expiresAt).getTime() - Date.now()) / 1000),
         },
         requestId
@@ -421,6 +522,10 @@ export function sharesRouter(): Hono<RouterEnv> {
           chunkCount: shares.chunkCount,
           chunkSize: shares.chunkSize,
           state: shares.state,
+          passwordProtected: shares.passwordProtected,
+          passwordSalt: shares.passwordSalt,
+          passwordKdfOpsLimit: shares.passwordKdfOpsLimit,
+          passwordKdfMemLimitKib: shares.passwordKdfMemLimitKib,
         })
         .from(shares)
         .where(eq(shares.shortId, shortId))
@@ -452,6 +557,16 @@ export function sharesRouter(): Hono<RouterEnv> {
       // malicious actor ratchet through all shortIds and identify
       // known bad/CSAM files by hash without ever downloading. v1.0
       // will gate the hash behind an authenticated downloader.
+      //
+      // Password-protection fields are returned as either an
+      // `{ enabled: false }` discriminated-union member or an
+      // `{ enabled: true, salt, opsLimit, memLimitKib }` one. Modelling
+      // it as a discriminated union (vs four loose nullable fields)
+      // keeps the recipient's code branch obvious — Zod's discriminated
+      // union on the web side narrows the type so callers can't forget
+      // to handle one of the branches. The salt + KDF params are the
+      // only Argon2id inputs the recipient needs; the password itself
+      // is supplied by the user via the password-prompt UI.
       return c.json(
         {
           shortId: row.shortId,
@@ -463,6 +578,18 @@ export function sharesRouter(): Hono<RouterEnv> {
           chunkCount: row.chunkCount,
           chunkSize: row.chunkSize,
           state: row.state,
+          password:
+            row.passwordProtected &&
+            row.passwordSalt &&
+            row.passwordKdfOpsLimit !== null &&
+            row.passwordKdfMemLimitKib !== null
+              ? {
+                  enabled: true as const,
+                  salt: encodeBase64Url(row.passwordSalt),
+                  opsLimit: row.passwordKdfOpsLimit,
+                  memLimitKib: row.passwordKdfMemLimitKib,
+                }
+              : { enabled: false as const },
         },
         200
       );

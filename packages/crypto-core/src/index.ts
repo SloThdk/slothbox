@@ -38,7 +38,14 @@ export * from "./symmetric.js";
 export * from "./derivation.js";
 export * from "./utils.js";
 
-import sodium from "libsodium-wrappers";
+// `libsodium-wrappers-sumo` is the SUPERSET build that includes
+// password hashing (Argon2id via `crypto_pwhash`) on top of the
+// primitives the slim build ships with. We swallow the ~110 KB extra
+// gzip cost in exchange for keeping the cryptographic surface inside
+// a single audited library — adding a separate Argon2 implementation
+// would double the audit cost without adding capability. See
+// `docs/CRYPTO.md` → "Library versions" for the rationale.
+import sodium from "libsodium-wrappers-sumo";
 
 // libsodium ships its sumo build as WebAssembly. The WASM module needs to
 // instantiate before any primitive can run; `sodium.ready` is the canonical
