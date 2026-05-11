@@ -697,6 +697,14 @@ export const TRANSLATIONS = {
     en: "Up to {max} · sealed in your browser before upload",
     da: "Op til {max} · forseglet i din browser før upload",
   },
+  "upload.dropPromptMulti": {
+    en: "Drop a file, a folder, or many — encrypted before upload",
+    da: "Slip en fil, en mappe eller flere — krypteret før upload",
+  },
+  "upload.pickFolder": {
+    en: "or pick a folder",
+    da: "eller vælg en mappe",
+  },
   "upload.expires": {
     en: "Expires after",
     da: "Udløber efter",
