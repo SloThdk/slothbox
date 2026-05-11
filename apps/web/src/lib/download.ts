@@ -20,9 +20,11 @@
 import {
   base64UrlToBytes,
   buildChunkAad,
+  bytesToBase64Url,
   bytesToString,
   decryptChunk,
   deriveAeadKey,
+  deriveChunkToken,
   deriveKeyFromPassword,
   initCrypto,
 } from "@slothbox/crypto-core";
@@ -225,9 +227,19 @@ export async function downloadFile(
       throw new DownloadError("download cancelled");
     }
 
+    // Single-use chunk token (v0.2, migration 0007). Derived locally
+    // from the URL-fragment key; presented as a bearer credential so
+    // the ingest service can validate against the stored SHA-256
+    // commitment. The server returns 410 Gone on the second fetch of
+    // the same chunk, which is what closes the parallel-readers
+    // race acknowledged in v0.1's WARNING block #2.
+    const chunkToken = await deriveChunkToken({ fragmentKey, shortId, chunkIndex: i });
+    const chunkTokenB64 = bytesToBase64Url(chunkToken);
+
     const { ciphertext, nonce } = await fetchChunk({
       shortId,
       chunkIndex: i,
+      chunkToken: chunkTokenB64,
       signal: options.signal,
     });
 
@@ -374,6 +386,13 @@ async function decryptShareMeta(
 interface FetchChunkArgs {
   shortId: string;
   chunkIndex: number;
+  /**
+   * Base64url single-use download token for this chunk (32 bytes
+   * raw). Sent as `Authorization: Bearer <token>`. The ingest service
+   * hashes the incoming token and constant-time compares against the
+   * stored commitment from share_chunks.download_token_hash.
+   */
+  chunkToken: string;
   signal?: AbortSignal;
 }
 
@@ -389,6 +408,7 @@ async function fetchChunk(args: FetchChunkArgs): Promise<FetchChunkResult> {
   try {
     response = await fetch(url, {
       method: "GET",
+      headers: { Authorization: `Bearer ${args.chunkToken}` },
       ...(args.signal ? { signal: args.signal } : {}),
     });
   } catch (err) {
@@ -402,6 +422,19 @@ async function fetchChunk(args: FetchChunkArgs): Promise<FetchChunkResult> {
   }
 
   if (!response.ok) {
+    // 410 GONE is the load-bearing signal for the single-use chunk
+    // token regime: someone (legitimate retry after a network blip,
+    // or a parallel reader who started later) already redeemed this
+    // chunk's token. Surface as a distinct code so the receiver UI
+    // can render an actionable message ("link already used — ask
+    // the sender to upload again") rather than a generic "transport"
+    // error.
+    if (response.status === 410) {
+      throw new DownloadError(
+        "this share has already been delivered to someone else — ask the sender to re-upload",
+        { code: "decrypt" }
+      );
+    }
     throw new DownloadError(`ingest returned HTTP ${response.status}`, { code: "transport" });
   }
 

@@ -33,16 +33,27 @@
 //   bytes left the server. The gateway endpoint stays in place as a
 //   no-op signal for legacy clients but is no longer load-bearing.
 //
-// What this DOES NOT defend against (v0.1 trust-model honesty):
-//   Two simultaneous readers in parallel — say a legitimate recipient
-//   AND a wiretap on transit who both have the URL — can both complete
-//   their downloads if their chunk fetches interleave such that each
-//   chunk is served at least once before any one chunk finishes "last".
-//   Once the first byte of a chunk leaves the server, you can't unsend
-//   it. The defence against THAT case is single-use HMAC chunk tokens
-//   (planned for v0.5 alongside the auth + dashboard milestone — see
-//   shares.ts:138-141 buildUploadUrl TODO).
+// Parallel-reader defence (v0.2, migration 0007 — single-use chunk tokens):
+//   Each chunk uploaded after migration 0007 carries a 32-byte SHA-256
+//   commitment of a client-derived single-use download token. The
+//   recipient presents the raw token as `Authorization: Bearer …`;
+//   we hash incoming and constant-time compare against the stored
+//   commitment. Once `served_at` is non-null, subsequent fetches
+//   return 410 even with the same valid token. Two parallel readers
+//   now race chunk-by-chunk — whichever request wins a given chunk
+//   gets bytes; the other gets 410. Neither party can fully reassemble
+//   the file because they each get a different subset of chunks
+//   (assuming any interleave at all), and AEAD-tag verification will
+//   fail on the missing chunks. The defender's file is safe-but-
+//   undelivered to BOTH parties, which is the right behaviour for a
+//   parallel-reader race (the sender re-uploads and re-shares).
+//
+//   Legacy chunks (uploaded before migration 0007) have NULL
+//   download_token_hash. Those rows bypass the token check and
+//   serve under v0.1 semantics — preserved for back-compat through
+//   the in-flight expiry window after the migration runs.
 
+using System.Security.Cryptography;
 using Microsoft.AspNetCore.Http;
 using Prometheus;
 using SlothBox.Ingest.Models;
@@ -146,6 +157,49 @@ public static class DownloadEndpoint
         {
             ChunksServed.WithLabels("chunk_not_found").Inc();
             return Results.NotFound(new { error = "chunk_not_found" });
+        }
+
+        // Single-use chunk token validation (v0.2, migration 0007).
+        //
+        // Three states:
+        //   1. ServedAt is non-null
+        //      → 410 Gone. This chunk was already delivered; the
+        //        single-use property is enforced here. Same response
+        //        regardless of whether the requester is the legitimate
+        //        recipient on retry or a parallel reader who lost the
+        //        race. Returning 410 (not 403) tells a polite client
+        //        that the chunk is permanently unavailable.
+        //   2. DownloadTokenHash is non-null AND ServedAt is null
+        //      → token gate applies. Require Authorization: Bearer
+        //        with a 32-byte raw token that hashes (SHA-256) to the
+        //        stored commitment.
+        //          - missing/malformed → 401
+        //          - hash mismatch → 403
+        //          - valid → fall through to serve
+        //   3. DownloadTokenHash is null (legacy chunk, pre-0007)
+        //      → no token required, serve under v0.1 semantics.
+        if (chunk.ServedAt is not null)
+        {
+            ChunksServed.WithLabels("already_served").Inc();
+            return Results.StatusCode(StatusCodes.Status410Gone);
+        }
+        if (chunk.DownloadTokenHash is not null)
+        {
+            var incomingHash = ExtractChunkTokenHash(httpContext.Request.Headers["Authorization"]);
+            if (incomingHash is null)
+            {
+                ChunksServed.WithLabels("missing_token").Inc();
+                return Results.StatusCode(StatusCodes.Status401Unauthorized);
+            }
+            if (!CryptographicOperations.FixedTimeEquals(incomingHash, chunk.DownloadTokenHash))
+            {
+                ChunksServed.WithLabels("bad_token").Inc();
+                return Results.StatusCode(StatusCodes.Status403Forbidden);
+            }
+            // Token valid — fall through to serve. The chunk row will
+            // get ServedAt stamped after stream.CopyToAsync returns, at
+            // which point any concurrent re-request will hit branch (1)
+            // above with the same token and receive 410.
         }
 
         // Set response headers BEFORE writing the body — once the first byte goes
@@ -256,5 +310,59 @@ public static class DownloadEndpoint
     {
         var b64 = Convert.ToBase64String(data);
         return b64.TrimEnd('=').Replace('+', '-').Replace('/', '_');
+    }
+
+    /// <summary>
+    /// Extract a bearer chunk-token from the Authorization header and
+    /// return the SHA-256 hash of the raw token bytes — the value that
+    /// gets timing-safe-compared against the stored
+    /// share_chunks.download_token_hash.
+    ///
+    /// Returns null when the header is missing, malformed, the bearer
+    /// scheme is wrong, the base64url decode fails, or the decoded
+    /// length is not 32. The caller surfaces null as HTTP 401 with a
+    /// generic message — no probe surface that distinguishes between
+    /// "missing" and "decode failed".
+    ///
+    /// Why hash here and not pass raw bytes upstream:
+    ///   Keeps the raw token out of every other code path's memory
+    ///   immediately after parse. The only thing that ever touches
+    ///   the raw token in the ingest service is this function;
+    ///   everything downstream sees the hash.
+    /// </summary>
+    private static byte[]? ExtractChunkTokenHash(Microsoft.Extensions.Primitives.StringValues authHeader)
+    {
+        if (authHeader.Count == 0)
+        {
+            return null;
+        }
+        var value = authHeader[0];
+        if (string.IsNullOrEmpty(value))
+        {
+            return null;
+        }
+        // Require the exact "Bearer " prefix (case-sensitive per RFC 6750
+        // §2.1, though we accept whitespace flexibility via TrimStart).
+        const string prefix = "Bearer ";
+        if (!value.StartsWith(prefix, StringComparison.Ordinal))
+        {
+            return null;
+        }
+        var raw = value.AsSpan(prefix.Length).TrimStart();
+        if (raw.Length == 0)
+        {
+            return null;
+        }
+        if (!UploadEndpoint.TryDecodeBase64Url(raw.ToString(), out var rawBytes))
+        {
+            return null;
+        }
+        if (rawBytes.Length != 32)
+        {
+            return null;
+        }
+        // SHA-256 the raw token. Allocation-free path via
+        // SHA256.HashData; output is a fresh 32-byte array.
+        return SHA256.HashData(rawBytes);
     }
 }

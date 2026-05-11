@@ -1,11 +1,13 @@
 import { describe, it, expect, beforeAll } from "vitest";
 import {
+  CHUNK_TOKEN_LABEL,
   initCrypto,
   generateKey,
   generateNonce,
   encryptChunk,
   decryptChunk,
   buildChunkAad,
+  deriveChunkToken,
   hashBytes,
   KEY_BYTES,
   NONCE_BYTES,
@@ -103,5 +105,66 @@ describe("hashing (BLAKE2b-256)", () => {
     const a = await hashBytes(new TextEncoder().encode("foo"));
     const b = await hashBytes(new TextEncoder().encode("bar"));
     expect(Array.from(a)).not.toEqual(Array.from(b));
+  });
+});
+
+describe("deriveChunkToken (single-use chunk capabilities)", () => {
+  it("produces 32-byte tokens (SHA-256 output)", async () => {
+    const fragmentKey = await generateKey();
+    const token = await deriveChunkToken({ fragmentKey, shortId: "abc12345xyz1", chunkIndex: 0 });
+    expect(token.length).toBe(32);
+  });
+
+  it("is deterministic for the same inputs (both sides converge)", async () => {
+    const fragmentKey = await generateKey();
+    const a = await deriveChunkToken({ fragmentKey, shortId: "abc12345xyz1", chunkIndex: 3 });
+    const b = await deriveChunkToken({ fragmentKey, shortId: "abc12345xyz1", chunkIndex: 3 });
+    expect(Array.from(a)).toEqual(Array.from(b));
+  });
+
+  it("differs across chunk indices for the same fragmentKey + shortId", async () => {
+    const fragmentKey = await generateKey();
+    const t0 = await deriveChunkToken({ fragmentKey, shortId: "abc12345xyz1", chunkIndex: 0 });
+    const t1 = await deriveChunkToken({ fragmentKey, shortId: "abc12345xyz1", chunkIndex: 1 });
+    expect(Array.from(t0)).not.toEqual(Array.from(t1));
+  });
+
+  it("differs across shortIds for the same fragmentKey + chunkIndex", async () => {
+    const fragmentKey = await generateKey();
+    const tA = await deriveChunkToken({ fragmentKey, shortId: "abc12345xyz1", chunkIndex: 0 });
+    const tB = await deriveChunkToken({ fragmentKey, shortId: "def67890pqr2", chunkIndex: 0 });
+    expect(Array.from(tA)).not.toEqual(Array.from(tB));
+  });
+
+  it("differs across fragmentKeys for the same shortId + chunkIndex", async () => {
+    const t1 = await deriveChunkToken({
+      fragmentKey: await generateKey(),
+      shortId: "abc12345xyz1",
+      chunkIndex: 0,
+    });
+    const t2 = await deriveChunkToken({
+      fragmentKey: await generateKey(),
+      shortId: "abc12345xyz1",
+      chunkIndex: 0,
+    });
+    expect(Array.from(t1)).not.toEqual(Array.from(t2));
+  });
+
+  it("rejects wrong-size fragmentKey", async () => {
+    await expect(
+      deriveChunkToken({
+        fragmentKey: new Uint8Array(16),
+        shortId: "abc12345xyz1",
+        chunkIndex: 0,
+      })
+    ).rejects.toThrow(/fragmentKey must be 32 bytes/);
+  });
+
+  it("uses the documented domain-separation label", () => {
+    // Guard against accidental label drift — if anyone bumps "v1" → "v2",
+    // every existing chunk token in flight becomes invalid, so this is
+    // a conscious-decision sentinel.
+    const expected = new TextEncoder().encode("slothbox-chunk-token-v1");
+    expect(Array.from(CHUNK_TOKEN_LABEL)).toEqual(Array.from(expected));
   });
 });
