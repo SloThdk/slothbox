@@ -18,6 +18,7 @@ import { Toaster } from "sonner";
 import { AlphaBanner } from "@/components/AlphaBanner";
 import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
+import { RegisterServiceWorker } from "@/components/RegisterServiceWorker";
 import { APP_NAME, APP_TAGLINE, PUBLIC_URL } from "@/lib/config";
 import { LanguageProvider } from "@/lib/i18n/LanguageContext";
 import "@/styles/globals.css";
@@ -137,6 +138,16 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <Header />
           <main className="flex-1">{children}</main>
           <Footer />
+          {/*
+            Service-worker registration. Renders nothing — the
+            component's only job is to fire `navigator.serviceWorker.register`
+            after first paint, in production builds only (the SW is
+            skipped in dev because it breaks Next.js HMR). Failure to
+            register is silent: the SW is a progressive enhancement
+            (offline shell, faster repeat visits), not a hard
+            dependency.
+          */}
+          <RegisterServiceWorker />
           <Toaster
             richColors
             theme="dark"
