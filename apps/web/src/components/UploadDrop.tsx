@@ -322,10 +322,22 @@ export function UploadDrop() {
             state.kind === "uploading" && "cursor-not-allowed"
           )}
         >
+          {/*
+           * Visually-hidden file inputs need explicit aria-labels so
+           * screen readers announce them when the dropzone gets focus
+           * and dispatches a click. Without the label the input
+           * surfaces as a bare "file selector" with no purpose — and
+           * Lighthouse's a11y audit flags it under "Form elements do
+           * not have associated labels". The labels stay in English
+           * because the surrounding dropzone copy is i18n-routed via
+           * the `t()` keys further down; a hard-coded English label
+           * here is OK because it never renders visually.
+           */}
           <input
             ref={fileInputRef}
             type="file"
             multiple
+            aria-label="Pick one or more files to encrypt and share"
             className="sr-only"
             onChange={onPick}
             disabled={state.kind === "uploading"}
@@ -342,6 +354,7 @@ export function UploadDrop() {
             ref={folderInputRef}
             type="file"
             multiple
+            aria-label="Pick a folder to encrypt and share"
             className="sr-only"
             onChange={onPick}
             disabled={state.kind === "uploading"}
@@ -378,7 +391,15 @@ export function UploadDrop() {
                     e.stopPropagation();
                     folderInputRef.current?.click();
                   }}
-                  className="cursor-pointer text-xs font-medium text-[var(--color-accent)] underline-offset-4 hover:underline"
+                  // Lighthouse "Touch targets do not have sufficient size or
+                  // spacing" was flagging this button because the text-xs +
+                  // no-padding combo rendered the hit-box at ~16x14 px.
+                  // WCAG 2.5.5 (Level AAA) wants >= 44x44; Lighthouse asks
+                  // for >= 24x24 as the practical floor. Bump to inline-flex
+                  // with a min height + px/py so the click target reaches
+                  // the threshold without changing the visual weight (the
+                  // text size + accent colour are unchanged).
+                  className="inline-flex min-h-[36px] cursor-pointer items-center justify-center px-3 py-1.5 text-xs font-medium text-[var(--color-accent)] underline-offset-4 hover:underline"
                 >
                   {t("upload.pickFolder")}
                 </button>
