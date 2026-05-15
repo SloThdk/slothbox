@@ -39,7 +39,16 @@
   --color-fg: #f0f4fa;
   --color-fg-2: #cdd5e2;
   --color-muted: #8a93a5;
-  --color-muted-2: #5e6878;
+  /* `--color-muted-2` is the eyebrow / step-label colour used across the
+     landing page (`01 / STEP`, `Encrypted locally / STEP`, etc.) and on
+     /how. The previous value `#5e6878` rendered ~3.4:1 on `--color-bg`,
+     under WCAG AA's 4.5:1 floor for sub-18px text — Lighthouse a11y
+     flagged every step-label on the 2026-05-15 audit. Bumped to
+     `#7c8696` (~5.3:1) so the eyebrow stays visually subdued but
+     passes the contrast bar; the hierarchy with `--color-muted`
+     (~5.5:1) is preserved by tracking + font-mono + uppercase
+     treatment rather than a 30%-darker shade. */
+  --color-muted-2: #7c8696;
 
   /* Glass strokes — used as 1-pixel hairlines on every translucent surface
      to give it edge definition. White at low alpha reads as "light reflecting
