@@ -11,8 +11,17 @@
     "start": "next start -p 3021",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
+    "optimize:images": "node scripts/optimize-images.mjs",
     "test": "echo 'web e2e tests live in services/qa; unit tests come in v0.5' && exit 0"
   },
+  "browserslist": [
+    "Chrome >= 93",
+    "Firefox >= 92",
+    "Safari >= 15.4",
+    "Edge >= 93",
+    "not dead",
+    "not op_mini all"
+  ],
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",
     "@radix-ui/react-dialog": "^1.1.2",
@@ -47,6 +56,7 @@
     "eslint": "^9.14.0",
     "eslint-config-next": "^15.1.4",
     "postcss": "^8.5.14",
+    "sharp": "^0.34.5",
     "tailwindcss": "^4.0.0-beta.4",
     "typescript": "^5.6.3"
   }
