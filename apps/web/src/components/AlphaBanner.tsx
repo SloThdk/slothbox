@@ -36,20 +36,30 @@ const STORAGE_KEY = "slothbox.alphaBanner.dismissed.v1";
 
 export function AlphaBanner() {
   const { t } = useLanguage();
-  // Initial state: hidden during SSR + first hydration tick. The acknowledged
-  // bit is read from localStorage in an effect so server and client agree on
-  // the first paint (no hydration mismatch warning).
-  const [hidden, setHidden] = useState(true);
+  // Initial state: VISIBLE during SSR + first hydration tick. The previous
+  // implementation defaulted to hidden=true and flipped to visible inside a
+  // useEffect — that caused the banner to mount AFTER hydration, pushing the
+  // entire <main> down by ~80 px. Lighthouse measured the resulting CLS at
+  // 0.316 on /, the single biggest perf-score lever on the landing audit.
+  //
+  // Defaulting to visible means:
+  //   - First-time visitors (and Lighthouse, which always lands without
+  //     localStorage) see the banner inside the SSR HTML and the initial
+  //     client paint. No shift. CLS for this case = 0.
+  //   - Returning visitors who dismissed earlier see the banner for one
+  //     hydration tick (the useEffect below reads localStorage and hides
+  //     it) — that produces a small UPWARD shift after initial paint, but
+  //     Lighthouse doesn't see it (no persistent storage in audit context)
+  //     and a real visitor was going to see the banner once anyway.
+  const [hidden, setHidden] = useState(false);
 
   useEffect(() => {
     try {
       const dismissed = window.localStorage.getItem(STORAGE_KEY) === "true";
-      setHidden(dismissed);
+      if (dismissed) setHidden(true);
     } catch {
-      // localStorage unavailable (private mode, sandbox iframe). Fail-loud:
-      // show the banner. Worst case the user sees it on every page; better
-      // than silently hiding a security disclosure.
-      setHidden(false);
+      // localStorage unavailable (private mode, sandbox iframe). Stay
+      // visible — better to show the security disclosure than to hide it.
     }
   }, []);
 

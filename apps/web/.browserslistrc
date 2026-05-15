@@ -1,0 +1,17 @@
+# Modern target — keep in sync with the `browserslist` block in
+# package.json. Some toolchains (SWC's polyfill detection, in
+# particular) read .browserslistrc first and fall through to
+# package.json only if it's missing; in a pnpm monorepo the
+# package.json-level config can be missed when the build runs from
+# a workspace root that has its own browserslist.
+#
+# The pin drops polyfills for Array.prototype.at / .flat / .flatMap,
+# Object.fromEntries / .hasOwn, String.prototype.trimStart / .trimEnd
+# — all baseline 2020+ features that ship native on every browser at
+# or above these versions.
+Chrome >= 93
+Firefox >= 92
+Safari >= 15.4
+Edge >= 93
+not dead
+not op_mini all
