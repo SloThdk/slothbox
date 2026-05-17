@@ -17,6 +17,132 @@ the project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Stripe billing for free vs pro tiers
 - Grafana dashboards published
 
+## [0.2.4] — 2026-05-18
+
+Defence-in-depth hardening pass. Every loophole the v0.2 cold-eye
+audit flagged that costs zero dollars to close is closed in this
+release, plus a few additional headers / endpoint surfaces that
+weren't audit findings but tighten the attack surface. No new
+features; no behaviour change for legitimate flows. Audit-pending
+status for v1.0 (external cryptographer review + third-party pen
+test) is unchanged.
+
+### Added
+
+- **`TRUST_FORWARDED_FOR` env var** (audit Finding #5). Gates
+  whether the rate-limiter trusts `X-Forwarded-For` for client-IP
+  derivation. Default `true` (matches the canonical Caddy →
+  api-gateway topology); set `false` if the gateway is ever
+  exposed to untrusted clients via misconfigured port mapping or
+  a second ingress that doesn't rewrite XFF. When `false`, the
+  socket remote address is used, closing the rate-limit bypass
+  via XFF spoof.
+- **`shortId` regex constraint on all ingest chunk routes**
+  (audit Finding #6). `PUT/GET/DELETE /chunk/{shortId}/{chunkIndex}`
+  now reject anything that doesn't match the gateway's
+  `SHORT_ID_ALPHABET` + `SHORT_ID_LENGTH=12` at the routing
+  layer, before `BuildBlobKey` or MinIO is touched. The DB
+  lookup still catches unknown ids, but defence-in-depth is now
+  two-deep.
+- **`POST /api/csp-report` endpoint** + `report-uri` directive
+  in the web CSP. Browsers post Content-Security-Policy violation
+  reports here; the gateway logs structured violation fields to
+  pino (`{service="api-gateway"} |= "CSP violation"` in Loki
+  catches XSS-attempt traffic). Rate-limited 60 reports / IP /
+  minute. Accepts legacy `application/csp-report` AND modern
+  Reports API shapes.
+- **Origin guard middleware** on `/api/*`. CSRF defence-in-depth
+  beyond CORS preflight: any state-changing method (POST / PUT /
+  PATCH / DELETE) with an `Origin` header that doesn't match
+  `API_CORS_ORIGIN` gets 403'd before the handler runs. Exempts
+  `/api/csp-report` because browser CSP reports have their own
+  origin semantics. Missing Origin is allowed (server-to-server
+  calls and curl don't set one and the route's own auth gates
+  handle them).
+- **`MAX_PASSWORD_BYTES` cap (4 KiB)** in `deriveKeyFromPassword`.
+  Hard ceiling on user-supplied password length, enforced AT BOTH
+  the UTF-16 string length AND the UTF-8 encoded byte length so
+  a 1500-char emoji password (4500 bytes) is rejected before
+  Argon2id starts the slow KDF. Three new boundary tests
+  (over-cap ASCII, over-cap multi-byte UTF-8, exactly-at-cap
+  ASCII) added to the derivation test suite (60/60 green now,
+  was 57/57).
+- **`.well-known/security.txt` (RFC 9116)**. Standardised
+  vulnerability-disclosure contact at the canonical URL.
+  Security researchers and automated scanners read here before
+  opening a public issue.
+- **Web CSP `report-uri` directive** pointing at the new
+  gateway endpoint. Closes the loop: when the browser blocks an
+  XSS attempt via the nonce + strict-dynamic CSP, we now find
+  out about it via Loki instead of silently.
+
+### Changed
+
+- **Caddy Permissions-Policy expanded** from 6 features to 31.
+  Adds `accelerometer`, `ambient-light-sensor`, `autoplay`,
+  `battery`, `display-capture`, `document-domain`,
+  `encrypted-media`, `execution-while-not-rendered`,
+  `execution-while-out-of-viewport`, `fullscreen=(self)`,
+  `gamepad`, `gyroscope`, `hid`, `idle-detection`,
+  `keyboard-map`, `magnetometer`, `midi`,
+  `navigation-override`, `picture-in-picture`,
+  `publickey-credentials-get`, `screen-wake-lock`, `serial`,
+  `sync-xhr`, `web-share=(self)`, `xr-spatial-tracking`. Each
+  feature this app doesn't use is now denied at the edge so a
+  compromised script can't reach it.
+- **Caddy `X-Permitted-Cross-Domain-Policies: none`** added.
+  Blocks Adobe Flash / Reader cross-domain XML lookups — legacy
+  but free hardening.
+- **`apps/api-gateway/src/lib/logger.ts` redaction expanded**
+  from 8 paths to 23. Now redacts `authorization`,
+  `set-cookie`, `proxy-authorization`, `x-auth-token` headers;
+  `req.body.{passwordSalt, revokeTokenHash, downloadTokenHash,
+chunkTokens}`; wildcards `*.passwordKey`, `*.revokeToken`,
+  `*.chunkToken`, `*.downloadToken`, `*.privateKey`,
+  `*.apiKey`, `*.fragmentKey`, `*.aeadKey`. Belt-and-braces:
+  the route code already avoids logging these, but this catches
+  accidental future surfacing.
+- **`apps/web/src/app/robots.ts`** — `/chunk/` and `/my-shares`
+  added to the disallow list. `/chunk/` is the ingest service
+  surface (no reason any crawler should walk it); `/my-shares`
+  is device-local so its content is empty for crawlers but the
+  path shouldn't show up in search results either.
+- **Per-share password inputs** (`UploadDrop.tsx`, `Decrypt.tsx`)
+  — explicit password-manager opt-out via `data-1p-ignore` +
+  `data-lpignore` attributes. `Decrypt.tsx` password input also
+  switched from `autoComplete="current-password"` to
+  `autoComplete="off"`: it's a per-share out-of-band password,
+  not the recipient's site credential.
+- **GitHub repo security features enabled** (free tier):
+  - Private vulnerability reporting (`PUT
+/repos/{}/private-vulnerability-reporting`)
+  - Dependabot security updates (auto-PR for security advisories)
+  - Vulnerability alerts
+  - Secret scanning + push protection (blocks committing
+    obvious provider secrets)
+
+### Security backlog explicitly tracked for later versions
+
+The audit's remaining LOW + INFO findings still hold:
+
+- **Streaming-Blob decryption** (Finding #3) — perf hazard on
+  4 GB downloads. Lands in v0.5.
+- **RLS enforcement** — gateway moves to non-owner role + `SET
+LOCAL app.current_short_id` per request. Multi-day work; lands
+  with the v0.5 auth introduction so the GUC plumbing is
+  end-to-end.
+- **Audit chain continuity checker** (Finding #9) — Postgres
+  function + Prometheus alert rule. Lands with v1.0 verifiable-
+  destruction-chain work.
+- **`pids_limit` on the externally-reachable containers** —
+  fork-bomb DoS defence. Needs per-service tuning; deferred to
+  v0.3 / v0.5 once we have steady-state PID counts to budget
+  against.
+- **Magic-byte check on the first chunk** — operator-self-
+  protection against a misconfigured client uploading plaintext.
+  PipeReader peek + prepend dance adds complexity to the perf-
+  critical upload path; not a v0.x release blocker.
+
 ## [0.2.3] — 2026-05-18
 
 Brand-mark coherence patch. The favicon, apple-touch-icon, and
@@ -348,7 +474,8 @@ non-directory`). Switched to `.` so only the root main package
 - WebRTC P2P transfer not yet implemented
 - No external cryptographer review yet — see `SECURITY.md` audit status table
 
-[Unreleased]: https://github.com/SloThdk/slothbox/compare/v0.2.3...HEAD
+[Unreleased]: https://github.com/SloThdk/slothbox/compare/v0.2.4...HEAD
+[0.2.4]: https://github.com/SloThdk/slothbox/compare/v0.2.3...v0.2.4
 [0.2.3]: https://github.com/SloThdk/slothbox/compare/v0.2.2...v0.2.3
 [0.2.2]: https://github.com/SloThdk/slothbox/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/SloThdk/slothbox/compare/v0.2.0-alpha.1...v0.2.1

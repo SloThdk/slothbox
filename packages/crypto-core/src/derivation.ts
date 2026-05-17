@@ -107,6 +107,21 @@ export const AEAD_KDF_LABEL = stringToBytes("slothbox-aead-kdf-v1");
 /** Zero byte separator between the label and the password-key material. */
 const AEAD_KDF_SEPARATOR = new Uint8Array([0x00]);
 
+/**
+ * Hard cap on the UTF-8 byte length of a user-supplied password.
+ * Argon2id's MEMLIMIT defends against memory exhaustion on a single
+ * derivation, but an unbounded password length lets an attacker still
+ * waste CPU hashing megabytes of input. 4 KiB is enough for any
+ * realistic passphrase (a 100-word Diceware phrase fits in ~700 bytes)
+ * and a hard ceiling against the "1 MB password" DoS shape.
+ *
+ * The CHECK constraint in migration 0005 enforces salt + KDF param
+ * bounds server-side; this cap protects the client-side KDF call AND
+ * any future server-side use (e.g. the v0.5 migration to a hash-and-
+ * forget password verifier).
+ */
+export const MAX_PASSWORD_BYTES = 4096;
+
 // ---------------------------------------------------------------------------
 // Random salt
 // ---------------------------------------------------------------------------
@@ -159,6 +174,17 @@ export async function deriveKeyFromPassword(params: {
   }
   if (params.password.length === 0) {
     throw new Error("password must not be empty");
+  }
+  // UTF-8 byte length cap — see MAX_PASSWORD_BYTES rationale.
+  // String.length counts UTF-16 code units, so a string of length N can
+  // encode up to ~3N bytes in UTF-8 (worst case 4 for surrogate pairs).
+  // Cheap pre-check, then exact byte-length check via TextEncoder.
+  if (params.password.length > MAX_PASSWORD_BYTES) {
+    throw new Error(`password too long (max ${MAX_PASSWORD_BYTES} bytes)`);
+  }
+  const encodedBytes = new TextEncoder().encode(params.password).length;
+  if (encodedBytes > MAX_PASSWORD_BYTES) {
+    throw new Error(`password too long (max ${MAX_PASSWORD_BYTES} bytes)`);
   }
 
   return sodium.crypto_pwhash(

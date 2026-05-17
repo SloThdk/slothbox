@@ -44,4 +44,4 @@ export const CHUNK_SIZE_BYTES = 5 * 1024 * 1024;
 export const APP_NAME = "SlothBox";
 export const APP_TAGLINE =
   "Send any file. The server cannot read it. The full source code is open and auditable.";
-export const APP_VERSION = "0.2.3";
+export const APP_VERSION = "0.2.4";

@@ -26,7 +26,10 @@ public static class DeleteEndpoint
     /// <summary>Wire the route.</summary>
     public static void Map(IEndpointRouteBuilder app)
     {
-        app.MapDelete("/chunk/{shortId}/{chunkIndex:int}", HandleAsync)
+        // shortId regex constraint mirrors the gateway's
+        // SHORT_ID_ALPHABET; see UploadEndpoint.Map for the rationale
+        // (audit Finding #6 -- defence-in-depth before MinIO key build).
+        app.MapDelete("/chunk/{shortId:regex(^[abcdefghjkmnpqrstuvwxyz23456789]{{12}}$)}/{chunkIndex:int}", HandleAsync)
             .WithName("DeleteChunk")
             .WithDescription("Internal: delete a chunk's blob. Requires X-Internal-Token.");
     }

@@ -14,8 +14,15 @@ export default function robots(): MetadataRoute.Robots {
     rules: [
       {
         userAgent: "*",
-        allow: ["/", "/about", "/security"],
-        disallow: ["/s/", "/api/"],
+        allow: ["/", "/about", "/security", "/how", "/transparency"],
+        // Crawlers stay away from anything that carries upload state or
+        // hits the ingest path. The fragment in `/s/<id>#key=...` is
+        // never sent by browsers (RFC 3986 §3.5), so even an indexed
+        // path would not leak the decryption key — but search-engine
+        // visibility of share URLs is still the wrong default. `/chunk/`
+        // is the ingest service surface (PUT/GET/DELETE chunks); no
+        // reason for any crawler to walk it.
+        disallow: ["/s/", "/api/", "/chunk/", "/my-shares"],
       },
     ],
     sitemap: `${PUBLIC_URL}/sitemap.xml`,

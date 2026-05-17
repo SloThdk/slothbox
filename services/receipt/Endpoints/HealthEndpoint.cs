@@ -46,7 +46,7 @@ public static class HealthEndpoint
     /// release so /healthz reports the same number as ingest + gateway.
     /// Full receipt issuance lands in v0.5.
     /// </summary>
-    public const string ServiceVersion = "0.2.2";
+    public const string ServiceVersion = "0.2.4";
 
     /// <summary>
     /// Wires the /healthz route. The underlying HealthCheckService is built

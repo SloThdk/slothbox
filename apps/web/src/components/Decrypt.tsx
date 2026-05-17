@@ -224,7 +224,17 @@ export function Decrypt({ shortId, descriptor, decryptionKey }: DecryptProps) {
               <Input
                 id="decrypt-password"
                 type="password"
-                autoComplete="current-password"
+                // `off`, not `current-password` — this is a per-share
+                // out-of-band password, not the recipient's site
+                // password. Browsers must NOT offer to save it (it's
+                // single-use) and MUST NOT autofill another site's
+                // saved password into the field. The two
+                // password-manager opt-out attributes below cover
+                // 1Password and LastPass; spec-compliant managers
+                // already obey `autoComplete=off`.
+                autoComplete="off"
+                data-1p-ignore="true"
+                data-lpignore="true"
                 spellCheck={false}
                 autoFocus
                 placeholder="Password the sender gave you"

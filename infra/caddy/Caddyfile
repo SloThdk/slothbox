@@ -120,7 +120,18 @@ slothbox.philipsloth.com {
 		X-Content-Type-Options "nosniff"
 		X-Frame-Options "DENY"
 		Referrer-Policy "no-referrer"
-		Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=(), interest-cohort=()"
+		# Permissions-Policy: deny every sensor + media-routing capability
+		# the app doesn't use. Each `feature=()` denies even same-origin
+		# access; if the app ever legitimately needs one of these we'll
+		# allowlist it explicitly with `feature=(self)`. Includes the
+		# legacy floc opt-out (`interest-cohort`) and the newer ad-tracking
+		# / sensor / media-stream APIs an encrypted-file-transfer page has
+		# no reason to invoke.
+		Permissions-Policy "accelerometer=(), ambient-light-sensor=(), autoplay=(), battery=(), camera=(), display-capture=(), document-domain=(), encrypted-media=(), execution-while-not-rendered=(), execution-while-out-of-viewport=(), fullscreen=(self), gamepad=(), geolocation=(), gyroscope=(), hid=(), idle-detection=(), interest-cohort=(), keyboard-map=(), magnetometer=(), microphone=(), midi=(), navigation-override=(), payment=(), picture-in-picture=(), publickey-credentials-get=(), screen-wake-lock=(), serial=(), sync-xhr=(), usb=(), web-share=(self), xr-spatial-tracking=()"
+		# Block Adobe Flash / Reader cross-domain XML lookups. Legacy
+		# attack surface in modern terms; setting `none` here is one of
+		# the cheapest hardening wins available.
+		X-Permitted-Cross-Domain-Policies "none"
 		Cross-Origin-Embedder-Policy "require-corp"
 		Cross-Origin-Opener-Policy "same-origin"
 		Cross-Origin-Resource-Policy "same-origin"

@@ -25,24 +25,46 @@ function createLogger(): Logger {
     level: config.LOG_LEVEL,
     base: {
       service: "api-gateway",
-      version: "0.2.2",
+      version: "0.2.4",
       env: config.NODE_ENV,
     },
     // ISO-8601 timestamps so they sort lexicographically.
     timestamp: pino.stdTimeFunctions.isoTime,
-    // Common-sense redaction — pino redacts these paths in any log
-    // record before serialisation. Belt-and-braces; the route code
-    // already avoids logging these paths, but this catches mistakes.
+    // Pino redacts these paths in any log record before serialisation.
+    // Belt-and-braces: the route code already avoids logging sensitive
+    // fields, but this catches accidental future surfacing. Every
+    // capability that a Loki reader should NEVER see goes here. When
+    // adding a new field that carries a token / hash / credential,
+    // extend this list in the same PR.
     redact: {
       paths: [
+        // ── Headers carrying auth state or session secrets ───────
         'req.headers["authorization"]',
         'req.headers["cookie"]',
+        'req.headers["set-cookie"]',
         'req.headers["x-api-key"]',
+        'req.headers["x-auth-token"]',
+        'req.headers["proxy-authorization"]',
+        // ── Body fields with E2E crypto / lifecycle capabilities ─
         "req.body.encryptedMeta",
         "req.body.fileHash",
+        "req.body.passwordSalt",
+        "req.body.revokeTokenHash",
+        "req.body.downloadTokenHash",
+        "req.body.chunkTokens",
+        // ── Wildcard catches across nested objects (responses,
+        //    errors, structured fields, etc.) ───────────────────
         "*.password",
+        "*.passwordKey",
         "*.token",
+        "*.revokeToken",
+        "*.chunkToken",
+        "*.downloadToken",
         "*.secret",
+        "*.privateKey",
+        "*.apiKey",
+        "*.fragmentKey",
+        "*.aeadKey",
       ],
       remove: true,
     },

@@ -26,7 +26,9 @@ import { config, isProduction } from "./lib/config.js";
 import { logger } from "./lib/logger.js";
 import { httpRequestDurationSeconds, httpRequestsTotal, statusClass } from "./lib/metrics.js";
 import { errorHandler } from "./middleware/errorHandler.js";
+import { originGuard } from "./middleware/originGuard.js";
 import { requestIdMiddleware, type RequestIdVars } from "./middleware/requestId.js";
+import { cspReportRouter } from "./routes/cspReport.js";
 import { healthRouter } from "./routes/health.js";
 import { metricsRouter } from "./routes/metrics.js";
 import { sharesRouter } from "./routes/shares.js";
@@ -132,9 +134,19 @@ export function buildApp(): {
   app.route("/", healthRouter());
   app.route("/", metricsRouter());
 
+  // Origin guard — CSRF defence-in-depth beyond CORS preflight.
+  // Mounted before /api/* routes so a state-changing request with a
+  // mismatched Origin is rejected before the handler runs. Exempts
+  // /api/csp-report (browser CSP reporting has its own origin
+  // semantics).
+  app.use("/api/*", originGuard);
+
   // Versioned API surface — the frontend talks to /api/* so Caddy
   // can route by prefix. Hono nests routers cleanly here.
   app.route("/api", sharesRouter());
+  // CSP violation reporting endpoint -- catches XSS attempts that
+  // get blocked by the per-request nonce + strict-dynamic CSP.
+  app.route("/api", cspReportRouter());
 
   // WebSocket upgrade endpoint.
   const { injectWebSocket } = attachProgressWs(app);

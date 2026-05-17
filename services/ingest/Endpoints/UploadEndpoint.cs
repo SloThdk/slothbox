@@ -56,7 +56,18 @@ public static class UploadEndpoint
     /// </summary>
     public static void Map(IEndpointRouteBuilder app)
     {
-        var route = app.MapPut("/chunk/{shortId}/{chunkIndex:int}", HandleAsync)
+        // Route constraint mirrors the gateway's SHORT_ID_ALPHABET +
+        // SHORT_ID_LENGTH (apps/api-gateway/src/routes/shares.ts).
+        // Defence-in-depth: the DB lookup later rejects unknown shortIds
+        // anyway, but adding the regex at the routing layer means a
+        // malformed shortId never reaches BuildBlobKey() or MinIO --
+        // closes audit Finding #6. `chunkIndex:int` was already in
+        // place. ASP.NET route templates only escape `{`/`}` (via
+        // doubling) -- square brackets pass through literally, so the
+        // character class is `[abc...]` as in normal .NET regex, and
+        // the quantifier is `{{12}}` so the template parser doesn't
+        // eat the braces.
+        var route = app.MapPut("/chunk/{shortId:regex(^[abcdefghjkmnpqrstuvwxyz23456789]{{12}}$)}/{chunkIndex:int}", HandleAsync)
             .WithName("UploadChunk")
             .WithDescription("Upload a single ciphertext chunk for a share.");
 
