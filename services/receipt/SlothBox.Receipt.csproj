@@ -3,7 +3,7 @@
   <!--
     SlothBox.Receipt — RFC 3161 timestamped delivery receipt service.
 
-    v0.1.0-alpha (this revision): SKELETON ONLY.
+    v0.2.x (this revision): SKELETON ONLY.
       - Service compiles, runs, exposes /healthz + /metrics.
       - All receipt / audit endpoints return 501 Not Implemented with a
         milestone reference. See ../../MILESTONES.md.

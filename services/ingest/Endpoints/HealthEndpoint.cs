@@ -15,7 +15,7 @@ namespace SlothBox.Ingest.Endpoints;
 public static class HealthEndpoint
 {
     private const string ServiceName = "ingest";
-    private const string Version = "0.1.0-alpha.1";
+    private const string Version = "0.2.2";
 
     /// <summary>Wire the route.</summary>
     public static void Map(IEndpointRouteBuilder app)

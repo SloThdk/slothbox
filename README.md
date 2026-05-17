@@ -10,23 +10,14 @@
 [![Security](https://github.com/SloThdk/slothbox/actions/workflows/security.yml/badge.svg)](https://github.com/SloThdk/slothbox/actions/workflows/security.yml)
 [![Deploy](https://github.com/SloThdk/slothbox/actions/workflows/deploy.yml/badge.svg)](https://github.com/SloThdk/slothbox/actions/workflows/deploy.yml)
 [![Crypto: libsodium + age](https://img.shields.io/badge/crypto-libsodium%20%2B%20age-brightgreen)](docs/CRYPTO.md)
-[![Status: v0.2.0-alpha](https://img.shields.io/badge/status-v0.2.0--alpha-orange)](MILESTONES.md)
+[![Status: v0.2.2](https://img.shields.io/badge/status-v0.2.2-blue)](MILESTONES.md)
 [![EU-hosted](https://img.shields.io/badge/region-EU--only-blue)](#why-eu-hosted)
 
-> [!WARNING]
-> **v0.2.0-alpha — read this before sending real data.**
+> [!NOTE]
+> **v0.2.0 — first stable public release. Read this before sending real data.**
 >
-> One thing is deliberately deferred from v0.2 and matters for any
-> visitor evaluating whether to use this build live:
->
-> 1. **The integration code is not yet independently audited.** The
->    underlying primitives (libsodium, age) are audited upstream, but
->    the SlothBox glue (per-share password KDF combiner, single-use
->    chunk token construction, revoke-token commitment scheme) has only
->    been internally reviewed. External cryptographer review is a hard
->    gate for **v1.0** before any "production-ready" framing.
->
-> v0.2 closes the two URL-leak risks the v0.1 WARNING block called out:
+> v0.2.0 closes the two URL-leak risks the v0.1 warning block called out
+> and is the first version safe to share live:
 >
 > - **Per-share password protection** (sender-opt-in) adds a second
 >   factor on top of the URL fragment via Argon2id + BLAKE2b-keyed,
@@ -39,14 +30,21 @@
 >   chat log cannot revoke the share. See [`SECURITY.md`](SECURITY.md)
 >   §"Sender-revoke token".
 > - **Single-use chunk tokens** (always-on for new uploads) close the
->   parallel-readers race acknowledged in the v0.1 WARNING. Each chunk
+>   parallel-readers race acknowledged in the v0.1 warning. Each chunk
 >   can only be served once; a wiretap and a legitimate recipient who
 >   both have the URL will each get a different subset of chunks and
 >   neither can AEAD-decrypt the reassembled file. See migration
 >   [`db/migrations/0007_single_use_chunk_tokens.sql`](db/migrations/0007_single_use_chunk_tokens.sql).
 >
-> Use this build for portfolio review and personal experimentation, not
-> for sensitive transfers until v1.0. Full threat model and non-goals:
+> **One audit gap remains for v1.0.** The cryptographic primitives
+> (libsodium, age, Argon2id) are battle-tested upstream, but the
+> SlothBox integration code — the KDF combiner, single-use chunk-token
+> derivation, revoke-token commitment scheme, RLS hardening — has only
+> been internally reviewed. Independent cryptographer review and a
+> third-party application pen test are hard gates for **v1.0** before
+> any "production-grade" or "high-stakes secrets" framing. v0.2.0 is
+> appropriate for working file transfer, portfolio review, and
+> personal experimentation. Full threat model and non-goals:
 > [`SECURITY.md`](SECURITY.md).
 
 ---
@@ -58,18 +56,18 @@ single EU-jurisdiction Linux VM (German data centre — actual Schrems II compli
 infrastructure choice, not a regional label on a US cloud). Every commit to `master`
 that passes CI auto-rolls forward via `.github/workflows/deploy.yml`:
 
-| Verification           | Where                                                                                           |
-| ---------------------- | ----------------------------------------------------------------------------------------------- |
-| TLS (HTTPS / HTTP/3)   | [`https://slothbox.philipsloth.com`](https://slothbox.philipsloth.com)                          |
-| Health endpoint        | [`/healthz`](https://slothbox.philipsloth.com/healthz) returns `200 ok`                         |
-| Strict CSP w/ nonces   | DevTools → Network → response headers include `nonce-...; strict-dynamic`                       |
-| Workflow status        | [Actions](https://github.com/SloThdk/slothbox/actions) — CI / Security / Deploy badges above    |
-| Architecture document  | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — 14-service Docker Compose breakdown            |
-| Security threat model  | [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md)                                                  |
-| Production hardening   | [`docker-compose.prod.yml`](docker-compose.prod.yml) — read-only fs, `cap_drop: ALL`, RLS, etc. |
-| Postgres backup policy | `pg-backup` sidecar dumps nightly at 02:30 UTC, gzipped, 28-day retention on a named volume     |
-| Observability          | Grafana provisioned at `/grafana` (auth required) with the SlothBox overview dashboard          |
-| Alert rules            | [`infra/prometheus/alerts.yml`](infra/prometheus/alerts.yml) — 11 rules, severity-tagged        |
+| Verification           | Where                                                                                                          |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------- |
+| TLS (HTTPS / HTTP/3)   | [`https://slothbox.philipsloth.com`](https://slothbox.philipsloth.com)                                         |
+| Health endpoint        | [`/healthz`](https://slothbox.philipsloth.com/healthz) returns `200 ok`                                        |
+| Strict CSP w/ nonces   | DevTools → Network → response headers include `nonce-...; strict-dynamic`                                      |
+| Workflow status        | [Actions](https://github.com/SloThdk/slothbox/actions) — CI / Security / Deploy badges above                   |
+| Architecture document  | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — 14-service Docker Compose breakdown                           |
+| Security threat model  | [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md)                                                                 |
+| Production hardening   | [`docker-compose.prod.yml`](docker-compose.prod.yml) — read-only fs, `cap_drop: ALL`, RLS, etc.                |
+| Postgres backup policy | `pg-backup` sidecar dumps nightly at 02:30 UTC, gzipped, 28-day retention on a named volume                    |
+| Observability          | Grafana provisioned in-cluster (reachable via SSH tunnel to the operator VM, not exposed on the public domain) |
+| Alert rules            | [`infra/prometheus/alerts.yml`](infra/prometheus/alerts.yml) — 11 rules, severity-tagged                       |
 
 End-to-end smoke test — paste into bash, zsh, Git Bash on Windows, or WSL:
 
@@ -144,7 +142,7 @@ not by marketing copy:
    sender's browser using audited libsodium primitives before upload. The
    decryption key travels in the URL fragment (`#key=…`), which is never sent
    to any server.
-   _(v0.1.0-alpha: implemented for symmetric / single-recipient. Per-recipient
+   _(v0.2.0: implemented for symmetric / single-recipient. Per-recipient
    asymmetric encryption via `age` lands in v1.0.)_
 
 2. **Delivery is cryptographically provable without revealing content.** When
@@ -631,12 +629,13 @@ read the prose above when you want to know why each line is there.
 
 ## Roadmap
 
-| Version          | Status         | Highlights                                                                                                                                                    |
-| ---------------- | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **v0.1.0-alpha** | 🟡 in progress | Drag-drop encrypted upload · symmetric key in URL · burn-after-read · expiry · MinIO storage · WebSocket progress · full GitHub repo polish · security gating |
-| **v0.5.0**       | 🔜 next        | Lucia auth + dashboard · share history · RFC 3161 receipts · audit chain extension                                                                            |
-| **v1.0.0**       | planned        | Per-recipient encryption (`age`) · verifiable deletion proofs · standalone verifier CLI · external cryptographer review                                       |
-| **v1.1.0**       | planned        | WebRTC P2P file transfer · MitID OIDC integration · time-locked shares                                                                                        |
+| Version          | Status     | Highlights                                                                                                                                                    |
+| ---------------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **v0.1.0-alpha** | ✅ shipped | Drag-drop encrypted upload · symmetric key in URL · burn-after-read · expiry · MinIO storage · WebSocket progress · full GitHub repo polish · security gating |
+| **v0.2.0**       | ✅ shipped | URL-leak hardening: per-share password (Argon2id + BLAKE2b) · sender-revoke tokens · single-use chunk tokens · folder uploads · in-browser preview · PWA      |
+| **v0.5.0**       | 🔜 next    | Lucia auth + dashboard · share history · RFC 3161 receipts · audit chain extension · Stripe billing                                                           |
+| **v1.0.0**       | planned    | Per-recipient encryption (`age`) · verifiable deletion proofs · standalone verifier CLI · external cryptographer review · third-party application pen test    |
+| **v1.1.0**       | planned    | WebRTC P2P file transfer · MitID OIDC integration · time-locked shares                                                                                        |
 
 Detailed scope per release in [`MILESTONES.md`](MILESTONES.md).
 

@@ -120,24 +120,8 @@ export const TRANSLATIONS = {
 
   // ─── Landing — hero ───────────────────────────────────────────
   "hero.statusPill": {
-    en: "v0.1.0-alpha · public source",
-    da: "v0.1.0-alpha · offentlig kildekode",
-  },
-  "alphaBanner.title": {
-    en: "v0.1 alpha — read this before sending real data.",
-    da: "v0.1 alpha — læs dette før du sender rigtige data.",
-  },
-  "alphaBanner.body": {
-    en: "Anyone holding the share URL can destroy or burn the share — the v0.1 access model treats the shortId as the access secret. Tamper-evident RFC 3161 receipts arrive in v0.5; per-recipient asymmetric encryption arrives in v1.0. Use this build for portfolio review and personal experimentation, not for sensitive transfers.",
-    da: "Alle, der har delingens URL, kan destruere eller brænde delingen — v0.1's adgangsmodel behandler shortId som adgangshemmeligheden. Manipulationsbeskyttede RFC 3161-kvitteringer kommer i v0.5, og per-modtager asymmetrisk kryptering kommer i v1.0. Brug denne version til portfolio-gennemgang og personlig test, ikke til følsomme overførsler.",
-  },
-  "alphaBanner.dismiss": {
-    en: "I understand",
-    da: "Jeg forstår",
-  },
-  "alphaBanner.readMore": {
-    en: "Read the full security policy",
-    da: "Læs hele sikkerhedspolitikken",
+    en: "v0.2.0 · open source",
+    da: "v0.2.0 · open source",
   },
 
   // ─── Footer abuse + takedown link ─────────────────────────────
@@ -288,8 +272,8 @@ export const TRANSLATIONS = {
     da: "Slip en fil",
   },
   "how.step1.body": {
-    en: "Pick or drag a file. Up to 4 GiB per share in this alpha. Nothing has left your machine yet.",
-    da: "Vælg eller træk en fil. Op til 4 GiB pr. deling i denne alpha. Intet har forladt din maskine endnu.",
+    en: "Pick or drag a file. Up to 4 GiB per share. Nothing has left your machine yet.",
+    da: "Vælg eller træk en fil. Op til 4 GiB pr. deling. Intet har forladt din maskine endnu.",
   },
   "how.step2.title": {
     en: "Encrypted locally",
@@ -487,21 +471,21 @@ export const TRANSLATIONS = {
     en: "Three milestones, one honest list.",
     da: "Tre milepæle, én ærlig liste.",
   },
-  "how.roadmap.v01.label": {
-    en: "Symmetric MVP — what's live today",
-    da: "Symmetrisk MVP — det der er live i dag",
+  "how.roadmap.v02.label": {
+    en: "URL-leak hardening — what's live today",
+    da: "URL-lækage-hærdning — det der er live i dag",
   },
-  "how.roadmap.v01.body": {
-    en: "Browser-side XChaCha20-Poly1305 encryption, EU-hosted MinIO storage, server-driven burn-after-read, hash-linked Postgres audit chain. Suitable for portfolio review and personal experimentation; the SlothBox glue is not yet independently audited.",
-    da: "Browser-side XChaCha20-Poly1305 kryptering, EU-hostet MinIO-lagring, server-styret burn-after-read, hash-bundet Postgres audit-kæde. Egnet til portfolio-gennemgang og personlig test; SlothBox-integrationen er endnu ikke uafhængigt auditeret.",
+  "how.roadmap.v02.body": {
+    en: "Browser-side XChaCha20-Poly1305 encryption, EU-hosted MinIO storage, server-driven burn-after-read, hash-linked Postgres audit chain. Per-share password (Argon2id + BLAKE2b combiner), sender-revoke tokens, and single-use chunk tokens close the URL-leak races called out in the v0.1 warning. Pre-v1.0 — the SlothBox integration code is not yet independently audited.",
+    da: "Browser-side XChaCha20-Poly1305 kryptering, EU-hostet MinIO-lagring, server-styret burn-after-read, hash-bundet Postgres audit-kæde. Per-share password (Argon2id + BLAKE2b combiner), sender-revoke tokens og single-use chunk-tokens lukker URL-lækage-races nævnt i v0.1-warningen. Pre-v1.0 — SlothBox-integrationskoden er endnu ikke uafhængigt auditeret.",
   },
   "how.roadmap.v05.label": {
     en: "Accounts and signed receipts",
     da: "Konti og signerede kvitteringer",
   },
   "how.roadmap.v05.body": {
-    en: "Lucia auth + magic-link, share dashboard with manual revoke, RFC 3161 timestamped delivery receipts, single-use HMAC chunk tokens that close the parallel-readers race in the burn-after-read flow.",
-    da: "Lucia auth + magic-link, delings-dashboard med manuel revoke, RFC 3161-tidsstemplede leveringsbeviser, single-use HMAC chunk-tokens som lukker parallel-læser-race i burn-after-read-flowet.",
+    en: "Lucia auth + magic-link, server-side share history dashboard, RFC 3161 timestamped delivery receipts, WAL-G continuous Postgres archiving with offsite replication, Stripe billing for free vs pro tiers.",
+    da: "Lucia auth + magic-link, server-side share-historik dashboard, RFC 3161-tidsstemplede leveringsbeviser, WAL-G kontinuerlig Postgres-arkivering med offsite-replikering, Stripe-fakturering for free vs pro.",
   },
   "how.roadmap.v10.label": {
     en: "Production-grade",
@@ -584,8 +568,8 @@ export const TRANSLATIONS = {
     da: "Status",
   },
   "about.status.body": {
-    en: "v0.1.0-alpha is a portfolio reference build. The cryptographic primitives (libsodium, age) are battle-tested, but the SlothBox integration has not yet been independently audited. Don't use this for high-stakes secrets until v1.0 + external cryptographer review.",
-    da: "v0.1.0-alpha er en portfolio-referencebygning. De kryptografiske primitiver (libsodium, age) er gennemtestede, men SlothBox-integrationen er endnu ikke uafhængigt auditeret. Brug ikke dette til kritiske hemmeligheder før v1.0 + ekstern kryptografgennemgang.",
+    en: "v0.2.0 is the first stable public release. The URL-leak race conditions called out in the v0.1 warning are closed (per-share password, sender-revoke tokens, single-use chunk tokens). The cryptographic primitives (libsodium, age) are battle-tested upstream, but the SlothBox integration code has not yet been independently audited — external cryptographer review and a third-party pen test gate v1.0 before any high-stakes-secrets framing.",
+    da: "v0.2.0 er den første stabile offentlige release. De URL-lækage-race conditions, som v0.1-warningen nævnte, er lukket (per-share password, sender-revoke tokens, single-use chunk tokens). De kryptografiske primitiver (libsodium, age) er gennemtestede upstream, men SlothBox-integrationskoden er endnu ikke uafhængigt auditeret — ekstern kryptografgennemgang og tredjeparts pen-test er gate-kravet for v1.0 før nogen formulering om kritiske hemmeligheder.",
   },
   "about.status.body.tail": {
     en: "",
@@ -626,8 +610,8 @@ export const TRANSLATIONS = {
     da: "Hvad du afgiver",
   },
   "about.tradeoffs.body": {
-    en: "Every architectural decision trades something. SlothBox runs on one ARM virtual machine in Falkenstein, Germany — not a global edge network — so a four-gigabyte download from a Tokyo client takes longer than the same file from WeTransfer. Files have an expiry; there is no permanent shareable link. The recipient needs the complete URL including the part after “#”, which means a chat client that strips fragments breaks the share. And v0.1.0-alpha has not been independently audited yet — the underlying primitives (libsodium, age) have, but the SlothBox glue around them is gated on external cryptographer review before any “production-grade” wording lands. Until v1.0, this is appropriate for portfolio review and personal experimentation, not for high-stakes secrets.",
-    da: "Hvert arkitekturvalg er en byttehandel. SlothBox kører på én ARM-virtuel maskine i Falkenstein, Tyskland — ikke et globalt edge-netværk — så en fire-gigabyte-download til en kunde i Tokyo tager længere tid end samme fil fra WeTransfer. Filer udløber; der findes ikke noget permanent delingslink. Modtageren har brug for hele URL'en inklusive delen efter “#”, så en chatklient, der fjerner fragmenter, bryder delingen. Og v0.1.0-alpha er endnu ikke uafhængigt auditeret — de underliggende primitiver (libsodium, age) er, men SlothBox-integrationen omkring dem er gate'et på ekstern kryptografgennemgang, før nogen “production-grade”-formulering rammer pladen. Indtil v1.0 er dette egnet til portfolio-gennemgang og personlig test, ikke til kritiske hemmeligheder.",
+    en: "Every architectural decision trades something. SlothBox runs on one ARM virtual machine in Falkenstein, Germany — not a global edge network — so a four-gigabyte download from a Tokyo client takes longer than the same file from WeTransfer. Files have an expiry; there is no permanent shareable link. The recipient needs the complete URL including the part after “#”, which means a chat client that strips fragments breaks the share. And v0.2.0 has not been independently audited yet — the underlying primitives (libsodium, age) have, but the SlothBox glue around them is gated on external cryptographer review before any “production-grade” wording lands. Until v1.0, treat this as the working file-transfer tool it is: stable, hardened against URL-leak races, open source — but with the audit-pending caveat surfaced everywhere it matters.",
+    da: "Hvert arkitekturvalg er en byttehandel. SlothBox kører på én ARM-virtuel maskine i Falkenstein, Tyskland — ikke et globalt edge-netværk — så en fire-gigabyte-download til en kunde i Tokyo tager længere tid end samme fil fra WeTransfer. Filer udløber; der findes ikke noget permanent delingslink. Modtageren har brug for hele URL'en inklusive delen efter “#”, så en chatklient, der fjerner fragmenter, bryder delingen. Og v0.2.0 er endnu ikke uafhængigt auditeret — de underliggende primitiver (libsodium, age) er, men SlothBox-integrationen omkring dem er gate'et på ekstern kryptografgennemgang, før nogen “production-grade”-formulering rammer pladen. Indtil v1.0 er dette det fil-overførselsværktøj det er: stabilt, hærdet mod URL-lækage-races, open source — men med audit-pending forbeholdet synligt der hvor det betyder noget.",
   },
 
   // ─── Security page ────────────────────────────────────────────
@@ -672,8 +656,8 @@ export const TRANSLATIONS = {
     da: "Audit-roadmap",
   },
   "security.audit.body": {
-    en: "v0.1.0-alpha — internal review only. v1.0 — independent cryptographer review + third-party application pen test, with reports published under /audits/. We will not soften this milestone to ship faster.",
-    da: "v0.1.0-alpha — kun intern gennemgang. v1.0 — uafhængig kryptografgennemgang + tredjeparts pen-test af applikationen, med rapporter publiceret under /audits/. Denne milepæl bliver ikke blødt op for at sende hurtigere.",
+    en: "v0.2.0 — internal review only, hardened against the URL-leak races called out in the v0.1 warning. v1.0 — independent cryptographer review + third-party application pen test, with reports published under /audits/. We will not soften this milestone to ship faster.",
+    da: "v0.2.0 — kun intern gennemgang, hærdet mod de URL-lækage-races der blev nævnt i v0.1-warningen. v1.0 — uafhængig kryptografgennemgang + tredjeparts pen-test af applikationen, med rapporter publiceret under /audits/. Denne milepæl bliver ikke blødt op for at sende hurtigere.",
   },
   "security.disclose.heading": {
     en: "Reporting a vulnerability",
@@ -962,12 +946,12 @@ export const TRANSLATIONS = {
     da: "Filer udløber. Intet permanent delingslink.",
   },
   "tradeoffs.item2.body": {
-    en: "Maximum seven days in v0.1. Expired shares are gone, not soft-deleted — the encrypted blob is removed from MinIO and the share row is destroyed. If the recipient hasn't downloaded by then, you re-send.",
-    da: "Maks. syv dage i v0.1. Udløbne delinger er væk — ikke soft-slettet. Den krypterede fil fjernes fra MinIO, og share-rækken destrueres. Hvis modtageren ikke har downloadet inden da, sender du igen.",
+    en: "Maximum seven days in v0.2. Expired shares are gone, not soft-deleted — the encrypted blob is removed from MinIO and the share row is destroyed. If the recipient hasn't downloaded by then, you re-send.",
+    da: "Maks. syv dage i v0.2. Udløbne delinger er væk — ikke soft-slettet. Den krypterede fil fjernes fra MinIO, og share-rækken destrueres. Hvis modtageren ikke har downloadet inden da, sender du igen.",
   },
   "tradeoffs.item3.title": {
-    en: "v0.1 is alpha. Sensitive transfers wait for v1.0.",
-    da: "v0.1 er alpha. Følsomme overførsler venter på v1.0.",
+    en: "v0.2.0 is pre-v1.0. External audit gates the production-grade label.",
+    da: "v0.2.0 er pre-v1.0. Ekstern audit er gate-kravet for production-grade-etiketten.",
   },
   "tradeoffs.item3.body": {
     en: "The cryptographic primitives — libsodium and age — are battle-tested upstream. The SlothBox glue around them has not yet been independently audited. Independent cryptographer review and a third-party pen test gate v1.0 before any “production-grade” framing.",

@@ -10,7 +10,7 @@
 //  3. The anchor extends the previous epoch consistently (Merkle
 //     consistency proof) — i.e. the log is append-only.
 //
-// In v0.1.0-alpha (the SKELETON), the command:
+// In v0.2.0 (the SKELETON), the command:
 //
 //   - Validates the URL syntactically (with net/url).
 //   - Tells the user that fetching + signature + consistency-proof
@@ -54,7 +54,7 @@ In v1.0 this command:
   - Verifies a Merkle consistency proof against the previously
     cached anchor (if one is available locally).
 
-In v0.1.0-alpha (this build) the command only validates that the URL
+In v0.2.0 (this build) the command only validates that the URL
 is syntactically well-formed and reports which v1.0 primitives still
 need to land. NO network request is made — the skeleton is safe to
 run in air-gapped environments.
@@ -96,16 +96,16 @@ func runChain(stdout, stderr io.Writer, raw string) error {
 	return nil
 }
 
-// writeChainSkeletonReport emits the v0.1.0-alpha "not implemented yet"
+// writeChainSkeletonReport emits the v0.2.0 "not implemented yet"
 // block for the chain anchor command.
 func writeChainSkeletonReport(w io.Writer, anchorURL string) {
-	fmt.Fprintln(w, "slothbox-verify chain — v0.1.0-alpha (skeleton)")
+	fmt.Fprintln(w, "slothbox-verify chain — v0.2.0 (skeleton)")
 	fmt.Fprintln(w)
 	fmt.Fprintf(w, "URL: %s\n", anchorURL)
 	fmt.Fprintln(w, "URL syntax: ok")
-	fmt.Fprintln(w, "Anchor fetch: NOT IMPLEMENTED in v0.1.0-alpha (no network request made)")
-	fmt.Fprintln(w, "Signature verification: NOT IMPLEMENTED in v0.1.0-alpha")
-	fmt.Fprintln(w, "Consistency-proof verification: NOT IMPLEMENTED in v0.1.0-alpha")
+	fmt.Fprintln(w, "Anchor fetch: NOT IMPLEMENTED in v0.2.0 (no network request made)")
+	fmt.Fprintln(w, "Signature verification: NOT IMPLEMENTED in v0.2.0")
+	fmt.Fprintln(w, "Consistency-proof verification: NOT IMPLEMENTED in v0.2.0")
 	fmt.Fprintln(w)
 	fmt.Fprintln(w, "Full verification lands in v1.0. See:")
 	fmt.Fprintf(w, "  %s/blob/master/MILESTONES.md\n", version.Homepage)

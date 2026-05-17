@@ -211,6 +211,35 @@ public static class DownloadEndpoint
         httpContext.Response.Headers["Cache-Control"] = "no-store";
         httpContext.Response.Headers["X-Content-Type-Options"] = "nosniff";
 
+        // ──────────────────────────────────────────────────────────────
+        // single-use commitment timing — security boundary
+        //
+        // The single-use chunk token guarantee from migration 0007
+        // requires `served_at` to commit BEFORE a second request can
+        // race with the first. The naive shape (stream → then mark) is
+        // attackable: a client that aborts the TCP connection mid-body
+        // can poison `mark_chunk_served` (the await is cancelled by
+        // the ambient `ct`) while the bytes that already shipped are
+        // gone. A determined attacker can repeat this and re-fetch the
+        // same chunk indefinitely, undermining the v0.2 single-use
+        // hardening.
+        //
+        // Fix: wrap the stream in try/finally; in `finally`, if the
+        // response had already started (any body byte flushed),
+        // commit the mark with `CancellationToken.None` so the DB
+        // write isn't cancelled by the same TCP-abort that triggered
+        // entry. The mark runs exactly when "bytes physically left
+        // the server" is true — regardless of whether the body
+        // finished cleanly, was cancelled mid-flight, or errored on
+        // a MinIO read after the headers were flushed.
+        //
+        // What this trades: a legitimate recipient on a flaky mobile
+        // connection who loses mid-stream cannot retry — `served_at`
+        // is now set, the chunk returns 410 Gone, the sender
+        // re-shares. That's the literal meaning of "single use" and
+        // the reviewer's preferred trade-off for a security primitive.
+        // ──────────────────────────────────────────────────────────────
+        var bytesStartedLeaving = false;
         try
         {
             // Stream MinIO -> response body. The blob storage GetAsync calls our
@@ -221,10 +250,14 @@ public static class DownloadEndpoint
                 await stream.CopyToAsync(httpContext.Response.Body, bufferSize: 81_920, innerCt)
                     .ConfigureAwait(false);
             }, ct).ConfigureAwait(false);
+
+            ChunksServed.WithLabels("ok").Inc();
+            DownloadBytes.Observe(chunk.CiphertextSize);
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
             ChunksServed.WithLabels("client_cancelled").Inc();
+            // finally below will commit the mark if the body had started.
             throw;
         }
         catch (Exception ex)
@@ -232,74 +265,70 @@ public static class DownloadEndpoint
             ChunksServed.WithLabels("storage_error").Inc();
             logger.LogError(ex, "MinIO GetAsync failed for blob {BlobKey}", chunk.BlobKey);
 
-            // If we haven't started the response yet, we can still send a 502.
-            // If we have, the connection is already poisoned and the client
-            // will see a truncated body — the best we can do is log and tear down.
+            // If we haven't started the response yet, we can still send a 502
+            // AND skip the mark (the chunk is still retry-able).
             if (!httpContext.Response.HasStarted)
             {
                 return Results.StatusCode(StatusCodes.Status502BadGateway);
             }
 
+            // Response had started — the finally below will commit the mark
+            // before we abort the connection. Recipient sees a truncated body
+            // and a 410 on retry; sender re-shares.
             httpContext.Abort();
             return Results.Empty;
         }
-
-        ChunksServed.WithLabels("ok").Inc();
-        DownloadBytes.Observe(chunk.CiphertextSize);
-
-        // Bytes have physically left the server. Record the delivery and
-        // — if this happened to be the last unserved chunk on a
-        // burn-after-read share — fire the burn atomically inside the
-        // SQL function. We deliberately do NOT make this part of the
-        // user-visible response: the client got their chunk, and any
-        // bookkeeping failure here is a server-side reconciliation
-        // problem, not a download error.
-        try
+        finally
         {
-            var marked = await shares
-                .MarkChunkServedAsync(share.Id, chunkIndex, ct)
-                .ConfigureAwait(false);
+            // Detached check — `HasStarted` flips true after the first body
+            // byte is flushed by Kestrel's PipeWriter, which happens inside
+            // the `CopyToAsync` call above. If it's true, bytes physically
+            // left this process and the single-use commitment must commit.
+            bytesStartedLeaving = httpContext.Response.HasStarted;
 
-            if (marked.BurnFired)
+            if (bytesStartedLeaving)
             {
-                BurnFiredTotal.Inc();
-                logger.LogInformation(
-                    "burn-after-read fired on share {ShareId} via chunk {ChunkIndex} delivery (audit_id={AuditId})",
-                    share.Id, chunkIndex, marked.AuditId);
+                try
+                {
+                    // CancellationToken.None — we MUST commit even when the
+                    // ambient request CT has been cancelled (the race window
+                    // this whole block is closing). The mark is idempotent
+                    // via the migration 0007 `served_at IS NULL` guard.
+                    var marked = await shares
+                        .MarkChunkServedAsync(share.Id, chunkIndex, CancellationToken.None)
+                        .ConfigureAwait(false);
+
+                    if (marked.BurnFired)
+                    {
+                        BurnFiredTotal.Inc();
+                        logger.LogInformation(
+                            "burn-after-read fired on share {ShareId} via chunk {ChunkIndex} delivery (audit_id={AuditId})",
+                            share.Id, chunkIndex, marked.AuditId);
+                    }
+                    else if (marked.ShareState != ShareState.Ready)
+                    {
+                        // Share went terminal between when we started serving
+                        // this chunk and when we marked delivery — usually a
+                        // parallel chunk's `mark_chunk_served` call won the
+                        // race. No action needed; the row is in the right
+                        // state.
+                        logger.LogDebug(
+                            "chunk {ChunkIndex} on share {ShareId} delivered after share went {State}",
+                            chunkIndex, share.Id, marked.ShareState);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    // Last-resort error path. CancellationToken.None means
+                    // this catch should be unreachable in practice unless
+                    // Postgres itself is unreachable — which the reaper's
+                    // 60s sweep will reconcile on its next tick.
+                    MarkServedFailures.Inc();
+                    logger.LogError(ex,
+                        "mark_chunk_served failed for share {ShareId} chunk {ChunkIndex} after bytes left the server — reaper will reconcile",
+                        share.Id, chunkIndex);
+                }
             }
-            else if (marked.ShareState != ShareState.Ready)
-            {
-                // The share went terminal between when we started serving
-                // this chunk and when we marked delivery — almost always
-                // because either (a) the gateway's /downloaded path raced
-                // us and won, or (b) a parallel chunk's mark_chunk_served
-                // call won. Either way, no action needed; the row is
-                // already in the right state. Log at debug only — info
-                // would be too noisy under burst delivery.
-                logger.LogDebug(
-                    "chunk {ChunkIndex} on share {ShareId} delivered after share went {State}",
-                    chunkIndex, share.Id, marked.ShareState);
-            }
-        }
-        catch (OperationCanceledException) when (ct.IsCancellationRequested)
-        {
-            // Client disconnected after the body was sent but before our
-            // bookkeeping committed. Bytes still left the server, so the
-            // burn decision is unsafe to skip — but we can't block the
-            // shutdown path either. Log loud and let the next chunk's
-            // mark_chunk_served call (or the reaper's expiry sweep) catch
-            // up.
-            MarkServedFailures.Inc();
-            logger.LogWarning(
-                "mark_chunk_served cancelled for share {ShareId} chunk {ChunkIndex} after successful body send",
-                share.Id, chunkIndex);
-        }
-        catch (Exception ex)
-        {
-            MarkServedFailures.Inc();
-            logger.LogError(ex,
-                "mark_chunk_served failed for share {ShareId} chunk {ChunkIndex} after successful body send — will reconcile on next chunk delivery or reaper sweep",
-                share.Id, chunkIndex);
         }
 
         return Results.Empty;

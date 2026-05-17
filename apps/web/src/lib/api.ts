@@ -3,7 +3,7 @@
 // Contract is the source-of-truth shape from `apps/api-gateway/src/routes/shares.ts`.
 // All requests go to `${API_URL}/api/...` (the gateway mounts the shares router at /api).
 //
-// Endpoints used by v0.1.0-alpha:
+// Endpoints used by v0.2.0:
 //   POST   /api/shares                         create a share descriptor (server returns uploadUrls)
 //   GET    /api/shares/:shortId                fetch share metadata (NOT chunks)
 //   POST   /api/shares/:shortId/destroy        manually destroy the share

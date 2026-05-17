@@ -339,9 +339,9 @@ grep -rn "append_audit_entry\|verify_audit_chain" db/migrations/`}
           <div className="divide-y divide-[var(--color-glass-stroke)]">
             {[
               {
-                tag: "v0.1.0-alpha",
-                labelKey: "how.roadmap.v01.label",
-                bodyKey: "how.roadmap.v01.body",
+                tag: "v0.2.0",
+                labelKey: "how.roadmap.v02.label",
+                bodyKey: "how.roadmap.v02.body",
               },
               { tag: "v0.5.0", labelKey: "how.roadmap.v05.label", bodyKey: "how.roadmap.v05.body" },
               { tag: "v1.0.0", labelKey: "how.roadmap.v10.label", bodyKey: "how.roadmap.v10.body" },

@@ -246,23 +246,50 @@ We follow these practices for the deployed service:
 
 ---
 
-## Security headers (sent by Caddy)
+## Security headers
+
+The headers below land in two layers. **CSP** is emitted by the Next.js
+middleware (`apps/web/src/middleware.ts`) because it mints a per-request
+nonce + uses `strict-dynamic`. The rest is set by Caddy
+(`infra/caddy/Caddyfile`), which strips the legacy `Server` header on
+the way out so the proxy version doesn't leak.
+
+**From the Next.js middleware (per-request CSP with fresh nonce):**
+
+```
+Content-Security-Policy:
+  default-src 'self';
+  script-src 'self' 'nonce-<16-byte-base64>' 'strict-dynamic' 'wasm-unsafe-eval';
+  style-src 'self' 'unsafe-inline';
+  img-src 'self' data: blob:;
+  font-src 'self' data:;
+  connect-src 'self' <NEXT_PUBLIC_API_URL> <NEXT_PUBLIC_WS_URL> <NEXT_PUBLIC_INGEST_URL>;
+  worker-src 'self' blob:;
+  child-src 'none';
+  frame-ancestors 'none';
+  base-uri 'self';
+  form-action 'self';
+  object-src 'none';
+  upgrade-insecure-requests
+```
+
+**From Caddy:**
 
 ```
 Strict-Transport-Security: max-age=63072000; includeSubDomains; preload
-Content-Security-Policy: default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' wss:; frame-ancestors 'none'; form-action 'self'; base-uri 'self'
 X-Content-Type-Options: nosniff
 X-Frame-Options: DENY
 Referrer-Policy: no-referrer
-Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()
+Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=(), interest-cohort=()
 Cross-Origin-Embedder-Policy: require-corp
 Cross-Origin-Opener-Policy: same-origin
 Cross-Origin-Resource-Policy: same-origin
 ```
 
 WASM is allowed (`wasm-unsafe-eval`) because libsodium-wrappers requires it.
-There is no inline script (`'unsafe-inline'` is for styles only — Tailwind v4
-generates inline `<style>` for some utilities).
+There is no inline script — the nonce + `strict-dynamic` combo covers
+every script Next.js emits. `'unsafe-inline'` on `style-src` is for
+Tailwind v4's runtime inline styles only.
 
 ---
 
@@ -286,4 +313,4 @@ TBD
 
 ---
 
-_Last updated: v0.2.0-alpha — URL-leak hardening (per-share password, sender-revoke tokens, single-use chunk tokens)._
+_Last updated: v0.2.2 — first fully stable public release. URL-leak hardening (per-share password, sender-revoke tokens, single-use chunk tokens) + Finding-#7 mark_chunk_served race fix from the v0.2 cold-eye audit. External cryptographer review + third-party application pen test remain hard gates for v1.0._

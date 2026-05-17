@@ -31,11 +31,17 @@ export default async function OgImage() {
         alignItems: "flex-start",
         justifyContent: "center",
         padding: "80px",
-        background: "linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%)",
+        // visionOS-style deep slate with a subtle diagonal lift toward
+        // the navy variant. Matches --color-bg / --color-bg-elev in
+        // globals.css so a visitor jumping from a social-preview crawl
+        // to the live site sees the same palette.
+        background: "linear-gradient(135deg, #0a0d14 0%, #0d1220 100%)",
         fontFamily: "Inter, system-ui, sans-serif",
       }}
     >
-      {/* Padlock glyph echoing the favicon */}
+      {/* Padlock glyph echoing the favicon. Tile is the same slate as
+          the page background with a 1px glass-edge stroke; lock body
+          renders in sky-blue accent (--color-accent). */}
       <div
         style={{
           display: "flex",
@@ -45,22 +51,32 @@ export default async function OgImage() {
         }}
       >
         <svg width="120" height="120" viewBox="0 0 32 32">
-          <rect width="32" height="32" rx="6" fill="#c9a86a" />
+          <rect width="32" height="32" rx="6" fill="#0a0d14" />
+          <rect
+            x="0.5"
+            y="0.5"
+            width="31"
+            height="31"
+            rx="5.5"
+            fill="none"
+            stroke="rgba(255,255,255,0.08)"
+            strokeWidth="1"
+          />
           <path
             d="M11 14 V11 a5 5 0 0 1 10 0 v3"
-            stroke="#0a0a0a"
+            stroke="#5b9eff"
             strokeWidth="2.4"
             fill="none"
             strokeLinecap="round"
           />
-          <rect x="8.5" y="13.5" width="15" height="11" rx="1.6" fill="#0a0a0a" />
-          <circle cx="16" cy="18.5" r="1.6" fill="#c9a86a" />
-          <rect x="15.25" y="18.5" width="1.5" height="3.2" fill="#c9a86a" />
+          <rect x="8.5" y="13.5" width="15" height="11" rx="1.6" fill="#5b9eff" />
+          <circle cx="16" cy="18.5" r="1.6" fill="#0a0d14" />
+          <rect x="15.25" y="18.5" width="1.5" height="3.2" fill="#0a0d14" />
         </svg>
         <div
           style={{
             fontSize: "84px",
-            fontWeight: 700,
+            fontWeight: 600,
             color: "#fafafa",
             letterSpacing: "-0.02em",
           }}
@@ -72,7 +88,7 @@ export default async function OgImage() {
       <div
         style={{
           fontSize: "44px",
-          fontWeight: 500,
+          fontWeight: 400,
           color: "#fafafa",
           maxWidth: "1000px",
           lineHeight: 1.2,
@@ -88,7 +104,7 @@ export default async function OgImage() {
           gap: "40px",
           marginTop: "64px",
           fontSize: "24px",
-          color: "#c9a86a",
+          color: "#5b9eff",
           fontFamily: "JetBrains Mono, ui-monospace, monospace",
         }}
       >

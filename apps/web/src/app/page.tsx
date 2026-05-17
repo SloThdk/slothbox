@@ -366,9 +366,9 @@ function HowItWorks() {
 //
 // Visual register: monospace numbering + glass card grid, but tighter
 // than UseCases — these are short paragraphs, not feature pitches. The
-// tradeoffs include the v0.1-alpha disclosure (currently surfaced only
-// in the AlphaBanner + /security), bringing the "wait for v1.0 for
-// sensitive use" framing onto the homepage where it belongs.
+// section surfaces honest tradeoffs (audit status, account-less model,
+// what's not yet shipped) inline with the value props so visitors see
+// both sides before they click upload.
 // ---------------------------------------------------------------------------
 
 const TRADEOFF_KEYS: ReadonlyArray<{
@@ -473,7 +473,7 @@ export default function HomePage() {
       <HowItWorks />
       {/* Tradeoffs is the honesty counterweight — placed after the
           mechanism explanation so a visitor who's followed the whole
-          flow sees the v0.1-alpha caveats and recipient-needs-the-fragment
+          flow sees the pre-v1.0 audit caveats and recipient-needs-the-fragment
           gotcha before the closing CTA. Without this section the page
           reads as marketing; with it, it reads as engineering. */}
       <Tradeoffs />

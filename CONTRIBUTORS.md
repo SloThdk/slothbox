@@ -15,7 +15,7 @@ is added here with their consent. The line format is:
   - Name (handle) — short description of the contribution
 -->
 
-_(Awaiting v0.1.0-alpha launch.)_
+_(Awaiting first external contributor — open a PR.)_
 
 ## Security researchers
 

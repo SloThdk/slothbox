@@ -39,7 +39,7 @@ import type { NextRequest } from "next/server";
  *    combo covers every script Next.js emits at runtime; 'unsafe-inline'
  *    as a "legacy fallback" reads as escape-hatch in code review and the
  *    target browsers (anything older than Chrome 52 / Firefox 52 / Safari
- *    15.4) are not in the audience for an alpha encrypted-file-transfer
+ *    15.4) are not in the audience for a pre-v1.0 encrypted-file-transfer
  *    build. Defense-in-depth for inline-script attacks lives in
  *    `frame-ancestors`, `base-uri`, `object-src`, `form-action` —
  *    documented in the directive list below.
