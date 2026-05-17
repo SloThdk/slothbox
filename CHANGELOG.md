@@ -17,10 +17,122 @@ the project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Stripe billing for free vs pro tiers
 - Grafana dashboards published
 
+## [0.2.2] — 2026-05-17
+
+First fully stable public release. `-alpha.1` suffix dropped from
+all five workspace packages and both .NET assemblies. The v0.2
+hardening model (per-share password + sender-revoke + single-use
+chunk tokens + server-driven burn) has been cold-eye reviewed and
+the one HIGH-impact race the audit surfaced is closed. Audit-pending
+status remains honestly disclosed for v1.0.
+
+### Added
+
+- **First stable public release** — drops the `-alpha.1` suffix
+  across all five workspace packages (`@slothbox/web`,
+  `@slothbox/api-gateway`, `@slothbox/crypto-core`, `@slothbox/db`,
+  workspace root) plus the `.NET` ingest + receipt assemblies.
+- **visionOS-inspired brand refresh.** Icon SVG, manifest theme
+  color, and OG/social-preview image now run on a deep slate
+  background (`#0a0d14`) with a sky-blue accent (`#5b9eff`).
+  Replaces the v0.1 graphite-and-gold pairing. New `apple-icon.tsx`
+  adds a 180x180 PNG for iOS Safari home-screen saves.
+- **Cold-eye audit report.** Internal `reviewer` subagent ran the
+  full crypto-core + gateway + ingest + DB + infra + voice-shape
+  pass. Verdict: APPROVE — 0 CRITICAL, 0 HIGH, 7 LOW, 5 INFO.
+  Top-impact LOW (Finding #7) addressed in this release; remaining
+  LOWs documented as v1.0 backlog (see below).
+
+### Fixed
+
+- **`mark_chunk_served` race window — single-use chunk-token bypass
+  (audit Finding #7).** Previously, the SQL `mark_chunk_served`
+  call ran AFTER `stream.CopyToAsync` completed, with the ambient
+  request `CancellationToken`. A client that aborted the TCP
+  connection mid-body could poison the mark — bytes already
+  shipped, but `served_at` stayed NULL, and the same chunk became
+  re-fetchable indefinitely. The single-use guarantee the v0.2
+  marketing copy makes was bypassable for a determined attacker.
+  Fix lives in `services/ingest/Endpoints/DownloadEndpoint.cs`:
+  the byte stream is wrapped in a `try`/`finally`; the `finally`
+  block, gated on `httpContext.Response.HasStarted`, commits the
+  mark with `CancellationToken.None`. Bytes-leaving and
+  mark-committing are now bound — the chunk is marked served
+  exactly when "first body byte has flushed" is true, regardless
+  of whether the stream finished cleanly. UX trade-off: a
+  legitimate recipient who loses mid-stream cannot retry that
+  chunk (sender re-shares). That's the literal semantic of
+  "single use" and the conservative side of the trade for a
+  security primitive.
+
+### Removed
+
+- **`<AlphaBanner />` dismissable pre-page banner**
+  (`apps/web/src/components/AlphaBanner.tsx` + the four
+  `alphaBanner.*` translation keys). The disclosure substance
+  moves to the `[!NOTE]` block at the top of README + the
+  `/security` page's audit-status table, both of which are
+  honest about the v1.0 audit gap without the per-page UI
+  friction.
+- **Stale `v0.1.0-alpha` / `v0.2.0-alpha` version pins** across
+  package.json files, in-product copy, health endpoints, .NET
+  assembly metadata, and verifier-CLI skeleton messages. All
+  five workspace packages and both .NET services now report
+  `0.2.2` from `/healthz`.
+
+### Changed
+
+- **README WARNING block → `[!NOTE]` block.** Same audit-pending
+  honesty (external cryptographer review + third-party pen test
+  remain hard gates for v1.0), reframed from "alpha, do not use
+  for sensitive data" to "first stable public release, hardened
+  against the v0.1 URL-leak races, pre-v1.0 audit caveat surfaced
+  where it matters."
+- **Roadmap table.** v0.1.0-alpha and v0.2.0 both marked ✅
+  shipped. v0.5.0 highlights refreshed to reflect that single-use
+  chunk tokens already shipped in v0.2 (was previously listed as
+  a v0.5 feature).
+- **`SECURITY.md` headers block now reflects the actual emitted
+  CSP** (audit Finding #1 — doc drift): the nonce +
+  strict-dynamic CSP from `apps/web/src/middleware.ts` is
+  rendered separately from the Caddy-emitted headers, with
+  Permissions-Policy synced to include `usb=()` and
+  `interest-cohort=()`.
+- **README Grafana note** (audit Finding #2 — doc drift): the
+  observability row no longer claims `/grafana` is reachable on
+  the public domain. Grafana stays internal; the operator reaches
+  it via SSH tunnel.
+- **`how.roadmap.v05.body`** copy refreshed to drop the obsolete
+  "single-use HMAC chunk tokens" line (those shipped in v0.2) and
+  surface WAL-G continuous archiving + Stripe billing instead.
+
+### Known issues — backlog tracked for v1.0
+
+These are the LOW/INFO findings from the cold-eye audit that are
+documented but not blocking the v0.2.0 release:
+
+- **Plaintext memory pressure on large downloads** (Finding #3).
+  `apps/web/src/lib/download.ts` holds the entire decrypted file in
+  a `Uint8Array[]` before `new Blob`. At the 4 GB cap a recipient
+  holds ≥8 GB transiently; mobile / low-RAM browsers OOM. Already
+  on the v0.5 roadmap — migration to `TransformStream` pipelined
+  into a streaming `Blob`.
+- **`x-forwarded-for` unconditionally trusted** (Finding #5).
+  Currently correct (Caddy is the only ingress) but fragile if a
+  second ingress lands. Will pin XFF trust to a
+  `TRUSTED_PROXY_CIDR` env var in v0.5.
+- **Ingest `{shortId}` route param has no regex constraint**
+  (Finding #6). DB lookup catches it but defence-in-depth is
+  one-deep. Will land alongside the v0.5 ingest cleanup.
+- **Audit chain append is fire-and-forget** (Finding #9). Already
+  documented in `apps/api-gateway/src/routes/shares.ts:172-195`;
+  v1.0's verifiable-destruction-chain work will add chain-continuity
+  checks at the audit boundary.
+
 ## [0.2.1] — 2026-05-11
 
 Tier-B (recipient + sender UX), Tier-D (operator transparency), and
-Tier-E (operational hardening) on top of the v0.2.0-alpha trust
+Tier-E (operational hardening) on top of the v0.2.0 trust
 upgrades.
 
 ### Added
@@ -41,7 +153,7 @@ upgrades.
   `app/manifest.ts` emits `/manifest.webmanifest`; new `public/sw.js`
   precaches the shell URLs and uses stale-while-revalidate for
   subsequent GETs. `/api/*` + `/chunk/*` are explicitly bypassed so
-  the single-use chunk-token semantics from v0.2.0-alpha are not
+  the single-use chunk-token semantics from v0.2 are not
   undermined by a cached 200.
 - **`/transparency` page** — Schrems II evidence pack with operator
   legal entity, sub-processor inventory (zero non-EU in the data
@@ -209,6 +321,8 @@ non-directory`). Switched to `.` so only the root main package
 - WebRTC P2P transfer not yet implemented
 - No external cryptographer review yet — see `SECURITY.md` audit status table
 
-[Unreleased]: https://github.com/SloThdk/slothbox/compare/v0.2.0-alpha.1...HEAD
+[Unreleased]: https://github.com/SloThdk/slothbox/compare/v0.2.2...HEAD
+[0.2.2]: https://github.com/SloThdk/slothbox/compare/v0.2.1...v0.2.2
+[0.2.1]: https://github.com/SloThdk/slothbox/compare/v0.2.0-alpha.1...v0.2.1
 [0.2.0-alpha.1]: https://github.com/SloThdk/slothbox/compare/v0.1.0-alpha.1...v0.2.0-alpha.1
 [0.1.0-alpha.1]: https://github.com/SloThdk/slothbox/releases/tag/v0.1.0-alpha.1

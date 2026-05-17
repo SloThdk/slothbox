@@ -5,7 +5,7 @@
 //  2. Translates a non-nil error from cobra into a non-zero exit code.
 //
 // Exit code conventions for slothbox-verify (will be honoured strictly
-// from v1.0 onwards; the v0.1.0-alpha skeleton always returns 0 on success
+// from v1.0 onwards; the v0.2.x skeleton always returns 0 on success
 // and 2 on user-facing errors):
 //
 //	0 = success / verified-valid (or skeleton ok)

@@ -4,7 +4,7 @@ The phased plan from scaffold to externally-reviewed v1.0.
 
 ---
 
-## v0.1.0-alpha — "Symmetric MVP"
+## v0.1.0-alpha — "Symmetric MVP" ✅ shipped 2026-05-07
 
 **Status:** shipped 2026-05-07
 **Goal:** the core encrypted-transfer flow works end-to-end locally.
@@ -33,7 +33,9 @@ The phased plan from scaffold to externally-reviewed v1.0.
 
 ---
 
-## v0.2.0-alpha — "URL-leak hardening" ✅ shipped 2026-05-11
+## v0.2 — "URL-leak hardening" ✅ shipped 2026-05-11 / stabilised 2026-05-17
+
+(Released in three rolls: v0.2.0-alpha.1 on 2026-05-11, v0.2.1 same day, v0.2.2 the brand + audit-fix release on 2026-05-17. v0.2.2 is the first version without an `-alpha` suffix.)
 
 **Status:** released
 **Goal:** close both v0.1 WARNING-block gaps that did not require a full auth system.

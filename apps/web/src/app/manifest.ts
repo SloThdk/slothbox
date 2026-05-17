@@ -34,8 +34,8 @@ export default function manifest(): MetadataRoute.Manifest {
       "End-to-end encrypted file transfer with tamper-evident delivery receipts. The server cannot decrypt anything.",
     start_url: "/",
     display: "standalone",
-    background_color: "#0a0f12",
-    theme_color: "#0a0f12",
+    background_color: "#0a0d14",
+    theme_color: "#0a0d14",
     orientation: "any",
     // The site's icon.svg + Next-generated `icon` route already feed
     // the document head <link rel="icon">. Pointing the manifest at

@@ -10,7 +10,7 @@ hostile observer — independently confirm SlothBox's claims about
 contacting any SlothBox server. If we ever lie about a delivery or a
 deletion, this binary will catch it.
 
-> **Status: v0.1.0-alpha (SKELETON).**
+> **Status: v0.2.0 (SKELETON).**
 > The command structure, distribution path, and packaging story are in
 > place. The actual verification primitives (RFC 3161 signature
 > validation, Merkle inclusion proofs, append-only consistency proofs)
@@ -38,7 +38,7 @@ The mere existence of this tool is the strongest claim SlothBox makes:
 
 ## Installation
 
-> v0.1.0-alpha is **not yet published** to any package registry. Build
+> v0.2.0 is **not yet published** to any package registry. Build
 > from source for now. Distribution wiring (Homebrew tap, Scoop bucket,
 > Debian repo) lands alongside v1.0 — the templates are in
 > [`dist/`](./dist) for review.
@@ -118,15 +118,15 @@ Anchor cross-check: matches https://anchors.slothbox.philipsloth.com/4172.json (
 Verdict: VALID
 ```
 
-In v0.1.0-alpha:
+In v0.2.0:
 
 ```
-slothbox-verify receipt — v0.1.0-alpha (skeleton)
+slothbox-verify receipt — v0.2.0 (skeleton)
 
 File: my-receipt.json
 Schema: detected (version 1)
-Signature verification: NOT IMPLEMENTED in v0.1.0-alpha
-Merkle proof verification: NOT IMPLEMENTED in v0.1.0-alpha
+Signature verification: NOT IMPLEMENTED in v0.2.0
+Merkle proof verification: NOT IMPLEMENTED in v0.2.0
 
 Full verification lands in v1.0. See:
   https://github.com/SloThdk/slothbox/blob/master/MILESTONES.md
@@ -158,7 +158,7 @@ slothbox-verify chain https://anchors.slothbox.philipsloth.com/4172.json
 | 2    | Usage / I/O / parse error                                          |
 
 The strict `0/1/2` contract is honoured from **v1.0** onwards. The
-v0.1.0-alpha skeleton always returns 0 on a successful skeleton run and
+v0.2.0 skeleton always returns 0 on a successful skeleton run and
 2 on user-facing errors (missing file, malformed URL, etc.).
 
 ---

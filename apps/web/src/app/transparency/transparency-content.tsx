@@ -28,7 +28,7 @@ export function TransparencyContent() {
           Where the bytes go, and who can see them.
         </h1>
         <p className="mt-2 text-sm text-[var(--color-muted)]">
-          Last updated 2026-05-11. Snapshot of the v0.2.0-alpha production deployment.
+          Last updated 2026-05-17. Snapshot of the v0.2.0 production deployment.
         </p>
       </header>
 

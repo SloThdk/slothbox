@@ -15,7 +15,6 @@ import type { Metadata, Viewport } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import { headers } from "next/headers";
 import { Toaster } from "sonner";
-import { AlphaBanner } from "@/components/AlphaBanner";
 import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
 import { RegisterServiceWorker } from "@/components/RegisterServiceWorker";
@@ -125,16 +124,6 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           LanguageContext.tsx for the full SSR rationale.
         */}
         <LanguageProvider>
-          {/*
-            AlphaBanner pins above the Header on every route until the
-            visitor explicitly acknowledges it. The disclosure is part of
-            the security policy (anyone-with-URL-can-destroy in v0.1), so
-            it sits ahead of all other chrome. Once dismissed, it stays
-            dismissed until STORAGE_KEY_VERSION is bumped — which is how
-            the next major-warning event (CVE, incident, etc.) gets
-            re-served to every existing visitor.
-          */}
-          <AlphaBanner />
           <Header />
           <main className="flex-1">{children}</main>
           <Footer />

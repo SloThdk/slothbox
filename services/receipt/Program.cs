@@ -1,6 +1,6 @@
 // SlothBox.Receipt — service entry point.
 //
-// v0.1.0-alpha.1 SKELETON
+// v0.2.x SKELETON (receipt issuance lands in v0.5)
 // ───────────────────────
 // Boots a minimal-API host that:
 //   * Reads RECEIPT_PORT, RECEIPT_TSA_URL, DATABASE_URL, LOG_LEVEL from env.

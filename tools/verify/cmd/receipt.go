@@ -11,7 +11,7 @@
 //  4. Cross-check the published root against the URL anchor (or a
 //     locally cached anchor file).
 //
-// In v0.1.0-alpha (the SKELETON), the command:
+// In v0.2.2 (the SKELETON), the command:
 //
 //   - Validates the file exists and is readable.
 //   - Tries to JSON-parse it.
@@ -55,7 +55,7 @@ recipient successfully decrypts a transferred file. It contains:
 In v1.0 this command validates all three independently and exits with
 status 0 (valid), 1 (invalid), or 2 (error).
 
-In v0.1.0-alpha (this build) the command only confirms the file is
+In v0.2.2 (this build) the command only confirms the file is
 readable JSON and reports which v1.0 primitives still need to land.
 
 See: ` + version.Homepage + `/blob/master/docs/RECEIPTS.md`,
@@ -130,16 +130,16 @@ func runReceipt(stdout, stderr io.Writer, path string) error {
 	return nil
 }
 
-// writeReceiptSkeletonReport emits the v0.1.0-alpha "not implemented yet"
+// writeReceiptSkeletonReport emits the v0.2.2 "not implemented yet"
 // block. Kept as its own function so the exact wording can be unit-tested
 // against documentation expectations.
 func writeReceiptSkeletonReport(w io.Writer, path, schemaDetected string) {
-	fmt.Fprintln(w, "slothbox-verify receipt — v0.1.0-alpha (skeleton)")
+	fmt.Fprintln(w, "slothbox-verify receipt — v0.2.2 (skeleton)")
 	fmt.Fprintln(w)
 	fmt.Fprintf(w, "File: %s\n", path)
 	fmt.Fprintf(w, "Schema: %s\n", schemaDetected)
-	fmt.Fprintln(w, "Signature verification: NOT IMPLEMENTED in v0.1.0-alpha")
-	fmt.Fprintln(w, "Merkle proof verification: NOT IMPLEMENTED in v0.1.0-alpha")
+	fmt.Fprintln(w, "Signature verification: NOT IMPLEMENTED in v0.2.2")
+	fmt.Fprintln(w, "Merkle proof verification: NOT IMPLEMENTED in v0.2.2")
 	fmt.Fprintln(w)
 	fmt.Fprintln(w, "Full verification lands in v1.0. See:")
 	fmt.Fprintf(w, "  %s/blob/master/MILESTONES.md\n", version.Homepage)

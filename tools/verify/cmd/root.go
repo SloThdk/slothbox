@@ -54,7 +54,7 @@ claim holds against the published transparency log.
 If SlothBox ever lies about a delivery or a deletion, this tool will
 catch it. That is the point.
 
-The v0.1.0-alpha release is a command-structure skeleton. Full RFC 3161
+The v0.2.x release is a command-structure skeleton. Full RFC 3161
 signature verification and Merkle inclusion-proof checking land in v1.0.
 See: ` + version.Homepage + `/blob/master/MILESTONES.md`,
 

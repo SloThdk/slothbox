@@ -2,21 +2,21 @@
 
 RFC 3161 timestamped delivery receipt service.
 
-**Status:** v0.1.0-alpha.1 — **SKELETON**. The service compiles, runs, exposes
+**Status:** v0.2.x — **SKELETON**. The service compiles, runs, exposes
 `/healthz` + `/metrics`, and stubs the receipt endpoints with `501 Not Implemented`.
 The full RFC 3161 issuing + Merkle audit chain lands in **v0.5.0**. See the root
 [`MILESTONES.md`](../../MILESTONES.md) and the architecture brief in
 [`../../docs/RECEIPTS.md`](../../docs/RECEIPTS.md).
 
-## What ships in v0.1
+## What ships in v0.2
 
-| Endpoint                | Method | v0.1 behaviour                                                                                                             |
-| ----------------------- | ------ | -------------------------------------------------------------------------------------------------------------------------- |
-| `/healthz`              | GET    | 200 with `{ "status": "ok", "service": "receipt", "version": "0.1.0-alpha.1" }` when healthy. 503 if Postgres probe fails. |
-| `/metrics`              | GET    | Prometheus scrape (process + ASP.NET Core HTTP histograms).                                                                |
-| `/receipt/{shortId}`    | GET    | **501** with `{ error: "not_implemented", milestone: "v0.5.0", message: "..." }`.                                          |
-| `/receipt/issue`        | POST   | **501** — same envelope. Internal endpoint that the api-gateway will call when a download completes.                       |
-| `/audit/anchors/{date}` | GET    | **501** — same envelope. Public Merkle root anchor for a UTC date.                                                         |
+| Endpoint                | Method | v0.2 behaviour                                                                                                     |
+| ----------------------- | ------ | ------------------------------------------------------------------------------------------------------------------ |
+| `/healthz`              | GET    | 200 with `{ "status": "ok", "service": "receipt", "version": "0.2.2" }` when healthy. 503 if Postgres probe fails. |
+| `/metrics`              | GET    | Prometheus scrape (process + ASP.NET Core HTTP histograms).                                                        |
+| `/receipt/{shortId}`    | GET    | **501** with `{ error: "not_implemented", milestone: "v0.5.0", message: "..." }`.                                  |
+| `/receipt/issue`        | POST   | **501** — same envelope. Internal endpoint that the api-gateway will call when a download completes.               |
+| `/audit/anchors/{date}` | GET    | **501** — same envelope. Public Merkle root anchor for a UTC date.                                                 |
 
 `/receipt/*` and `/audit/anchors/*` return the same `{error,message,milestone}`
 shape so consumers can branch on `error == "not_implemented"` without parsing
@@ -62,7 +62,7 @@ full stack from the repo root:
 ```bash
 docker compose up -d receipt
 curl http://localhost:3024/healthz
-# {"status":"ok","service":"receipt","version":"0.1.0-alpha.1",...}
+# {"status":"ok","service":"receipt","version":"0.2.2",...}
 ```
 
 Standalone (without Docker):

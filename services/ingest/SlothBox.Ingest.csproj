@@ -34,8 +34,8 @@
     <!-- Assembly metadata. -->
     <RootNamespace>SlothBox.Ingest</RootNamespace>
     <AssemblyName>SlothBox.Ingest</AssemblyName>
-    <Version>0.1.0-alpha.1</Version>
-    <InformationalVersion>0.1.0-alpha.1</InformationalVersion>
+    <Version>0.2.2</Version>
+    <InformationalVersion>0.2.2</InformationalVersion>
 
     <!-- Container build settings (used by `dotnet publish` for slim final image). -->
     <PublishTrimmed>false</PublishTrimmed>

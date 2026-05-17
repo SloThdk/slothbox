@@ -18,7 +18,7 @@
 // Step 4 is what makes the deletion proof "verifiable" rather than
 // "claimed" — it relies on the transparency log being append-only.
 //
-// In v0.1.0-alpha (the SKELETON), the command:
+// In v0.2.0 (the SKELETON), the command:
 //
 //   - Validates the file exists and is readable.
 //   - Tries to JSON-parse it.
@@ -58,7 +58,7 @@ and the non-existence claim across the published log epochs. Exit codes:
 0 = deleted-and-stayed-deleted, 1 = invalid proof or contradictory log,
 2 = I/O / parse error.
 
-In v0.1.0-alpha (this build) the command only confirms the file is
+In v0.2.0 (this build) the command only confirms the file is
 readable JSON and reports which v1.0 primitives still need to land.
 
 See: ` + version.Homepage + `/blob/master/docs/DELETION.md`,
@@ -123,19 +123,19 @@ func runDeletion(stdout, stderr io.Writer, path string) error {
 	return nil
 }
 
-// writeDeletionSkeletonReport emits the v0.1.0-alpha "not implemented yet"
+// writeDeletionSkeletonReport emits the v0.2.0 "not implemented yet"
 // block for deletion proofs. Kept separate from the receipt counterpart
 // because the wording references different docs (DELETION.md vs
 // RECEIPTS.md) and a different invariant (non-existence, not just
 // inclusion).
 func writeDeletionSkeletonReport(w io.Writer, path, schemaDetected string) {
-	fmt.Fprintln(w, "slothbox-verify deletion — v0.1.0-alpha (skeleton)")
+	fmt.Fprintln(w, "slothbox-verify deletion — v0.2.0 (skeleton)")
 	fmt.Fprintln(w)
 	fmt.Fprintf(w, "File: %s\n", path)
 	fmt.Fprintf(w, "Schema: %s\n", schemaDetected)
-	fmt.Fprintln(w, "Signature verification: NOT IMPLEMENTED in v0.1.0-alpha")
-	fmt.Fprintln(w, "Merkle inclusion (tombstone) verification: NOT IMPLEMENTED in v0.1.0-alpha")
-	fmt.Fprintln(w, "Merkle non-existence (post-deletion) verification: NOT IMPLEMENTED in v0.1.0-alpha")
+	fmt.Fprintln(w, "Signature verification: NOT IMPLEMENTED in v0.2.0")
+	fmt.Fprintln(w, "Merkle inclusion (tombstone) verification: NOT IMPLEMENTED in v0.2.0")
+	fmt.Fprintln(w, "Merkle non-existence (post-deletion) verification: NOT IMPLEMENTED in v0.2.0")
 	fmt.Fprintln(w)
 	fmt.Fprintln(w, "Full verification lands in v1.0. See:")
 	fmt.Fprintf(w, "  %s/blob/master/MILESTONES.md\n", version.Homepage)

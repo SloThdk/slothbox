@@ -5,11 +5,11 @@
 //   503      — degraded: service is up but a critical dependency is down.
 //
 // Body shape (200):
-//   { "status": "ok", "service": "receipt", "version": "0.1.0-alpha.1" }
+//   { "status": "ok", "service": "receipt", "version": "0.2.2" }
 //
 // Body shape (503):
 //   {
-//     "status": "degraded", "service": "receipt", "version": "0.1.0-alpha.1",
+//     "status": "degraded", "service": "receipt", "version": "0.2.2",
 //     "checks": [ { "name": "postgres", "status": "Unhealthy", "error": "..." } ]
 //   }
 //
@@ -41,10 +41,12 @@ public static class HealthEndpoint
     public const string ServiceName = "receipt";
 
     /// <summary>
-    /// Service version in semver-with-prerelease form. v0.1 ships as
-    /// <c>0.1.0-alpha.1</c>; bump on every breaking surface change.
+    /// Service version. The receipt service is a skeleton in v0.2.x (returns
+    /// 501 for the issuance endpoints); the version still tracks the umbrella
+    /// release so /healthz reports the same number as ingest + gateway.
+    /// Full receipt issuance lands in v0.5.
     /// </summary>
-    public const string ServiceVersion = "0.1.0-alpha.1";
+    public const string ServiceVersion = "0.2.2";
 
     /// <summary>
     /// Wires the /healthz route. The underlying HealthCheckService is built
