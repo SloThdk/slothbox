@@ -1,6 +1,4 @@
 #!/usr/bin/env sh
-. "$(dirname -- "$0")/_/husky.sh"
-
 # Pre-commit checks for SlothBox
 # Fails fast on any of: secrets, formatting drift, type errors
 
