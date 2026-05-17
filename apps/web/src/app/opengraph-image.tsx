@@ -39,9 +39,8 @@ export default async function OgImage() {
         fontFamily: "Inter, system-ui, sans-serif",
       }}
     >
-      {/* Padlock glyph echoing the favicon. Tile is the same slate as
-          the page background with a 1px glass-edge stroke; lock body
-          renders in sky-blue accent (--color-accent). */}
+      {/* Box-with-keyhole glyph echoing the favicon + Header Wordmark.
+          Single brand mark across all three surfaces. */}
       <div
         style={{
           display: "flex",
@@ -62,16 +61,19 @@ export default async function OgImage() {
             stroke="rgba(255,255,255,0.08)"
             strokeWidth="1"
           />
-          <path
-            d="M11 14 V11 a5 5 0 0 1 10 0 v3"
+          {/* Box outline + keyhole — same coords as Header Wordmark. */}
+          <rect
+            x="6"
+            y="6"
+            width="20"
+            height="20"
+            rx="3.5"
             stroke="#5b9eff"
-            strokeWidth="2.4"
+            strokeWidth="2"
             fill="none"
-            strokeLinecap="round"
           />
-          <rect x="8.5" y="13.5" width="15" height="11" rx="1.6" fill="#5b9eff" />
-          <circle cx="16" cy="18.5" r="1.6" fill="#0a0d14" />
-          <rect x="15.25" y="18.5" width="1.5" height="3.2" fill="#0a0d14" />
+          <circle cx="16" cy="14.5" r="2" fill="#5b9eff" />
+          <rect x="15" y="14.5" width="2" height="5" fill="#5b9eff" />
         </svg>
         <div
           style={{

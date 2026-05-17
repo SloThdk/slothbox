@@ -1,26 +1,30 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  SlothBox app icon — matches the visionOS-inspired brand palette.
+  SlothBox app icon — matches the Header Wordmark glyph exactly.
 
-  Visual: rounded square in deep slate (#0a0d14, same as --color-bg) with a
-  centred padlock glyph in sky-blue (#5b9eff, same as --color-accent). The
-  padlock body is angular and the shackle is open at the top right —
-  symbolising "encryption that the receiver controls, not the platform".
-  A 1-pixel glass-edge stroke mirrors the visionOS panel signature.
+  Visual: rounded square tile in deep slate (#0a0d14, same as
+  --color-bg) with a centred "box-with-keyhole" mark in sky-blue
+  (#5b9eff, same as --color-accent). The box outline encodes the
+  product name directly — "the box" — and the keyhole reads as a
+  small letterform monogram if you squint. A 1-pixel glass-edge
+  stroke mirrors the visionOS panel signature.
 
-  32x32 viewBox, vector so it scales to every favicon resolution browsers
-  ask for.
+  Same glyph as Header.tsx Wordmark, scaled to favicon viewBox. If
+  you change one, change both — the in-product mark and the favicon
+  must stay in lockstep.
+
+  32x32 viewBox, vector so it scales to every favicon resolution
+  browsers ask for.
 -->
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
   <rect width="32" height="32" rx="6" fill="#0a0d14"/>
   <rect x="0.5" y="0.5" width="31" height="31" rx="5.5" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
-  <!-- Padlock shackle (open at top-right) -->
-  <path d="M11 14 V11 a5 5 0 0 1 10 0 v3"
-        stroke="#5b9eff" stroke-width="2.4" fill="none"
-        stroke-linecap="round"/>
-  <!-- Padlock body -->
-  <rect x="8.5" y="13.5" width="15" height="11" rx="1.6" fill="#5b9eff"/>
-  <!-- Keyhole -->
-  <circle cx="16" cy="18.5" r="1.6" fill="#0a0d14"/>
-  <rect x="15.25" y="18.5" width="1.5" height="3.2" fill="#0a0d14"/>
+  <!-- Box outline — same coords as Header Wordmark (x=6 y=6 w=20 h=20 rx=3.5).
+       Stroke bumped from 1.6 to 2 so the outline survives 16x16 favicon downscale. -->
+  <rect x="6" y="6" width="20" height="20" rx="3.5"
+        stroke="#5b9eff" stroke-width="2" fill="none"/>
+  <!-- Keyhole — circle + descending notch, centred on the box top half.
+       Same offset as Header so the favicon reads identical to the in-product mark. -->
+  <circle cx="16" cy="14.5" r="2" fill="#5b9eff"/>
+  <rect x="15" y="14.5" width="2" height="5" fill="#5b9eff"/>
 </svg>

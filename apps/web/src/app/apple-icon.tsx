@@ -3,10 +3,9 @@
 // site to their home screen; Android Chrome falls back to the
 // manifest's `purpose: "maskable"` SVG icon.
 //
-// We re-emit the same lockbox glyph as `icon.svg` so the brand reads
-// as a single asset across favicon / PWA install / iOS home-screen.
-// Single source of truth lives here + in `apps/web/src/app/icon.svg`;
-// changing the palette means editing both.
+// Same box-with-keyhole glyph as icon.svg and Header.tsx Wordmark.
+// Single source of truth — when the brand mark changes, all three
+// update in lockstep.
 
 import { ImageResponse } from "next/og";
 
@@ -39,19 +38,20 @@ export default function AppleIcon() {
           stroke="rgba(255,255,255,0.10)"
           strokeWidth="1"
         />
-        {/* Padlock shackle, open at top-right — encryption the receiver
-            controls, not the platform. */}
-        <path
-          d="M11 14 V11 a5 5 0 0 1 10 0 v3"
+        {/* Box outline — same coords as Header Wordmark + favicon. */}
+        <rect
+          x="6"
+          y="6"
+          width="20"
+          height="20"
+          rx="3.5"
           stroke="#5b9eff"
-          strokeWidth="2.4"
+          strokeWidth="2"
           fill="none"
-          strokeLinecap="round"
         />
-        {/* Body + keyhole in sky-blue against the slate tile. */}
-        <rect x="8.5" y="13.5" width="15" height="11" rx="1.6" fill="#5b9eff" />
-        <circle cx="16" cy="18.5" r="1.6" fill="#0a0d14" />
-        <rect x="15.25" y="18.5" width="1.5" height="3.2" fill="#0a0d14" />
+        {/* Keyhole — circle + descending notch, centred on the upper half. */}
+        <circle cx="16" cy="14.5" r="2" fill="#5b9eff" />
+        <rect x="15" y="14.5" width="2" height="5" fill="#5b9eff" />
       </svg>
     </div>,
     { ...size }
