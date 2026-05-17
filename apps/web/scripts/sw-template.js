@@ -1,3 +1,22 @@
+// === TEMPLATE-ONLY-START ===
+// This file is the SOURCE OF TRUTH for the service worker.
+//
+// scripts/build-sw.mjs (wired into the `dev` and `build` scripts in
+// package.json) reads this file, strips this template-only block,
+// substitutes __BUILD_CACHE_VERSION__ with the current build SHA, and
+// writes the result to public/sw.js. That generated file is what the
+// browser fetches at /sw.js.
+//
+// DO NOT bump the version manually anywhere. Substitution makes every
+// prod deploy ship a unique CACHE_NAME automatically so brand-asset and
+// shell changes evict on the next visitor's SW activation. The
+// v0.2.5 → v0.2.6 brand refresh shipped invisibly to existing tabs
+// because the old hardcoded version string didn't move; this template
+// kills that failure mode.
+//
+// DO NOT edit /public/sw.js directly. It is generated and gitignored.
+// === TEMPLATE-ONLY-END ===
+
 // SlothBox service worker.
 //
 // Two responsibilities, deliberately minimal:
@@ -18,19 +37,11 @@
 //   - Push notifications (no notification surface yet)
 //   - Cache user-supplied content (zero by design — the worker only
 //     touches the Next.js build output)
-//
-// Versioning: bumping CACHE_NAME on every prod deploy is the cleanest
-// way to evict stale chunks. The Next.js build emits hashed asset
-// URLs so individual JS / CSS files rotate naturally; the suffix here
-// only matters for the cached HTML responses.
 
-// IMPORTANT: bump on every prod release. The `activate` listener deletes
-// every cache whose name doesn't match this constant, so stale shell
-// assets from a prior deploy (favicon, app-icon, manifest, JS chunks
-// that survived the hashed-URL miss) evict on the next visitor's SW
-// activation. Brand-asset changes between v0.2.2 and v0.2.5 were
-// invisible to every existing tab because this string did not move.
-const CACHE_NAME = "slothbox-shell-v0.2.6";
+// Substituted at build time from NEXT_PUBLIC_BUILD_SHA. Local builds
+// without a SHA get "dev" so the SW is identifiable as a local artifact,
+// never as a stale prod build masquerading as fresh.
+const CACHE_NAME = "slothbox-shell-__BUILD_CACHE_VERSION__";
 
 // Shell URLs we precache during install. Keep this list short — the
 // rest of the bundle gets cached on first navigation via the
@@ -39,6 +50,12 @@ const SHELL_URLS = ["/", "/s/", "/about", "/security"];
 
 // Routes we MUST NOT cache. Each match short-circuits the fetch
 // handler to a plain `fetch(event.request)` pass-through.
+//
+// Brand assets (/icon.svg, /apple-icon, /manifest.webmanifest) are
+// intentionally NOT in this list — Next.js emits hashed URLs for them,
+// so HTTP-cache invalidation works naturally on file change. The SW
+// adds offline-first behaviour, and the CACHE_NAME rotation above
+// evicts stale copies on every deploy.
 const NEVER_CACHE_PREFIXES = ["/api/", "/chunk/", "/healthz", "/metrics"];
 
 self.addEventListener("install", (event) => {
