@@ -6,11 +6,12 @@
   "license": "MIT",
   "type": "module",
   "scripts": {
-    "dev": "next dev -p 3021",
-    "build": "next build",
+    "dev": "node scripts/build-sw.mjs && next dev -p 3021",
+    "build": "node scripts/build-sw.mjs && next build",
     "start": "next start -p 3021",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
+    "build:sw": "node scripts/build-sw.mjs",
     "optimize:images": "node scripts/optimize-images.mjs",
     "test": "echo 'web e2e tests live in services/qa; unit tests come in v0.5' && exit 0"
   },
