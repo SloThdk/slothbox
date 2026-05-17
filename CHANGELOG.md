@@ -17,6 +17,52 @@ the project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Stripe billing for free vs pro tiers
 - Grafana dashboards published
 
+## [0.2.5] — 2026-05-18
+
+Dependency vulnerability sweep. The repo's newly-enabled GitHub
+vulnerability alerts (turned on as part of the v0.2.4 hardening)
+surfaced 11 advisories across the Go + npm dependency trees on
+the v0.2.4 commit. This release closes every one of them that
+has an actual production impact.
+
+### Fixed
+
+- **Go reaper deps** (`services/reaper/go.mod`). `go get -u` + `go
+mod tidy` lifted four direct + transitive deps to non-vulnerable
+  versions:
+  - `github.com/jackc/pgx/v5` 5.5.5 to 5.9.2. Closes the
+    memory-safety advisory in pgx connection handling AND the LOW
+    SQL-injection placeholder-confusion advisory.
+  - `golang.org/x/crypto` 0.21.0 to 0.51.0. Closes four advisories
+    in one bump: CRITICAL ServerConfig.PublicKeyCallback
+    authorization bypass, HIGH SSH slow / incomplete key exchange
+    DoS, MEDIUM SSH-agent malformed-message panic, MEDIUM SSH
+    unbounded memory consumption.
+  - `golang.org/x/net` 0.23.0 to 0.54.0. Closes the XSS advisory
+    and the HTTP-proxy-bypass-via-IPv6-Zone-ID advisory.
+  - go directive 1.24 to 1.25.0 (transitive bump from `go get -u`).
+- **Reaper Dockerfile + CI workflows** — pinned Go toolchain
+  bumped from 1.24 to 1.25 to match the new go.mod directive.
+  Affects `services/reaper/Dockerfile` and
+  `.github/workflows/{ci,release,security}.yml`.
+- **npm transitive vulns** closed via `pnpm.overrides` in the
+  workspace-root `package.json`:
+  - `postcss` floor raised from 8.4.31 to `>=8.5.10`. Closes the
+    XSS via unescaped `</style>` in CSS stringify output.
+  - `esbuild` floor raised from 0.24.0 to `>=0.25.0`. Closes the
+    dev-server SSRF (`@vitest/mocker` was pulling 0.24.0).
+
+### Known issues — deferred to v0.3
+
+- **Vite 5.4.21 path-traversal advisory** (GHSA-4w7w-66w2-5vf9).
+  This is the only remaining pnpm-audit hit. The advisory
+  affects the Vite **dev server**, which slothbox uses only
+  through vitest 2.1.9 for the crypto-core test suite. The
+  production deploy pipeline uses `next build` (no Vite), so
+  the advisory has zero production exposure. The clean fix is
+  a vitest 2 → 3 migration (which uses Vite 6); the migration
+  is non-trivial and lands with v0.3.
+
 ## [0.2.4] — 2026-05-18
 
 Defence-in-depth hardening pass. Every loophole the v0.2 cold-eye
@@ -474,7 +520,8 @@ non-directory`). Switched to `.` so only the root main package
 - WebRTC P2P transfer not yet implemented
 - No external cryptographer review yet — see `SECURITY.md` audit status table
 
-[Unreleased]: https://github.com/SloThdk/slothbox/compare/v0.2.4...HEAD
+[Unreleased]: https://github.com/SloThdk/slothbox/compare/v0.2.5...HEAD
+[0.2.5]: https://github.com/SloThdk/slothbox/compare/v0.2.4...v0.2.5
 [0.2.4]: https://github.com/SloThdk/slothbox/compare/v0.2.3...v0.2.4
 [0.2.3]: https://github.com/SloThdk/slothbox/compare/v0.2.2...v0.2.3
 [0.2.2]: https://github.com/SloThdk/slothbox/compare/v0.2.1...v0.2.2

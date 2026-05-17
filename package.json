@@ -1,6 +1,6 @@
 {
   "name": "slothbox",
-  "version": "0.2.4",
+  "version": "0.2.5",
   "private": true,
   "description": "End-to-end encrypted file transfer with tamper-evident delivery receipts. Server cannot decrypt anything.",
   "license": "MIT",
@@ -43,5 +43,11 @@
     "prettier": "^3.3.3",
     "prettier-plugin-tailwindcss": "^0.6.9",
     "typescript": "^5.6.3"
+  },
+  "pnpm": {
+    "overrides": {
+      "postcss@<8.5.10": ">=8.5.10",
+      "esbuild@<=0.24.2": ">=0.25.0"
+    }
   }
 }

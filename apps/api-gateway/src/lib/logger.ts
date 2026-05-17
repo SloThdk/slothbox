@@ -25,7 +25,7 @@ function createLogger(): Logger {
     level: config.LOG_LEVEL,
     base: {
       service: "api-gateway",
-      version: "0.2.4",
+      version: "0.2.5",
       env: config.NODE_ENV,
     },
     // ISO-8601 timestamps so they sort lexicographically.
