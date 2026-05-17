@@ -132,6 +132,26 @@ const ConfigSchema = z.object({
    * 1000 simultaneous from one IP is a script.
    */
   WS_MAX_CONNECTIONS_PER_IP: z.coerce.number().int().positive().default(20),
+
+  // ─── Proxy trust (audit Finding #5) ────────────────────────────
+  /**
+   * Whether to trust the `X-Forwarded-For` header for client-IP
+   * derivation in rate-limiting. Default `true` because the canonical
+   * production topology is Caddy → api-gateway over a Docker bridge:
+   * Caddy strips inbound XFF and writes its own, so the leftmost entry
+   * is always the real client.
+   *
+   * Set to `false` if the gateway port is exposed directly to untrusted
+   * clients (a misconfigured deploy, a debug tunnel, a second ingress
+   * that doesn't rewrite XFF). When `false`, rate-limiting uses the
+   * socket remote address only — an attacker can no longer spoof XFF
+   * to bypass per-IP rate buckets. The tradeoff is that legitimate
+   * clients behind a proxy will all share the proxy's IP for limiting.
+   */
+  TRUST_FORWARDED_FOR: z
+    .string()
+    .default("true")
+    .transform((s) => s.toLowerCase() !== "false" && s !== "0"),
 });
 
 export type Config = z.infer<typeof ConfigSchema>;

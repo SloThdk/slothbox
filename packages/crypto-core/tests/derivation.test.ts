@@ -131,6 +131,54 @@ describe("deriveKeyFromPassword (Argon2id)", () => {
       })
     ).rejects.toThrow(/password must not be empty/);
   });
+
+  it("rejects passwords over MAX_PASSWORD_BYTES (4096) -- DoS prevention", async () => {
+    // A 1 MB ASCII password would otherwise force Argon2id to hash a
+    // megabyte of input on every guess; the cap fails the call early
+    // before any KDF work happens.
+    const salt = await generateSalt();
+    const oversized = "a".repeat(4097);
+    await expect(
+      deriveKeyFromPassword({
+        password: oversized,
+        salt,
+        opsLimit: TEST_OPS,
+        memLimit: TEST_MEM_BYTES,
+      })
+    ).rejects.toThrow(/password too long/);
+  });
+
+  it("rejects multi-byte passwords whose UTF-8 length exceeds the cap", async () => {
+    // String.length counts UTF-16 code units, not bytes. The 4096-byte
+    // cap must be enforced against the encoded byte length, not the
+    // .length value. A 1500-char string of 3-byte emoji encodes to
+    // 4500 bytes UTF-8 -- under the .length threshold but over the
+    // byte cap.
+    const salt = await generateSalt();
+    const multiByte = "あ".repeat(1500); // hiragana 'a' = 3 bytes UTF-8 each = 4500 bytes total
+    await expect(
+      deriveKeyFromPassword({
+        password: multiByte,
+        salt,
+        opsLimit: TEST_OPS,
+        memLimit: TEST_MEM_BYTES,
+      })
+    ).rejects.toThrow(/password too long/);
+  });
+
+  it("accepts passwords at exactly MAX_PASSWORD_BYTES (4096)", async () => {
+    // Boundary test -- 4096 ASCII chars = 4096 UTF-8 bytes, exactly
+    // at the cap. Should succeed.
+    const salt = await generateSalt();
+    const atCap = "a".repeat(4096);
+    const key = await deriveKeyFromPassword({
+      password: atCap,
+      salt,
+      opsLimit: TEST_OPS,
+      memLimit: TEST_MEM_BYTES,
+    });
+    expect(key.length).toBe(32);
+  });
 });
 
 describe("deriveAeadKey (BLAKE2b-keyed combiner)", () => {

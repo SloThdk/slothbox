@@ -503,6 +503,11 @@ export function UploadDrop() {
                 id="password"
                 type="password"
                 autoComplete="new-password"
+                // Password manager opt-out — the sender's per-share
+                // password is single-use out-of-band material, not a
+                // site credential worth offering to save.
+                data-1p-ignore="true"
+                data-lpignore="true"
                 spellCheck={false}
                 placeholder={t("upload.password.placeholder")}
                 value={password}

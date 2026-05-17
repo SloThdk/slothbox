@@ -21,7 +21,7 @@ export function healthRouter(): Hono<RouterEnv> {
       {
         status: "ok",
         service: "api-gateway",
-        version: "0.2.2",
+        version: "0.2.4",
         timestamp: new Date().toISOString(),
       },
       200

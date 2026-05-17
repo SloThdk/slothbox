@@ -85,6 +85,15 @@ function buildCsp(nonce: string): string {
     "object-src 'none'",
     // Browsers auto-upgrade any http:// reference to https:// at runtime.
     "upgrade-insecure-requests",
+    // Report CSP violations to the gateway -- catches XSS attempts
+    // that hit the nonce/strict-dynamic gate before they execute. Use
+    // the API origin (the gateway already exposes /api/csp-report
+    // mounted by apps/api-gateway/src/routes/cspReport.ts) so the
+    // report leaves the page's origin via fetch with cors:no-cors.
+    // Legacy `report-uri` is what every shipping browser still
+    // honours; the modern `report-to` companion lands once the
+    // Report-To header story is settled across our edge.
+    `report-uri ${apiUrl}/api/csp-report`,
   ];
 
   return directives.join("; ");

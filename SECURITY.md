@@ -313,4 +313,4 @@ TBD
 
 ---
 
-_Last updated: v0.2.2 — first fully stable public release. URL-leak hardening (per-share password, sender-revoke tokens, single-use chunk tokens) + Finding-#7 mark_chunk_served race fix from the v0.2 cold-eye audit. External cryptographer review + third-party application pen test remain hard gates for v1.0._
+_Last updated: v0.2.4 — defence-in-depth hardening pass on top of the v0.2 stable line. TRUST_FORWARDED_FOR env-gate (Finding #5), shortId regex constraints on ingest routes (Finding #6), CSP report-uri + /api/csp-report endpoint, origin guard middleware, password byte-length cap, .well-known/security.txt, expanded Permissions-Policy, broader pino logger redaction. External cryptographer review + third-party application pen test remain hard gates for v1.0._

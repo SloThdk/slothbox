@@ -94,7 +94,10 @@ public static class DownloadEndpoint
     /// <summary>Wire the route.</summary>
     public static void Map(IEndpointRouteBuilder app)
     {
-        app.MapGet("/chunk/{shortId}/{chunkIndex:int}", HandleAsync)
+        // shortId regex constraint mirrors the gateway's
+        // SHORT_ID_ALPHABET; see UploadEndpoint.Map for the rationale
+        // (audit Finding #6 -- defence-in-depth before MinIO key build).
+        app.MapGet("/chunk/{shortId:regex(^[abcdefghjkmnpqrstuvwxyz23456789]{{12}}$)}/{chunkIndex:int}", HandleAsync)
             .WithName("DownloadChunk")
             .WithDescription("Stream a single ciphertext chunk back to the client.");
     }

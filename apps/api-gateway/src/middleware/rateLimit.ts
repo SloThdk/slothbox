@@ -24,6 +24,7 @@ import { createMiddleware } from "hono/factory";
 import { HTTPException } from "hono/http-exception";
 import { getRedis } from "../lib/redis.js";
 import { logger } from "../lib/logger.js";
+import { config } from "../lib/config.js";
 import { rateLimitedTotal } from "../lib/metrics.js";
 import type { RequestIdVars } from "./requestId.js";
 
@@ -38,19 +39,36 @@ export type RateLimitRule = {
 };
 
 /**
- * Extract the requester's IP. Trust `x-forwarded-for` because Caddy is
- * the only ingress and it always rewrites it. Falls back to the socket
- * remote address if for any reason no header was set (local curl, etc.).
+ * Extract the requester's IP for rate-limit keying.
+ *
+ * Threat model: in the canonical production topology Caddy is the only
+ * ingress, runs on a Docker bridge, and strips inbound `X-Forwarded-For`
+ * before writing its own. So XFF's leftmost entry is the real client and
+ * we can trust it.
+ *
+ * If the gateway is ever exposed directly to untrusted clients (a
+ * misconfigured Docker port mapping, a debug tunnel, a second ingress
+ * that doesn't rewrite XFF), an attacker can send `X-Forwarded-For:
+ * 1.2.3.4` and have us key the rate limit on the spoofed value — they
+ * rotate it per request and the per-IP buckets never fire.
+ *
+ * Defence: the `TRUST_FORWARDED_FOR` env var (audit Finding #5). When
+ * `false`, this function ignores XFF entirely and uses only the socket
+ * remote address — an attacker can't spoof the TCP source IP without
+ * BGP-level routing access, so per-IP buckets fire correctly.
  */
-function clientIp(headers: Headers, fallback: string): string {
-  const xff = headers.get("x-forwarded-for");
-  if (xff) {
-    // Leftmost is the original client. Trim whitespace.
-    const first = xff.split(",")[0]?.trim();
-    if (first) return first;
+function clientIp(headers: Headers, socketRemoteAddr: string, fallback: string): string {
+  if (config.TRUST_FORWARDED_FOR) {
+    const xff = headers.get("x-forwarded-for");
+    if (xff) {
+      // Leftmost is the original client. Trim whitespace.
+      const first = xff.split(",")[0]?.trim();
+      if (first) return first;
+    }
+    const realIp = headers.get("x-real-ip");
+    if (realIp) return realIp.trim();
   }
-  const realIp = headers.get("x-real-ip");
-  if (realIp) return realIp.trim();
+  if (socketRemoteAddr) return socketRemoteAddr;
   return fallback;
 }
 
@@ -128,9 +146,35 @@ async function evaluate(
 export function rateLimit(rules: readonly RateLimitRule[]) {
   return createMiddleware<{ Variables: RequestIdVars }>(async (c, next) => {
     const requestId = c.get("requestId") ?? "unknown";
-    // Hono's Node adapter exposes the raw socket via `c.env`, but
-    // working through headers is simpler and Caddy always sets XFF.
-    const identity = clientIp(c.req.raw.headers, "0.0.0.0");
+    // The @hono/node-server adapter exposes the raw IncomingMessage
+    // on c.env.incoming. We pull the socket remote address from there
+    // so clientIp() can fall back to it when TRUST_FORWARDED_FOR=false.
+    // `c.env` is typed as unknown in Hono core; the cast is local and
+    // intentional — see the audit Finding #5 note in clientIp().
+    const incoming = (c.env as { incoming?: { socket?: { remoteAddress?: string } } })?.incoming;
+    const socketRemoteAddr = incoming?.socket?.remoteAddress ?? "";
+    const identity = clientIp(c.req.raw.headers, socketRemoteAddr, "0.0.0.0");
+
+    // Observability for the fail-closed-on-shared-bucket case. If both
+    // XFF is disabled AND the socket has no remoteAddress (theoretical
+    // under @hono/node-server, but possible if the middleware is ever
+    // remounted on a path where the underlying transport isn't an HTTP
+    // socket), every request ends up keyed on `0.0.0.0` and one noisy
+    // client can starve everyone else's bucket. Log loud so the
+    // operator notices in Loki before the rate-limit goes silently
+    // shared. Audit v0.2.4 F2.
+    if (identity === "0.0.0.0") {
+      logger.warn(
+        {
+          requestId,
+          component: "rateLimit",
+          trustForwardedFor: config.TRUST_FORWARDED_FOR,
+          socketRemoteAddr,
+          xffPresent: c.req.raw.headers.has("x-forwarded-for"),
+        },
+        "rate-limit identity fell back to 0.0.0.0 — shared bucket risk"
+      );
+    }
 
     const { tripped } = await evaluate(identity, rules, requestId);
     if (tripped) {
