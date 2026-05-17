@@ -17,6 +17,30 @@ the project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Stripe billing for free vs pro tiers
 - Grafana dashboards published
 
+## [0.2.6] — 2026-05-18
+
+Service-worker cache eviction so existing tabs pick up the v0.2.3
+brand-mark refresh + every v0.2.4 / v0.2.5 asset change. The SW
+`CACHE_NAME` constant was last bumped at v0.2.1 — four releases of
+asset changes (favicon, apple-icon, OG image, manifest theme color)
+were invisible to any browser tab that had previously activated
+the SW because the `activate` listener only evicts caches whose
+name doesn't match `CACHE_NAME`. Bumped now to
+`slothbox-shell-v0.2.6` and the comment explicitly calls out that
+the constant moves with every prod release.
+
+### Fixed
+
+- **Stale service-worker cache hiding new brand assets**
+  (`apps/web/public/sw.js`). The `CACHE_NAME` constant moves from
+  `slothbox-shell-v0.2.1` to `slothbox-shell-v0.2.6`. On the next
+  visit, every previously-activated tab activates the new SW, the
+  `activate` listener deletes the v0.2.1 cache (which still held
+  the old graphite + gold padlock favicon), and subsequent
+  navigation pulls the live v0.2.3+ brand mark from the server.
+  Manual workaround for users without the new SW yet: hard refresh
+  (Ctrl+Shift+R / Cmd+Shift+R) or close-and-reopen the tab.
+
 ## [0.2.5] — 2026-05-18
 
 Dependency vulnerability sweep. The repo's newly-enabled GitHub
@@ -520,7 +544,8 @@ non-directory`). Switched to `.` so only the root main package
 - WebRTC P2P transfer not yet implemented
 - No external cryptographer review yet — see `SECURITY.md` audit status table
 
-[Unreleased]: https://github.com/SloThdk/slothbox/compare/v0.2.5...HEAD
+[Unreleased]: https://github.com/SloThdk/slothbox/compare/v0.2.6...HEAD
+[0.2.6]: https://github.com/SloThdk/slothbox/compare/v0.2.5...v0.2.6
 [0.2.5]: https://github.com/SloThdk/slothbox/compare/v0.2.4...v0.2.5
 [0.2.4]: https://github.com/SloThdk/slothbox/compare/v0.2.3...v0.2.4
 [0.2.3]: https://github.com/SloThdk/slothbox/compare/v0.2.2...v0.2.3

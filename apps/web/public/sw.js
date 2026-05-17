@@ -1,4 +1,4 @@
-// SlothBox service worker (v0.2.1).
+// SlothBox service worker.
 //
 // Two responsibilities, deliberately minimal:
 //
@@ -24,7 +24,13 @@
 // URLs so individual JS / CSS files rotate naturally; the suffix here
 // only matters for the cached HTML responses.
 
-const CACHE_NAME = "slothbox-shell-v0.2.1";
+// IMPORTANT: bump on every prod release. The `activate` listener deletes
+// every cache whose name doesn't match this constant, so stale shell
+// assets from a prior deploy (favicon, app-icon, manifest, JS chunks
+// that survived the hashed-URL miss) evict on the next visitor's SW
+// activation. Brand-asset changes between v0.2.2 and v0.2.5 were
+// invisible to every existing tab because this string did not move.
+const CACHE_NAME = "slothbox-shell-v0.2.6";
 
 // Shell URLs we precache during install. Keep this list short — the
 // rest of the bundle gets cached on first navigation via the
