@@ -24,8 +24,13 @@ import { LanguageToggle } from "@/components/LanguageToggle";
  * first paint. Visual: a 9×9 box rendered in the brand sky-blue accent
  * with a single keyhole cut from its centre. The shape encodes "the box"
  * directly — no animal, no decoration. The keyhole is also a stylised
- * lowercase "s" if you squint, doubling as a monogram. Same glyph as the
- * favicon (kept in sync there).
+ * lowercase "s" if you squint, doubling as a monogram.
+ *
+ * Single brand mark across three surfaces: this Wordmark, the favicon
+ * at `app/icon.svg`, and the apple-icon + OG image renderers under
+ * `app/`. When the glyph changes here, change it there too — the
+ * coords are deliberately identical so the in-product chrome and the
+ * browser-tab chrome read as the same brand.
  */
 function Wordmark() {
   return (

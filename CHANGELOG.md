@@ -17,6 +17,33 @@ the project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Stripe billing for free vs pro tiers
 - Grafana dashboards published
 
+## [0.2.3] — 2026-05-18
+
+Brand-mark coherence patch. The favicon, apple-touch-icon, and
+OG/social-preview image now render the same "box-with-keyhole"
+glyph that the in-product Header Wordmark shows. The v0.2.2
+favicon used a padlock-with-shackle that visually diverged from
+the Header — the Header comment even claimed "Same glyph as the
+favicon (kept in sync there)" but in practice they were two
+different marks.
+
+### Changed
+
+- **Favicon** (`apps/web/src/app/icon.svg`) — switched from
+  padlock-with-shackle to the box-outline + keyhole mark that
+  Header Wordmark uses. Same coords (x=6 y=6 w=20 h=20 rx=3.5),
+  stroke bumped from 1.6 to 2 so the outline survives 16x16
+  favicon downscale.
+- **Apple touch icon** (`apps/web/src/app/apple-icon.tsx`) — same
+  glyph for iOS home-screen saves.
+- **OG / social-preview image** (`apps/web/src/app/opengraph-image.tsx`)
+  — same glyph so a link paste into Slack / Discord / X / LinkedIn
+  shows the same mark as the favicon and the live Header.
+- **Header Wordmark comment** (`apps/web/src/components/Header.tsx`)
+  — updated to reflect the 3-surface brand-mark sync (Wordmark +
+  favicon + apple/OG renderers) rather than the previous
+  "same as the favicon" half-truth.
+
 ## [0.2.2] — 2026-05-17
 
 First fully stable public release. `-alpha.1` suffix dropped from
@@ -321,7 +348,8 @@ non-directory`). Switched to `.` so only the root main package
 - WebRTC P2P transfer not yet implemented
 - No external cryptographer review yet — see `SECURITY.md` audit status table
 
-[Unreleased]: https://github.com/SloThdk/slothbox/compare/v0.2.2...HEAD
+[Unreleased]: https://github.com/SloThdk/slothbox/compare/v0.2.3...HEAD
+[0.2.3]: https://github.com/SloThdk/slothbox/compare/v0.2.2...v0.2.3
 [0.2.2]: https://github.com/SloThdk/slothbox/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/SloThdk/slothbox/compare/v0.2.0-alpha.1...v0.2.1
 [0.2.0-alpha.1]: https://github.com/SloThdk/slothbox/compare/v0.1.0-alpha.1...v0.2.0-alpha.1

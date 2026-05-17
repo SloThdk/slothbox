@@ -10,7 +10,7 @@
 [![Security](https://github.com/SloThdk/slothbox/actions/workflows/security.yml/badge.svg)](https://github.com/SloThdk/slothbox/actions/workflows/security.yml)
 [![Deploy](https://github.com/SloThdk/slothbox/actions/workflows/deploy.yml/badge.svg)](https://github.com/SloThdk/slothbox/actions/workflows/deploy.yml)
 [![Crypto: libsodium + age](https://img.shields.io/badge/crypto-libsodium%20%2B%20age-brightgreen)](docs/CRYPTO.md)
-[![Status: v0.2.2](https://img.shields.io/badge/status-v0.2.2-blue)](MILESTONES.md)
+[![Status: v0.2.3](https://img.shields.io/badge/status-v0.2.3-blue)](MILESTONES.md)
 [![EU-hosted](https://img.shields.io/badge/region-EU--only-blue)](#why-eu-hosted)
 
 > [!NOTE]
