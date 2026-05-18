@@ -17,6 +17,40 @@ the project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Stripe billing for free vs pro tiers
 - Grafana dashboards published
 
+## [0.2.8] — 2026-05-19
+
+Favicon design tweak — drop the dark slate tile around the
+box-with-keyhole glyph and let it render on a transparent canvas
+instead. The v0.2.7 release inherited the tile from the v0.2.3 brand
+refresh, which reused the visionOS glass-panel signature that works
+well in-product but reads as a literal "black box around the icon"
+at favicon scale, particularly on light-themed browser chrome where
+the dark square pops out from the tab strip as its own surface
+rather than vanishing into it.
+
+Also bumped the render size from 32x32 to 192x192. Modern browsers
+downsample favicons from a larger source for retina + 2x DPI tabs,
+and PWA installers ask for ≥ 192 in the manifest icon array.
+Rendering once at 192 covers tab favicons, bookmark surfaces, and
+the PWA home-screen surface from a single source.
+
+apple-icon.tsx and opengraph-image.tsx kept their dark tile — iOS
+home-screen icons can't be transparent (the OS fills transparency
+with white before clipping to a squircle), and OG cards are full
+design surfaces where the brand background is part of the
+composition.
+
+### Changed
+
+- **Favicon canvas now transparent** (`apps/web/src/app/icon.tsx`).
+  Removed the `background: "#0a0d14"` on the wrapper div, the inner
+  `<rect width="32" height="32" fill="#0a0d14"/>` slate fill, and
+  the `rgba(255,255,255,0.08)` glass-edge stroke. Only the blue box
+  outline + blue keyhole remain. Render size bumped from 32x32 to
+  192x192.
+- **Web App Manifest icon size** (`apps/web/src/app/manifest.ts`)
+  updated from `32x32` to `192x192` to match the new render size.
+
 ## [0.2.7] — 2026-05-19
 
 Path-flip for the favicon so Chromium's path-keyed favicon cache picks
