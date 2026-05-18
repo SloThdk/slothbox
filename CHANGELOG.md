@@ -17,6 +17,63 @@ the project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Stripe billing for free vs pro tiers
 - Grafana dashboards published
 
+## [0.2.7] — 2026-05-19
+
+Path-flip for the favicon so Chromium's path-keyed favicon cache picks
+up the v0.2.3 brand-mark refresh on next navigation. The v0.2.6 service
+worker eviction landed the new blue box-with-keyhole glyph for HTTP +
+SW cache layers, but Chromium maintains a separate SQLite `Favicons`
+database in the user profile that keys on host + path only and ignores
+content-hash query strings on a stable path. Browsers that had cached
+the v0.2.0 graphite + gold padlock at `/icon.svg` kept serving it
+locally even after every other cache layer rotated.
+
+Moving the favicon from a static `app/icon.svg` to a dynamic
+`app/icon.tsx` (Next 15 ImageResponse, edge runtime, 32x32 PNG) flips
+the URL path from `/icon.svg` to `/icon`. Chromium has no record of
+the new path, fetches the live glyph, and stores it against the new
+key. The old `/icon.svg` entry keeps its stale yellow copy but is
+never consulted again.
+
+### Fixed
+
+- **Stale yellow favicon surviving v0.2.6 SW cache eviction** (new:
+  `apps/web/src/app/icon.tsx`, removed: `apps/web/src/app/icon.svg`).
+  Same box-with-keyhole glyph, same coords as `apple-icon.tsx` and
+  `opengraph-image.tsx` and the Header Wordmark. Comment block on
+  the new file documents the path-flip mechanism so the next
+  cache-invalidation incident has the pattern written down.
+- **Primary CTA drop-shadow still tinted with the v0.1 champagne-gold
+  rgba** (`apps/web/src/components/ui/button.tsx`). The
+  `shadow-[0_4px_24px_-10px_rgba(201,168,106,...)]` token survived
+  the v0.2.3 brand refresh because the colour lived inside a Tailwind
+  arbitrary-value string the brand-mark sweep didn't grep. Rotated
+  to `rgba(91,158,255,0.45)` so the glow under the button reads as
+  ambient accent light rather than a separate warm-on-cool stamp.
+
+### Changed
+
+- **Web App Manifest icon array** (`apps/web/src/app/manifest.ts`)
+  points at `/icon` (32x32 PNG) and `/apple-icon` (180x180 PNG)
+  instead of two `/icon.svg` entries. Single source of truth across
+  the document head and the PWA installer surface. A dedicated
+  512x512 maskable PNG can land in a later release if launchers
+  start asking for it.
+- **Header Wordmark comment** (`apps/web/src/components/Header.tsx`)
+  updated to describe the four-surface brand-mark sync (Wordmark +
+  `app/icon.tsx` + `app/apple-icon.tsx` + `app/opengraph-image.tsx`).
+
+### Caveats
+
+- Existing tabs that already activated the v0.2.6 SW will pick up
+  the new `/icon` URL on the next hard navigation (the head's
+  `<link rel="icon">` is part of the HTML payload, not the SW shell
+  cache).
+- Browsers with the old `/icon.svg` entry still cached in their
+  favicon DB never re-request that path — the stale entry sits in
+  the DB until natural eviction (typically weeks of inactivity) but
+  is no longer surfaced because nothing in the new HTML links to it.
+
 ## [0.2.6] — 2026-05-18
 
 Service-worker cache eviction so existing tabs pick up the v0.2.3

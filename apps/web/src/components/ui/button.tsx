@@ -22,12 +22,13 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        // Primary CTA. Champagne gold on graphite text — matches the
-        // brand palette and stands out clearly against the warm-cream
-        // body copy. Subtle drop-shadow tinted with the same gold hue
-        // (was the old emerald rgba — that's what was bleeding through).
+        // Primary CTA. Sky-blue accent on slate text — matches the
+        // visionOS dark-glass palette. The drop-shadow uses the same
+        // sky-blue rgba (not the v0.1 champagne-gold leftover) so the
+        // glow under the button reads as ambient accent light rather
+        // than a separate warm-on-cool stamp.
         primary:
-          "bg-[var(--color-accent)] text-[var(--color-bg)] hover:bg-[var(--color-accent-strong)] active:scale-[0.99] shadow-[0_4px_24px_-10px_rgba(201,168,106,0.55)]",
+          "bg-[var(--color-accent)] text-[var(--color-bg)] hover:bg-[var(--color-accent-strong)] active:scale-[0.99] shadow-[0_4px_24px_-10px_rgba(91,158,255,0.45)]",
         secondary:
           "bg-[var(--color-card)] text-[var(--color-fg)] border border-[var(--color-border)] hover:border-[var(--color-accent-tint)] hover:bg-[var(--color-card-elevated)]",
         ghost: "bg-transparent text-[var(--color-fg)] hover:bg-[var(--color-card)]",
