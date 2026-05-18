@@ -37,25 +37,31 @@ export default function manifest(): MetadataRoute.Manifest {
     background_color: "#0a0d14",
     theme_color: "#0a0d14",
     orientation: "any",
-    // The site's icon.svg + Next-generated `icon` route already feed
-    // the document head <link rel="icon">. Pointing the manifest at
-    // those same paths means a single source of truth for branding —
-    // no separate PWA icon set to keep in sync.
+    // The site's `/icon` (32x32 PNG) and `/apple-icon` (180x180 PNG)
+    // routes already feed the document head <link rel="icon"> and
+    // <link rel="apple-touch-icon">. Pointing the manifest at those
+    // same paths means a single source of truth for branding — no
+    // separate PWA icon set to keep in sync. v0.2.7 swapped the
+    // small favicon from a static /icon.svg to a dynamic /icon PNG so
+    // the URL path itself rotates and Chromium's path-keyed favicon
+    // cache picks up the v0.2.3 brand refresh on next navigation.
     icons: [
       {
-        src: "/icon.svg",
-        sizes: "any",
-        type: "image/svg+xml",
+        src: "/icon",
+        sizes: "32x32",
+        type: "image/png",
         purpose: "any",
       },
       {
-        // Maskable variant for OSes that crop to a circle / squircle.
-        // Re-using the same SVG works because it's already designed
-        // with padding around the lockbox glyph.
-        src: "/icon.svg",
-        sizes: "any",
-        type: "image/svg+xml",
-        purpose: "maskable",
+        // Apple-icon doubles as the home-screen icon on Android
+        // launchers that read the manifest's icon array. 180x180 is
+        // large enough for most launcher crops; a dedicated 512x512
+        // maskable PNG can land in a later release if installers
+        // start asking for it.
+        src: "/apple-icon",
+        sizes: "180x180",
+        type: "image/png",
+        purpose: "any",
       },
     ],
     // Categorise so OS search surfaces show the right context.
