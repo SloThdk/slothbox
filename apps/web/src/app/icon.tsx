@@ -1,37 +1,49 @@
-// Favicon — 32x32 PNG generated at request time by Next 15's ImageResponse
-// runtime. Serves at /icon (no extension) instead of the v0.2.6 static
-// /icon.svg path.
+// Favicon — 192x192 PNG generated at request time by Next 15's
+// ImageResponse runtime. Serves at /icon (no extension).
 //
-// Why the path flips:
-//   Chromium's favicon cache lives in a SQLite database (Favicons) in
-//   the user profile, separate from the HTTP cache and the service
-//   worker cache. It keys entries on host + path only and ignores
-//   content-hash query strings on a stable path. The v0.2.6 SW cache
-//   bump evicted the shell cache but couldn't touch the favicon DB —
-//   browsers that had cached the v0.2.0 graphite + gold padlock kept
-//   serving it locally even after the v0.2.3 blue box-with-keyhole
-//   refresh landed on the server.
+// Design intent:
+//   The glyph renders on a transparent canvas so the browser tab
+//   strip, bookmark bar, and history surfaces show through. The
+//   v0.2.7 release wrapped this glyph in a #0a0d14 rounded tile
+//   (the visionOS glass-panel signature the rest of the brand uses)
+//   but at favicon scale the tile reads as a "container around the
+//   icon" rather than the icon itself — especially against light
+//   browser chrome where the dark square pops out as a literal
+//   black box behind the brand mark. Dropping the tile lets the
+//   box-with-keyhole stand alone the way the in-product Header
+//   Wordmark does inside its `.glass` container.
 //
-//   By moving the favicon from /icon.svg to /icon, the path itself
-//   changes. Chromium has no record of /icon, fetches it fresh, and
-//   stores the new blue glyph against the new key. The old /icon.svg
-//   key keeps its stale yellow copy but is never consulted again.
+//   apple-icon.tsx and opengraph-image.tsx keep their dark tile.
+//   iOS clips home-screen icons to a squircle and fills any
+//   transparent pixels with white, so apple-icon MUST have a solid
+//   background. OG cards are full design surfaces that need the
+//   brand background as part of the composition.
+//
+// Why path stays /icon (not /icon.svg):
+//   Chromium's favicon SQLite DB keys on host + path. The v0.2.7
+//   path-flip from /icon.svg to /icon was the cache-invalidation
+//   mechanism — keeping the path stable now means subsequent design
+//   tweaks (this one included) ride the same `?<hash>` query string
+//   Next.js auto-appends, which Chromium DOES honour for entries
+//   it's already seen on a given path.
+//
+// Why 192x192:
+//   The v0.2.7 release rendered at 32x32 to match the historical
+//   favicon viewport. Modern browsers downsample from a larger
+//   source for retina + 2x DPI tabs, and the manifest icon array
+//   wants ≥ 192 for PWA installers. Generating once at 192 covers
+//   browser tabs, bookmarks, history surfaces, and the PWA
+//   home-screen surface from a single source.
 //
 // Same box-with-keyhole glyph as apple-icon.tsx, opengraph-image.tsx,
-// and Header.tsx Wordmark. Single source of truth — when the brand mark
-// changes, all four update in lockstep.
-//
-// Output is PNG rather than SVG because Next 15's ImageResponse only
-// emits raster formats. A 32x32 PNG of an 8-shape glyph weighs ~1 KB —
-// negligible overhead vs the SVG, with the meaningful upside that the
-// URL path is now decoupled from the file extension and we can keep
-// path-flipping in future cache-invalidation incidents without changing
-// the source format.
+// and Header.tsx Wordmark. Single source of truth — coords are
+// identical (x=6 y=6 w=20 h=20 in a 0 0 32 32 viewBox) so the brand
+// mark reads consistent across all four surfaces.
 
 import { ImageResponse } from "next/og";
 
 export const runtime = "edge";
-export const size = { width: 32, height: 32 };
+export const size = { width: 192, height: 192 };
 export const contentType = "image/png";
 
 export default function Icon() {
@@ -43,21 +55,9 @@ export default function Icon() {
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        background: "#0a0d14",
       }}
     >
-      <svg width="32" height="32" viewBox="0 0 32 32">
-        <rect width="32" height="32" rx="6" fill="#0a0d14" />
-        <rect
-          x="0.5"
-          y="0.5"
-          width="31"
-          height="31"
-          rx="5.5"
-          fill="none"
-          stroke="rgba(255,255,255,0.08)"
-          strokeWidth="1"
-        />
+      <svg width="192" height="192" viewBox="0 0 32 32">
         {/* Box outline — same coords as Header Wordmark + apple-icon + OG. */}
         <rect
           x="6"
