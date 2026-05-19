@@ -126,12 +126,55 @@ if [ ! -d "node_modules" ]; then
     fi
 fi
 
-# Auto-copy .env.example to .env if .env is missing.
+# Auto-copy .env.example to .env if .env is missing. Note: .env is in
+# .gitignore (verified) and never committed to git history. Your local
+# .env stays on YOUR machine; nothing leaks upstream.
 if [ ! -f ".env" ] && [ -f ".env.example" ]; then
     echo "[setup] .env not found - copying .env.example to .env..."
     cp ".env.example" ".env"
-    echo "[setup] Created .env. Edit it if any secrets / database creds need filling in."
+    echo "[setup] Created .env from the example template."
 fi
+
+# Credential-doctor: scan .env for CHANGE_ME_* placeholders and report
+# what needs real values. Works for local dev with placeholders, but
+# production-grade features (sign / encrypt / persist real shares
+# without password-flips) need real values.
+print_credential_status() {
+    [ -f ".env" ] || return 0
+    # Each tuple: VAR_NAME | what it's for | how to generate
+    # Plain string, separated by | for parsing — keep CHANGE_ME-suffix
+    # tolerant via grep "^VAR=CHANGE_ME".
+    local checks=(
+        "INTERNAL_TOKEN|service-to-service auth for reaper DELETE /chunk/*|openssl rand -hex 32"
+        "POSTGRES_PASSWORD|Postgres database password|openssl rand -hex 24"
+        "MINIO_SECRET_KEY|MinIO (S3-compatible) object storage secret|openssl rand -hex 24"
+        "AUTH_SECRET|Lucia session signing key|openssl rand -hex 32"
+    )
+    local placeholders=()
+    for line in "${checks[@]}"; do
+        IFS='|' read -r var purpose howto <<<"$line"
+        local val
+        val=$(grep -E "^${var}=" .env | head -1 | cut -d= -f2- || true)
+        if [[ "$val" == CHANGE_ME* ]] || [ -z "$val" ]; then
+            placeholders+=("$var|$purpose|$howto")
+        fi
+    done
+    if [ ${#placeholders[@]} -gt 0 ]; then
+        echo
+        echo "  ⚠️  Your .env has placeholder values for ${#placeholders[@]} secret(s)."
+        echo "      Local dev works with these. PRODUCTION needs real values:"
+        echo
+        for p in "${placeholders[@]}"; do
+            IFS='|' read -r var purpose howto <<<"$p"
+            printf "        %-22s  %s\n" "$var" "$purpose"
+            printf "        %-22s  generate: %s\n" "" "$howto"
+        done
+        echo
+        echo "      See docs/CREDENTIALS.md for the full setup guide."
+    fi
+}
+
+print_credential_status
 
 echo
 echo "[1/5] Killing any process on dev ports ($FRONTEND_PORT, $GATEWAY_PORT, $INGEST_PORT, $RECEIPT_PORT)..."
