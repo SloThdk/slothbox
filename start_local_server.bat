@@ -125,6 +125,86 @@ echo ===========================================================================
 echo  SlothBox local dev - booting up
 echo ============================================================================
 echo.
+
+REM Pre-flight: docker, docker compose, node, pnpm, Node 18+ all on PATH.
+REM Fresh-clone parity with start_local_server.sh — collaborators on Windows
+REM get clear errors with install hints instead of cryptic docker compose
+REM failures or "pnpm not recognized".
+where docker >nul 2>&1
+if errorlevel 1 (
+    echo [ERROR] docker not found in PATH.
+    echo Install Docker Desktop from https://www.docker.com/products/docker-desktop
+    pause & exit /b 1
+)
+docker compose version >nul 2>&1
+if errorlevel 1 (
+    echo [ERROR] 'docker compose' subcommand missing.
+    echo Update Docker to v2+ (ships with Docker Desktop).
+    pause & exit /b 1
+)
+where node >nul 2>&1
+if errorlevel 1 (
+    echo [ERROR] Node.js not found in PATH.
+    echo Install Node 18.18 or newer from https://nodejs.org
+    pause & exit /b 1
+)
+where pnpm >nul 2>&1
+if errorlevel 1 (
+    echo [ERROR] pnpm not found in PATH.
+    echo Install via: corepack enable pnpm
+    echo Or:          npm install -g pnpm
+    pause & exit /b 1
+)
+node -e "process.exit(parseInt(process.versions.node.split('.')[0]) >= 18 ? 0 : 1)" 2>nul
+if errorlevel 1 (
+    echo [ERROR] Node.js version is too old.
+    node --version
+    echo Need 18.18+. Upgrade from https://nodejs.org
+    pause & exit /b 1
+)
+docker info >nul 2>&1
+if errorlevel 1 (
+    echo [ERROR] Docker daemon not reachable.
+    echo Start Docker Desktop and try again.
+    pause & exit /b 1
+)
+
+REM Fresh-clone: install host-side dev tooling if node_modules missing.
+REM (containers do their own install inside; this is for the pnpm dev frontend.)
+if not exist "node_modules" (
+    echo [setup] node_modules missing - running pnpm install for host-side dev tooling...
+    call pnpm install
+    if errorlevel 1 (
+        echo [ERROR] pnpm install failed.
+        echo Common fixes: no internet / corporate proxy / corepack pnpm version mismatch.
+        pause & exit /b 1
+    )
+)
+
+REM Auto-copy .env.example to .env if .env is missing. .env is .gitignored
+REM and never reaches GitHub — your local secrets stay on your machine.
+if not exist ".env" if exist ".env.example" (
+    echo [setup] .env not found - copying .env.example to .env...
+    copy /Y ".env.example" ".env" >nul
+    echo [setup] Created .env from the example template.
+)
+
+REM Credential-doctor: scan .env for CHANGE_ME placeholders. Pure findstr.
+set CRED_BAD=0
+findstr /C:"CHANGE_ME_LOCAL_DEV_ONLY" .env >nul 2>&1 && set CRED_BAD=1
+findstr /C:"CHANGE_ME_GENERATE_VIA_OPENSSL_RAND_HEX_32" .env >nul 2>&1 && set CRED_BAD=1
+if "%CRED_BAD%"=="1" (
+    echo.
+    echo   [warning] Your .env has CHANGE_ME placeholder values.
+    echo       Local dev works with these. PRODUCTION needs real values for:
+    echo         INTERNAL_TOKEN          - generate via: openssl rand -hex 32
+    echo         POSTGRES_PASSWORD       - generate via: openssl rand -hex 24
+    echo         MINIO_SECRET_KEY        - generate via: openssl rand -hex 24
+    echo         AUTH_SECRET             - generate via: openssl rand -hex 32
+    echo       See docs/CREDENTIALS.md for the full setup guide.
+    echo.
+)
+
 echo [1/5] Killing any process on dev ports (%FRONTEND_PORT%, %GATEWAY_PORT%, %INGEST_PORT%, %RECEIPT_PORT%) ...
 for %%P in (%FRONTEND_PORT% %GATEWAY_PORT% %INGEST_PORT% %RECEIPT_PORT%) do (
     for /f "tokens=5" %%i in ('netstat -aon ^| findstr ":%%P "') do (
