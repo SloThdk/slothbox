@@ -9,15 +9,15 @@
 [![CI](https://github.com/SloThdk/slothbox/actions/workflows/ci.yml/badge.svg)](https://github.com/SloThdk/slothbox/actions/workflows/ci.yml)
 [![Security](https://github.com/SloThdk/slothbox/actions/workflows/security.yml/badge.svg)](https://github.com/SloThdk/slothbox/actions/workflows/security.yml)
 [![Deploy](https://github.com/SloThdk/slothbox/actions/workflows/deploy.yml/badge.svg)](https://github.com/SloThdk/slothbox/actions/workflows/deploy.yml)
-[![Crypto: libsodium + age](https://img.shields.io/badge/crypto-libsodium%20%2B%20age-brightgreen)](docs/CRYPTO.md)
-[![Status: v0.2.6](https://img.shields.io/badge/status-v0.2.6-blue)](MILESTONES.md)
+[![Crypto: libsodium (E2E) + age (backups)](https://img.shields.io/badge/crypto-libsodium%20E2E%20%2B%20age%20backups-brightgreen)](docs/CRYPTO.md)
+[![Status: v0.2.9](https://img.shields.io/badge/status-v0.2.9-blue)](MILESTONES.md)
 [![EU-hosted](https://img.shields.io/badge/region-EU--only-blue)](#why-eu-hosted)
 
 > [!NOTE]
-> **v0.2.0 — first stable public release. Read this before sending real data.**
+> **v0.2.9 — current release. Read this before sending real data.**
 >
-> v0.2.0 closes the two URL-leak risks the v0.1 warning block called out
-> and is the first version safe to share live:
+> The v0.2 line closed the two URL-leak risks the v0.1 warning block
+> called out. As of v0.2.9 the shipped guarantees are:
 >
 > - **Per-share password protection** (sender-opt-in) adds a second
 >   factor on top of the URL fragment via Argon2id + BLAKE2b-keyed,
@@ -36,13 +36,21 @@
 >   neither can AEAD-decrypt the reassembled file. See migration
 >   [`db/migrations/0007_single_use_chunk_tokens.sql`](db/migrations/0007_single_use_chunk_tokens.sql).
 >
+> The `Crypto` badge above names both primitives in active use:
+> `libsodium` is the user-facing E2E crypto (XChaCha20-Poly1305 +
+> Argon2id + BLAKE2b in the browser); `age` is the operator backup
+> path (the `pg-backup` sidecar pipes `pg_dump | gzip | age` when
+> `BACKUP_AGE_RECIPIENT` is set, so a host-volume compromise leaks
+> ciphertext only). Per-recipient `age` sealed-boxes for the file
+> path itself remain a v1.0 milestone — see [`MILESTONES.md`](MILESTONES.md).
+>
 > **One audit gap remains for v1.0.** The cryptographic primitives
 > (libsodium, age, Argon2id) are battle-tested upstream, but the
 > SlothBox integration code — the KDF combiner, single-use chunk-token
 > derivation, revoke-token commitment scheme, RLS hardening — has only
 > been internally reviewed. Independent cryptographer review and a
 > third-party application pen test are hard gates for **v1.0** before
-> any "production-grade" or "high-stakes secrets" framing. v0.2.0 is
+> any "production-grade" or "high-stakes secrets" framing. v0.2.9 is
 > appropriate for working file transfer, portfolio review, and
 > personal experimentation. Full threat model and non-goals:
 > [`SECURITY.md`](SECURITY.md).
@@ -142,8 +150,8 @@ not by marketing copy:
    sender's browser using audited libsodium primitives before upload. The
    decryption key travels in the URL fragment (`#key=…`), which is never sent
    to any server.
-   _(v0.2.0: implemented for symmetric / single-recipient. Per-recipient
-   asymmetric encryption via `age` lands in v1.0.)_
+   _(v0.2 line: implemented for symmetric / single-recipient. Per-recipient
+   asymmetric encryption via `age` sealed-boxes lands in v1.0.)_
 
 2. **Delivery is cryptographically provable without revealing content.** When
    the recipient downloads, the system issues an **RFC 3161** signed timestamp
@@ -285,7 +293,7 @@ pnpm db:migrate          # apply schema to the running Postgres container
 pnpm dev                 # parallel watch on web + api-gateway
 ```
 
-On Windows the `start_local_server.bat` in the repo root runs the same flow with one double-click.
+A double-click helper lives in the repo root: `start_local_server.bat` on Windows, `start_local_server.sh` on macOS/Linux. Both verify `node` + `npm`, run `npm install` if `node_modules/` is missing, free the dev port, clear the Next cache, then start the dev server and open the browser when the port is listening.
 
 ### Production hardening overlay
 
@@ -629,13 +637,13 @@ read the prose above when you want to know why each line is there.
 
 ## Roadmap
 
-| Version          | Status     | Highlights                                                                                                                                                    |
-| ---------------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **v0.1.0-alpha** | ✅ shipped | Drag-drop encrypted upload · symmetric key in URL · burn-after-read · expiry · MinIO storage · WebSocket progress · full GitHub repo polish · security gating |
-| **v0.2.0**       | ✅ shipped | URL-leak hardening: per-share password (Argon2id + BLAKE2b) · sender-revoke tokens · single-use chunk tokens · folder uploads · in-browser preview · PWA      |
-| **v0.5.0**       | 🔜 next    | Lucia auth + dashboard · share history · RFC 3161 receipts · audit chain extension · Stripe billing                                                           |
-| **v1.0.0**       | planned    | Per-recipient encryption (`age`) · verifiable deletion proofs · standalone verifier CLI · external cryptographer review · third-party application pen test    |
-| **v1.1.0**       | planned    | WebRTC P2P file transfer · MitID OIDC integration · time-locked shares                                                                                        |
+| Version                | Status     | Highlights                                                                                                                                                                                                                                                                                     |
+| ---------------------- | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **v0.1.0-alpha**       | ✅ shipped | Drag-drop encrypted upload · symmetric key in URL · burn-after-read · expiry · MinIO storage · WebSocket progress · full GitHub repo polish · security gating                                                                                                                                  |
+| **v0.2 line (→0.2.9)** | ✅ shipped | URL-leak hardening: per-share password (Argon2id + BLAKE2b) · sender-revoke tokens · single-use chunk tokens · folder uploads · in-browser preview · PWA · age-encrypted operator backups (sidecar) · CSP-nonce + HSTS-preload edge · 11-rule Prometheus alerting · cross-platform dev tooling |
+| **v0.5.0**             | 🔜 next    | Lucia / better-auth + dashboard · server-side share history · RFC 3161 timestamp receipts · audit chain extension · Stripe billing                                                                                                                                                             |
+| **v1.0.0**             | planned    | Per-recipient `age` sealed-boxes · verifiable deletion proofs · standalone verifier CLI · external cryptographer review · third-party application pen test                                                                                                                                     |
+| **v1.1.0**             | planned    | WebRTC P2P file transfer · MitID OIDC integration · time-locked shares                                                                                                                                                                                                                         |
 
 Detailed scope per release in [`MILESTONES.md`](MILESTONES.md).
 
