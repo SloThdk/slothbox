@@ -17,7 +17,7 @@
 #                Node arch-specific deps (sharp, esbuild) install correctly.
 
 # --- Stage 1: base image -------------------------------------------------
-FROM node:20-alpine AS base
+FROM node:26-alpine AS base
 # Float to 20.x latest. Pinned 20.18 fails on transitive deps that require
 # >=20.19 (eslint-visitor-keys@5.0.1's engines field). 20-alpine resolves
 # to whichever 20.x is current on Docker Hub at build time.
@@ -121,7 +121,7 @@ RUN NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL} \
     pnpm --filter @slothbox/web build
 
 # --- Stage 4: minimal runtime image -------------------------------------
-FROM node:20-alpine AS runner
+FROM node:26-alpine AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production \
