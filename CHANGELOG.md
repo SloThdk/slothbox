@@ -17,6 +17,33 @@ the project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Stripe billing for free vs pro tiers
 - Grafana dashboards published
 
+## [0.2.14] — 2026-05-21
+
+SEO pass — schema.org JSON-LD structured data on every page and two
+more marketing routes added to the sitemap. Lets search engines
+understand SlothBox as a linked entity-graph (Organization + WebSite
+
+- SoftwareApplication) rather than three unrelated text pages.
+
+### Added
+
+- **JSON-LD structured data** (`apps/web/src/app/layout.tsx`) — a
+  schema.org `@graph` block emitted in `<head>` on every route,
+  containing three cross-referenced entities: `Organization` (with
+  the project's name, logo, founder Person link, and GitHub
+  `sameAs`), `WebSite` (with `inLanguage: ["en", "da"]` so crawlers
+  know the site is bilingual), and `SoftwareApplication` (with MIT
+  license, free `Offer`, `applicationCategory: SecurityApplication`,
+  `codeRepository` to the GitHub repo, and creator link to Philip
+  Sloth as `Person`). Nonce-stamped so it satisfies the strict CSP
+  with per-request nonces.
+- **`/transparency` and `/abuse` added to `sitemap.xml`**
+  (`apps/web/src/app/sitemap.ts`). The Transparency page (priority
+  0.6, monthly) and the abuse / takedown contact page (priority 0.3,
+  yearly) are now discoverable by crawlers. Receiver pages
+  (`/s/[id]`) remain excluded — their content is encrypted and
+  ephemeral so indexing makes no sense.
+
 ## [0.2.13] — 2026-05-21
 
 ShareLink post-upload UI now switches between English and Danish via
@@ -818,7 +845,8 @@ non-directory`). Switched to `.` so only the root main package
 - WebRTC P2P transfer not yet implemented
 - No external cryptographer review yet — see `SECURITY.md` audit status table
 
-[Unreleased]: https://github.com/SloThdk/slothbox/compare/v0.2.13...HEAD
+[Unreleased]: https://github.com/SloThdk/slothbox/compare/v0.2.14...HEAD
+[0.2.14]: https://github.com/SloThdk/slothbox/compare/v0.2.13...v0.2.14
 [0.2.13]: https://github.com/SloThdk/slothbox/compare/v0.2.12...v0.2.13
 [0.2.12]: https://github.com/SloThdk/slothbox/compare/v0.2.11...v0.2.12
 [0.2.11]: https://github.com/SloThdk/slothbox/compare/v0.2.10...v0.2.11

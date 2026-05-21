@@ -1,6 +1,6 @@
 {
   "name": "@slothbox/web",
-  "version": "0.2.13",
+  "version": "0.2.14",
   "private": true,
   "description": "SlothBox web frontend — Next.js 15 App Router. End-to-end encrypted file transfer UI.",
   "license": "MIT",
