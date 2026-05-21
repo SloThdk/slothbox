@@ -69,7 +69,7 @@ URL-leak risks that the v0.1 SECURITY.md called out:
   `revoke_token_hash` and `download_token_hash` columns — they fall back
   to v0.1 semantics until they expire on TTL.
 
-### How burn-after-read works in v0.1 (post-migration 0004)
+### How burn-after-read works in the v0.2 line (post-migration 0004)
 
 The trigger lives on the **server side**, not in the recipient's browser.
 The ingest service (`services/ingest/Endpoints/DownloadEndpoint.cs`) calls
@@ -170,7 +170,7 @@ For sensitive reports, encrypt to the PGP key fingerprint:
 TO BE GENERATED — see https://philipsloth.com/.well-known/security.txt
 ```
 
-(PGP key will be published before the public launch of v0.1.)
+(PGP key will be added alongside the v1.0 external audit.)
 
 ### What to expect
 
@@ -241,7 +241,7 @@ We follow these practices for the deployed service:
 - **Dependency updates** via Dependabot for security updates (daily) and
   patch/minor updates (weekly). Major updates manually reviewed.
 - **Container image scanning** — `trivy image` on every Docker build in CI
-- **Postgres backups** — nightly `pg_dump` (gzipped) to a local Docker volume, 28-day rotation. v0.5 introduces WAL-G continuous archiving with an offsite copy; v0.1 keeps the simpler dump-and-rotate model so the restore drill is just `gunzip | psql`.
+- **Postgres backups** — nightly `pg_dump` (gzipped) to a local Docker volume, 28-day rotation. v0.5 introduces WAL-G continuous archiving with an offsite copy; the v0.2 line keeps the simpler dump-and-rotate model so the restore drill is just `gunzip | psql`.
 - **TLS** — Caddy with auto-renewing Let's Encrypt certs, TLS 1.3 only
 
 ---
@@ -313,4 +313,4 @@ TBD
 
 ---
 
-_Last updated: v0.2.11 — covers the v0.2 line through v0.2.11. Substantive security additions over the line: per-share password (Argon2id + BLAKE2b-keyed combiner, v0.2.0), sender-revoke tokens (v0.2.0), single-use chunk tokens (v0.2.0), brand-mark + audit-fix release (v0.2.2), CLS perf + a11y pass (v0.2.3), defence-in-depth hardening (v0.2.4 — TRUST_FORWARDED_FOR env-gate Finding #5, shortId regex constraints Finding #6, CSP report-uri + /api/csp-report endpoint, origin guard middleware, password byte-length cap, .well-known/security.txt, expanded Permissions-Policy, broader pino logger redaction), dependency vulnerability sweep (v0.2.5 — pgx/x-crypto/x-net + Go 1.25 + .NET 8.0.20), SW cache eviction + auto-versioning (v0.2.6/v0.2.9), favicon path-flip + transparent canvas (v0.2.7/v0.2.8), cross-platform dev tooling with credential-doctor (v0.2.9), npm dependency sweep (v0.2.10 — ws GHSA-58qx-3vcg-4xpx, vite path-traversal advisory, brace-expansion GHSA-jxxr-4gwj-5jf2), Transparency page Danish translation + v0.2 line-anchor phrasing across the web app (v0.2.11). External cryptographer review + third-party application pen test remain hard gates for v1.0._
+_Last updated: v0.2.12 — covers the v0.2 line through v0.2.12. Substantive security additions over the line: per-share password (Argon2id + BLAKE2b-keyed combiner, v0.2.0), sender-revoke tokens (v0.2.0), single-use chunk tokens (v0.2.0), brand-mark + audit-fix release (v0.2.2), CLS perf + a11y pass (v0.2.3), defence-in-depth hardening (v0.2.4 — TRUST_FORWARDED_FOR env-gate Finding #5, shortId regex constraints Finding #6, CSP report-uri + /api/csp-report endpoint, origin guard middleware, password byte-length cap, .well-known/security.txt, expanded Permissions-Policy, broader pino logger redaction), dependency vulnerability sweep (v0.2.5 — pgx/x-crypto/x-net + Go 1.25 + .NET 8.0.20), SW cache eviction + auto-versioning (v0.2.6/v0.2.9), favicon path-flip + transparent canvas (v0.2.7/v0.2.8), cross-platform dev tooling with credential-doctor (v0.2.9), npm dependency sweep (v0.2.10 — ws GHSA-58qx-3vcg-4xpx, vite path-traversal advisory, brace-expansion GHSA-jxxr-4gwj-5jf2), Transparency page Danish translation + v0.2 line-anchor phrasing across the web app (v0.2.11), Danish grammar pass + /how anonymity paragraph + v0.1 anchor cleanup in SECURITY.md (v0.2.12). External cryptographer review + third-party application pen test remain hard gates for v1.0._

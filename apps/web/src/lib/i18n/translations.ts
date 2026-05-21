@@ -365,7 +365,7 @@ export const TRANSLATIONS = {
   },
   "how.verifiable.item3.body": {
     en: "The production VM is hosted by Hetzner Online GmbH — wholly EU-incorporated, no US parent company, no US CLOUD Act exposure. The data centre is Falkenstein FSN1 in Germany. No CDN proxies the data path.",
-    da: "Produktions-VM'en hostes af Hetzner Online GmbH — helejet EU-virksomhed, ingen amerikansk moderselskab, ingen eksponering for US CLOUD Act. Datacentret er Falkenstein FSN1 i Tyskland. Ingen CDN proxy'er datapathen.",
+    da: "Produktions-VM'en hostes af Hetzner Online GmbH — helejet EU-virksomhed, intet amerikansk moderselskab, ingen eksponering for US CLOUD Act. Datacentret er Falkenstein FSN1 i Tyskland. Ingen CDN proxy'er datavejen.",
   },
   "how.verifiable.item4.title": {
     en: "Tamper-evident audit chain",
@@ -387,7 +387,7 @@ export const TRANSLATIONS = {
   },
   "how.neverSee.item1.title": {
     en: "Your file's contents",
-    da: "Dit fils indhold",
+    da: "Din fils indhold",
   },
   "how.neverSee.item1.body": {
     en: "Encrypted in your browser before any byte leaves your machine. The server only ever stores ciphertext. A subpoena returns ciphertext. A breach of the database returns ciphertext. There is no plaintext copy anywhere on our infrastructure.",
@@ -406,8 +406,8 @@ export const TRANSLATIONS = {
     da: "Modtagerens identitet",
   },
   "how.neverSee.item3.body": {
-    en: "No signup, no account, no email collected for downloads. Anyone who receives the URL can decrypt; we have no way to map a download to a person. The shortId is the access secret in v0.1, full stop.",
-    da: "Ingen tilmelding, ingen konto, ingen email indsamlet for downloads. Enhver, der modtager URL'en, kan dekryptere; vi har ingen mulighed for at koble en download til en person. ShortId'et er adgangshemmeligheden i v0.1, punktum.",
+    en: "No signup, no account, no email collected for downloads. Anyone who receives the URL can decrypt; there is no way to map a download to a person. That is deliberate — identity-based access controls land with accounts in v0.5 and per-recipient encryption in v1.0; the v0.2 line trades them for true anonymity.",
+    da: "Ingen tilmelding, ingen konto, ingen email indsamlet for downloads. Enhver der modtager URL'en kan dekryptere; der er ingen mulighed for at koble en download til en person. Det er bevidst — identitetsbaseret adgang lander med konti i v0.5 og per-modtager-kryptering i v1.0; v0.2-linjen bytter det mod ægte anonymitet.",
   },
 
   // -- "What we DO see" cards (honesty) --

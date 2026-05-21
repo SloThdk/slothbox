@@ -10,14 +10,14 @@
 [![Security](https://github.com/SloThdk/slothbox/actions/workflows/security.yml/badge.svg)](https://github.com/SloThdk/slothbox/actions/workflows/security.yml)
 [![Deploy](https://github.com/SloThdk/slothbox/actions/workflows/deploy.yml/badge.svg)](https://github.com/SloThdk/slothbox/actions/workflows/deploy.yml)
 [![Crypto: libsodium (E2E) + age (backups)](https://img.shields.io/badge/crypto-libsodium%20E2E%20%2B%20age%20backups-brightgreen)](docs/CRYPTO.md)
-[![Status: v0.2.11](https://img.shields.io/badge/status-v0.2.11-blue)](MILESTONES.md)
+[![Status: v0.2.12](https://img.shields.io/badge/status-v0.2.12-blue)](MILESTONES.md)
 [![EU-hosted](https://img.shields.io/badge/region-EU--only-blue)](#why-eu-hosted)
 
 > [!NOTE]
-> **v0.2.11 — current release. Read this before sending real data.**
+> **v0.2.12 — current release. Read this before sending real data.**
 >
 > The v0.2 line closed the two URL-leak risks the v0.1 warning block
-> called out. As of v0.2.11 the shipped guarantees are:
+> called out. As of v0.2.12 the shipped guarantees are:
 >
 > - **Per-share password protection** (sender-opt-in) adds a second
 >   factor on top of the URL fragment via Argon2id + BLAKE2b-keyed,
@@ -50,7 +50,7 @@
 > derivation, revoke-token commitment scheme, RLS hardening — has only
 > been internally reviewed. Independent cryptographer review and a
 > third-party application pen test are hard gates for **v1.0** before
-> any "production-grade" or "high-stakes secrets" framing. v0.2.11 is
+> any "production-grade" or "high-stakes secrets" framing. v0.2.12 is
 > appropriate for working file transfer, portfolio review, and
 > personal experimentation. Full threat model and non-goals:
 > [`SECURITY.md`](SECURITY.md).
@@ -483,7 +483,7 @@ it. Nothing on this list is decorative.
   CHECK constraints on every shape-critical column mean a compromised
   application server cannot rewrite history without breaking verification.
   RLS policies are wired (`db/migrations/0003_rls_hardening.sql`) but
-  **not yet enforced as of v0.2.11** — see "Trust model" below for the
+  **not yet enforced as of v0.2.12** — see "Trust model" below for the
   honest framing.
 - **Trust model — current state:** the api-gateway connects to Postgres
   as the `slothbox` role (the table owner), for whom Postgres bypasses
