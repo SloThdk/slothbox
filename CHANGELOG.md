@@ -17,6 +17,34 @@ the project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Stripe billing for free vs pro tiers
 - Grafana dashboards published
 
+## [0.2.13] — 2026-05-21
+
+ShareLink post-upload UI now switches between English and Danish via
+the language toggle. The card visitors see after dropping a file —
+"Encrypted. Ready to send.", the share-URL panel, the revoke
+controls, and the dashboard link — was previously hardcoded English;
+it now flows through `useLanguage()` like every other surface.
+
+### Changed
+
+- **`apps/web/src/components/ShareLink.tsx`** — every user-visible
+  string moved to the `share.*` namespace in `translations.ts` and
+  resolved via `useLanguage().t()`. Covers the success heading, the
+  expiry summary, the file-size / "encrypted with" line, the "Share
+  link" label, the Copy button (incl. its "Copied" success state and
+  aria-label), the URL-fragment explainer, the revoke intro + button
+  - confirm dialog + success / error toasts, the "All my shares"
+    dashboard link, and the "Send another file" reset button.
+- **`apps/web/src/lib/i18n/translations.ts`** — added the
+  `share.ready.*`, `share.expires.fallback`, `share.file.encryptedWith`,
+  `share.url.*`, `share.revoke.*`, `share.allShares`,
+  `share.sendAnother`, and `share.copyToast.*` keys. The
+  `share.ready.body` value uses a `{time}` placeholder that the
+  component substitutes with the localised expiry-window string.
+- **Danish translations** use real æ ø å, informal `du`, and keep
+  technical terms in English where they are real terms a Danish dev
+  reader expects (`revoke-token`, `XChaCha20-Poly1305`, `#key=`).
+
 ## [0.2.12] — 2026-05-21
 
 Danish grammar pass on `/how`, an anonymity-paragraph rewrite on the
@@ -790,7 +818,8 @@ non-directory`). Switched to `.` so only the root main package
 - WebRTC P2P transfer not yet implemented
 - No external cryptographer review yet — see `SECURITY.md` audit status table
 
-[Unreleased]: https://github.com/SloThdk/slothbox/compare/v0.2.12...HEAD
+[Unreleased]: https://github.com/SloThdk/slothbox/compare/v0.2.13...HEAD
+[0.2.13]: https://github.com/SloThdk/slothbox/compare/v0.2.12...v0.2.13
 [0.2.12]: https://github.com/SloThdk/slothbox/compare/v0.2.11...v0.2.12
 [0.2.11]: https://github.com/SloThdk/slothbox/compare/v0.2.10...v0.2.11
 [0.2.10]: https://github.com/SloThdk/slothbox/compare/v0.2.9...v0.2.10

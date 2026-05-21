@@ -4,6 +4,11 @@
 // The URL contains the decryption key in the fragment. We RENDER it for the
 // sender (they need to share it!) but never log it, never autocopy without
 // user intent, and never include it in OG metadata or analytics.
+//
+// All user-visible strings flow through useLanguage()'s t() so the card
+// switches between English and Danish when the visitor toggles the language
+// picker. Strings live in apps/web/src/lib/i18n/translations.ts under the
+// "share.*" key namespace.
 
 "use client";
 
@@ -17,6 +22,7 @@ import { Label } from "@/components/ui/label";
 import { destroyShare, ApiError } from "@/lib/api";
 import { addShare, removeShare } from "@/lib/myShares";
 import { formatBytes } from "@/lib/utils";
+import { useLanguage } from "@/lib/i18n/LanguageContext";
 
 export interface ShareLinkProps {
   url: string;
@@ -51,6 +57,7 @@ export function ShareLink({
   passwordProtected,
   onSendAnother,
 }: ShareLinkProps) {
+  const { t } = useLanguage();
   const [copied, setCopied] = React.useState(false);
   /**
    * Track local-revoke state separately from the share's actual server
@@ -92,18 +99,16 @@ export function ShareLink({
     try {
       await navigator.clipboard.writeText(url);
       setCopied(true);
-      toast.success("Link copied. Send only over a channel you trust.");
+      toast.success(t("share.copyToast.success"));
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      toast.error("Could not access clipboard — copy manually.");
+      toast.error(t("share.copyToast.error"));
     }
-  }, [url]);
+  }, [url, t]);
 
   const onRevoke = React.useCallback(async () => {
     if (revokeState !== "active") return;
-    if (
-      !window.confirm("Revoke this share now? Anyone holding the link will see a not-found page.")
-    ) {
+    if (!window.confirm(t("share.revoke.confirm"))) {
       return;
     }
     setRevokeState("revoking");
@@ -111,7 +116,7 @@ export function ShareLink({
       await destroyShare(shortId, revokeToken);
       removeShare(shortId);
       setRevokeState("revoked");
-      toast.success("Share revoked. The encrypted blob is being purged.");
+      toast.success(t("share.revoke.successToast"));
     } catch (err) {
       // 410 → legacy share (shouldn't happen for v0.2-minted shares,
       // but log clearly). 403 / 401 → token problem (likely a corrupted
@@ -119,27 +124,34 @@ export function ShareLink({
       // detail goes to console for debugging.
       const message =
         err instanceof ApiError
-          ? `Revoke failed (HTTP ${err.status}): ${err.message}`
-          : "Revoke failed — try again or wait for the share to expire.";
+          ? `${t("share.revoke.httpErrorPrefix")} (HTTP ${err.status}): ${err.message}`
+          : t("share.revoke.errorToast");
       toast.error(message);
       setRevokeState("active");
       // eslint-disable-next-line no-console
       console.warn("destroyShare error", err);
     }
-  }, [revokeState, shortId, revokeToken]);
+  }, [revokeState, shortId, revokeToken, t]);
 
+  // Returns a short human-readable expiry like "7d" or "5h", or null when
+  // the timestamp is unparseable / already past. The fallback localised
+  // string is interpolated in the JSX below so the value matches the
+  // current language picker.
   const expiresHuman = React.useMemo(() => {
     try {
       const ms = new Date(expiresAt).getTime() - Date.now();
-      if (!Number.isFinite(ms) || ms <= 0) return "shortly";
+      if (!Number.isFinite(ms) || ms <= 0) return null;
       const hours = Math.round(ms / (1000 * 60 * 60));
       if (hours < 24) return `${hours}h`;
       const days = Math.round(hours / 24);
       return `${days}d`;
     } catch {
-      return "soon";
+      return null;
     }
   }, [expiresAt]);
+
+  const expiresLabel = expiresHuman ?? t("share.expires.fallback");
+  const readyBody = t("share.ready.body").replace("{time}", expiresLabel);
 
   return (
     <div className="flex flex-col gap-5">
@@ -149,12 +161,9 @@ export function ShareLink({
         </span>
         <div className="min-w-0">
           <h3 className="font-display text-xl font-semibold text-[var(--color-fg)]">
-            Encrypted. Ready to send.
+            {t("share.ready.title")}
           </h3>
-          <p className="mt-1 text-sm text-[var(--color-muted)]">
-            Anyone with the full link below can download and decrypt this file once. Expires in{" "}
-            {expiresHuman}.
-          </p>
+          <p className="mt-1 text-sm text-[var(--color-muted)]">{readyBody}</p>
         </div>
       </div>
 
@@ -163,13 +172,13 @@ export function ShareLink({
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-medium text-[var(--color-fg)]">{fileName}</p>
           <p className="text-xs text-[var(--color-muted)]">
-            {formatBytes(fileSize)} · encrypted with XChaCha20-Poly1305
+            {formatBytes(fileSize)} · {t("share.file.encryptedWith")} XChaCha20-Poly1305
           </p>
         </div>
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="share-url">Share link</Label>
+        <Label htmlFor="share-url">{t("share.url.label")}</Label>
         <div className="flex gap-2">
           <Input
             id="share-url"
@@ -184,23 +193,21 @@ export function ShareLink({
             onClick={onCopy}
             variant={copied ? "secondary" : "primary"}
             size="md"
-            aria-label="Copy link to clipboard"
+            aria-label={t("share.url.copyAria")}
           >
             {copied ? (
               <>
-                <Check className="h-4 w-4" aria-hidden /> Copied
+                <Check className="h-4 w-4" aria-hidden /> {t("share.url.copied")}
               </>
             ) : (
               <>
-                <Copy className="h-4 w-4" aria-hidden /> Copy
+                <Copy className="h-4 w-4" aria-hidden /> {t("share.url.copy")}
               </>
             )}
           </Button>
         </div>
         <p className="text-[11px] leading-relaxed text-[var(--color-muted)]">
-          The portion after <code className="font-mono">#key=</code> is the decryption key. It stays
-          inside this URL — your browser never sends it to any server. If you lose it, the file is
-          unrecoverable.
+          {t("share.url.keyExplainer")}
         </p>
       </div>
 
@@ -211,31 +218,28 @@ export function ShareLink({
           (the localStorage entry is gone too); the link to /my-shares
           stays so the sender can also manage other shares from here. */}
       <div className="flex flex-col gap-2 rounded-lg border border-[var(--color-border)]/60 bg-[var(--color-card)]/60 p-4 text-xs">
-        <p className="text-[var(--color-muted)]">
-          You can take this share down at any time from this device — the revoke token is stored in
-          your browser, not on our server.
-        </p>
+        <p className="text-[var(--color-muted)]">{t("share.revoke.intro")}</p>
         <div className="flex flex-wrap items-center gap-2">
           <Button
             variant={revokeState === "revoked" ? "ghost" : "secondary"}
             size="sm"
             onClick={onRevoke}
             disabled={revokeState !== "active"}
-            aria-label="Revoke this share"
+            aria-label={t("share.revoke.ariaLabel")}
           >
             <Trash2 className="h-3.5 w-3.5" aria-hidden />
             {revokeState === "revoking"
-              ? "Revoking…"
+              ? t("share.revoke.revoking")
               : revokeState === "revoked"
-                ? "Revoked"
-                : "Revoke now"}
+                ? t("share.revoke.revoked")
+                : t("share.revoke.button")}
           </Button>
           <Link
             href="/my-shares"
             className="inline-flex items-center gap-1.5 px-2 py-1 text-[var(--color-accent)] underline-offset-4 hover:underline"
           >
             <ListChecks className="h-3.5 w-3.5" aria-hidden />
-            All my shares
+            {t("share.allShares")}
           </Link>
         </div>
       </div>
@@ -244,7 +248,7 @@ export function ShareLink({
         <div className="flex items-center justify-end gap-3">
           <Button variant="ghost" onClick={onSendAnother}>
             <Send className="h-4 w-4" aria-hidden />
-            Send another file
+            {t("share.sendAnother")}
           </Button>
         </div>
       ) : null}

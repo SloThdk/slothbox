@@ -965,6 +965,96 @@ export const TRANSLATIONS = {
     en: "A four-gigabyte file downloads from one server in Falkenstein, Germany. WeTransfer downloads from two hundred edge points of presence. If your recipient is on a 200 ms link from Tokyo, they will feel it. The trade is bandwidth for jurisdiction — pick what matters more for the file in your hand.",
     da: "En fire-gigabyte fil downloades fra én server i Falkenstein, Tyskland. WeTransfer downloader fra to hundrede edge-punkter. Hvis din modtager sidder på et 200 ms-link fra Tokyo, mærker de det. Byttet er båndbredde mod jurisdiktion — vælg, hvad der vejer tungest for filen, du har i hånden.",
   },
+
+  // ─── Share link / post-upload UI (ShareLink.tsx) ──────────────
+  "share.ready.title": {
+    en: "Encrypted. Ready to send.",
+    da: "Krypteret. Klar til at sende.",
+  },
+  "share.ready.body": {
+    en: "Anyone with the full link below can download and decrypt this file once. Expires in {time}.",
+    da: "Alle med det fulde link nedenfor kan downloade og dekryptere denne fil én gang. Udløber om {time}.",
+  },
+  "share.expires.fallback": {
+    en: "shortly",
+    da: "snart",
+  },
+  "share.file.encryptedWith": {
+    en: "encrypted with",
+    da: "krypteret med",
+  },
+  "share.url.label": {
+    en: "Share link",
+    da: "Delingslink",
+  },
+  "share.url.copyAria": {
+    en: "Copy link to clipboard",
+    da: "Kopiér link til udklipsholder",
+  },
+  "share.url.copied": {
+    en: "Copied",
+    da: "Kopieret",
+  },
+  "share.url.copy": {
+    en: "Copy",
+    da: "Kopiér",
+  },
+  "share.url.keyExplainer": {
+    en: "The portion after #key= is the decryption key. It stays inside this URL — your browser never sends it to any server. If you lose it, the file is unrecoverable.",
+    da: "Delen efter #key= er dekrypteringsnøglen. Den bliver inde i denne URL — din browser sender den aldrig til nogen server. Hvis du mister den, kan filen ikke gendannes.",
+  },
+  "share.revoke.intro": {
+    en: "You can take this share down at any time from this device — the revoke token is stored in your browser, not on our server.",
+    da: "Du kan til enhver tid tage denne deling ned fra denne enhed — revoke-tokenet ligger i din browser, ikke på serveren.",
+  },
+  "share.revoke.ariaLabel": {
+    en: "Revoke this share",
+    da: "Tilbagekald denne deling",
+  },
+  "share.revoke.revoking": {
+    en: "Revoking…",
+    da: "Tilbagekalder…",
+  },
+  "share.revoke.revoked": {
+    en: "Revoked",
+    da: "Tilbagekaldt",
+  },
+  "share.revoke.button": {
+    en: "Revoke now",
+    da: "Tilbagekald nu",
+  },
+  "share.revoke.confirm": {
+    en: "Revoke this share now? Anyone holding the link will see a not-found page.",
+    da: "Tilbagekald denne deling nu? Alle der har linket vil se en ikke-fundet-side.",
+  },
+  "share.revoke.successToast": {
+    en: "Share revoked. The encrypted blob is being purged.",
+    da: "Deling tilbagekaldt. Den krypterede fil bliver slettet.",
+  },
+  "share.revoke.errorToast": {
+    en: "Revoke failed — try again or wait for the share to expire.",
+    da: "Tilbagekald fejlede — prøv igen eller vent på at delingen udløber.",
+  },
+  "share.revoke.httpErrorPrefix": {
+    en: "Revoke failed",
+    da: "Tilbagekald fejlede",
+  },
+  "share.allShares": {
+    en: "All my shares",
+    da: "Alle mine delinger",
+  },
+  "share.sendAnother": {
+    en: "Send another file",
+    da: "Send en ny fil",
+  },
+  "share.copyToast.success": {
+    en: "Link copied. Send only over a channel you trust.",
+    da: "Link kopieret. Send kun via en kanal du stoler på.",
+  },
+  "share.copyToast.error": {
+    en: "Could not access clipboard — copy manually.",
+    da: "Kunne ikke tilgå udklipsholderen — kopiér manuelt.",
+  },
 } as const satisfies Record<string, TranslationEntry>;
 
 /** Literal-union of every key in TRANSLATIONS. The `t()` function uses
