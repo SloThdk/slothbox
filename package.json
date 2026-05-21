@@ -1,6 +1,6 @@
 {
   "name": "slothbox",
-  "version": "0.2.11",
+  "version": "0.2.12",
   "private": true,
   "description": "End-to-end encrypted file transfer with tamper-evident delivery receipts. Server cannot decrypt anything.",
   "license": "MIT",

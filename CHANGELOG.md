@@ -17,6 +17,35 @@ the project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Stripe billing for free vs pro tiers
 - Grafana dashboards published
 
+## [0.2.12] — 2026-05-21
+
+Danish grammar pass on `/how`, an anonymity-paragraph rewrite on the
+same page that no longer leans on the pre-v0.2 "shortId is the
+access secret" framing, and a few v0.1 anchor cleanups in
+`SECURITY.md` + the Transparency page.
+
+### Fixed
+
+- **`how.neverSee.item3.body`** (`translations.ts`) — the "your
+  recipient's identity" paragraph now frames the anonymity point as
+  a deliberate trade rather than the access-secret claim the
+  pre-v0.2 wording carried. Identity-based access controls land
+  with accounts in v0.5 and per-recipient encryption in v1.0 — the
+  v0.2 line trades them for true anonymity.
+- **Danish gender agreement** in two `/how` page strings
+  (`translations.ts`): `how.verifiable.item3.body` corrects
+  "ingen amerikansk moderselskab" → "intet amerikansk moderselskab"
+  (moderselskab is et-ord); `how.neverSee.item1.title` corrects
+  "Dit fils indhold" → "Din fils indhold" (fil is fælleskøn).
+- **Transparency page Danish typo**
+  (`apps/web/src/app/transparency/transparency-content.tsx`) —
+  "kvittermings-metadata" → "kvitterings-metadata".
+- **`SECURITY.md`** — burn-after-read subhead now reads "How
+  burn-after-read works in the v0.2 line"; the Postgres backup
+  paragraph references "the v0.2 line" instead of "v0.1"; the PGP
+  fingerprint line anchors the promise to the v1.0 external audit
+  rather than the already-past v0.1 launch.
+
 ## [0.2.11] — 2026-05-21
 
 Transparency page now ships in Danish alongside English, and the
@@ -761,7 +790,8 @@ non-directory`). Switched to `.` so only the root main package
 - WebRTC P2P transfer not yet implemented
 - No external cryptographer review yet — see `SECURITY.md` audit status table
 
-[Unreleased]: https://github.com/SloThdk/slothbox/compare/v0.2.11...HEAD
+[Unreleased]: https://github.com/SloThdk/slothbox/compare/v0.2.12...HEAD
+[0.2.12]: https://github.com/SloThdk/slothbox/compare/v0.2.11...v0.2.12
 [0.2.11]: https://github.com/SloThdk/slothbox/compare/v0.2.10...v0.2.11
 [0.2.10]: https://github.com/SloThdk/slothbox/compare/v0.2.9...v0.2.10
 [0.2.9]: https://github.com/SloThdk/slothbox/compare/v0.2.8...v0.2.9

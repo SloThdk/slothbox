@@ -367,7 +367,7 @@ function TransparencyDanish() {
             share-create
           </li>
           <li>
-            Grov afsender-region (fx &quot;EU-DK&quot;) ved share-create, til kvittermings-metadata
+            Grov afsender-region (fx &quot;EU-DK&quot;) ved share-create, til kvitterings-metadata
           </li>
           <li>Audit-chain-events (share_created, share_destroyed, share_downloaded)</li>
         </ul>
