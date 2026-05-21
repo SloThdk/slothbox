@@ -55,6 +55,8 @@ without a manual content sweep.
   - The Transparency page header line + "Last updated" date
 - **Transparency page "Last updated" → 2026-05-21**.
 
+## [0.2.10] — 2026-05-21
+
 npm dependency vulnerability sweep + a documentation pass across the
 README and tooling docs. Three open Dependabot advisories on the
 default branch are closed via `pnpm.overrides`; vitest moves to the
