@@ -23,7 +23,7 @@ jobs:
     name: Gitleaks
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
           persist-credentials: false
@@ -37,7 +37,7 @@ jobs:
     name: npm audit
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           persist-credentials: false
       - uses: pnpm/action-setup@v4
@@ -61,7 +61,7 @@ jobs:
       matrix:
         service: [ingest, receipt]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           persist-credentials: false
       - uses: actions/setup-dotnet@v4
@@ -92,7 +92,7 @@ jobs:
     # so an unpatched stdlib advisory doesn't block legitimate code merges.
     continue-on-error: true
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           persist-credentials: false
       - uses: actions/setup-go@v5
@@ -124,7 +124,7 @@ jobs:
       matrix:
         language: [javascript-typescript, csharp, go]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           persist-credentials: false
       # Step-level continue-on-error on every CodeQL step so the JOB
@@ -168,7 +168,7 @@ jobs:
             context: ./services/reaper
             file: ./services/reaper/Dockerfile
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           persist-credentials: false
 
