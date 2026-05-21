@@ -339,7 +339,7 @@ grep -rn "append_audit_entry\|verify_audit_chain" db/migrations/`}
           <div className="divide-y divide-[var(--color-glass-stroke)]">
             {[
               {
-                tag: "v0.2.0",
+                tag: "v0.2",
                 labelKey: "how.roadmap.v02.label",
                 bodyKey: "how.roadmap.v02.body",
               },

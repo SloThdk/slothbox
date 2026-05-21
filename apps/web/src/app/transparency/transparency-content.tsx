@@ -7,17 +7,30 @@
 // parties touch a session, and how to verify each claim from the
 // outside.
 //
-// All content is static-by-design — no fetches, no JS-required render
-// path beyond the i18n switch. A visitor with JS disabled still sees
-// the English text because the i18n provider falls back to the
-// `lang="en"` document attribute when its localStorage hydration
-// hasn't run yet.
+// Bilingual via dual JSX render rather than translations.ts keys —
+// the page has many inline <strong>, <em>, <code>, <a> tags around
+// proper nouns and brand names that don't translate (Hetzner Online
+// GmbH, Falkenstein FSN1, libsodium, age, etc.), which would force a
+// ~50-key fragment split if routed through the t() function. Two
+// parallel JSX trees keep each language's prose readable in one
+// place; the trade-off (no TypeScript literal-union safety on the
+// strings) is acceptable for a static disclosure document.
 
 "use client";
 
 import * as React from "react";
+import { useLanguage } from "@/lib/i18n/LanguageContext";
 
 export function TransparencyContent() {
+  const { lang } = useLanguage();
+  return lang === "da" ? <TransparencyDanish /> : <TransparencyEnglish />;
+}
+
+// ---------------------------------------------------------------------------
+// English content
+// ---------------------------------------------------------------------------
+
+function TransparencyEnglish() {
   return (
     <section className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 py-12 sm:px-6 sm:py-16">
       <header>
@@ -28,7 +41,7 @@ export function TransparencyContent() {
           Where the bytes go, and who can see them.
         </h1>
         <p className="mt-2 text-sm text-[var(--color-muted)]">
-          Last updated 2026-05-17. Snapshot of the v0.2.0 production deployment.
+          Last updated 2026-05-21. Snapshot of the v0.2 line production deployment.
         </p>
       </header>
 
@@ -104,8 +117,8 @@ export function TransparencyContent() {
       <Section title="Cookies, trackers, analytics">
         <p className="text-sm leading-relaxed text-[var(--color-muted)]">
           Zero of each. No first-party cookies are set by the marketing pages, no analytics script
-          ships in the bundle, no third-party tag manager runs. The only state we keep in your
-          browser is what you opted into:
+          ships in the bundle, no third-party tag manager runs. The only state kept in your browser
+          is what you opted into:
         </p>
         <ul className="list-disc pl-6 text-sm leading-relaxed text-[var(--color-muted)]">
           <li>
@@ -117,7 +130,9 @@ export function TransparencyContent() {
             >
               /my-shares
             </a>
-            ). Cleared on browser data wipe.
+            ). This list lives only in your browser. The server stores the ciphertext and a hash of
+            the revoke token — it has no concept of &quot;shares created by this user&quot; because
+            v0.2 has no accounts. Cleared on browser data wipe.
           </li>
           <li>
             Language preference under <code className="font-mono text-xs">slothbox.lang</code> —
@@ -126,10 +141,10 @@ export function TransparencyContent() {
         </ul>
       </Section>
 
-      <Section title="Logs we keep">
+      <Section title="Logs kept">
         <p className="text-sm leading-relaxed text-[var(--color-muted)]">
           Self-hosted observability stack (Prometheus, Grafana, Loki, Promtail) runs in the same VM.
-          We log:
+          The logged fields:
         </p>
         <ul className="list-disc pl-6 text-sm leading-relaxed text-[var(--color-muted)]">
           <li>Request method, path, status code, duration, request-id</li>
@@ -226,7 +241,231 @@ export function TransparencyContent() {
 }
 
 // ---------------------------------------------------------------------------
-// Layout primitives — kept inline because they're only used here.
+// Danish content
+// ---------------------------------------------------------------------------
+
+function TransparencyDanish() {
+  return (
+    <section className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 py-12 sm:px-6 sm:py-16">
+      <header>
+        <p className="text-xs font-semibold tracking-wider text-[var(--color-accent)] uppercase">
+          Gennemsigtighed
+        </p>
+        <h1 className="font-display mt-2 text-3xl font-semibold text-[var(--color-fg)] sm:text-4xl">
+          Hvor dine bytes ender, og hvem der kan se dem.
+        </h1>
+        <p className="mt-2 text-sm text-[var(--color-muted)]">
+          Sidst opdateret 2026-05-21. Øjebliksbillede af v0.2-linjens produktionsmiljø.
+        </p>
+      </header>
+
+      <Section title="Operatør">
+        <Row label="Juridisk enhed">Philip Sloth (enkeltmandsvirksomhed, Danmark · EU)</Row>
+        <Row label="Domæne">slothbox.philipsloth.com</Row>
+        <Row label="Kontakt (inkl. GDPR)">
+          <a
+            href="mailto:philipsloth1@gmail.com"
+            className="text-[var(--color-accent)] underline-offset-4 hover:underline"
+          >
+            philipsloth1@gmail.com
+          </a>
+        </Row>
+        <Row label="Kildekode">
+          <a
+            href="https://github.com/SloThdk/slothbox"
+            className="text-[var(--color-accent)] underline-offset-4 hover:underline"
+          >
+            github.com/SloThdk/slothbox
+          </a>{" "}
+          (MIT-licens, offentlig commit-historik)
+        </Row>
+      </Section>
+
+      <Section title="Hvor dine bytes fysisk befinder sig">
+        <p className="text-sm leading-relaxed text-[var(--color-muted)]">
+          Hver eneste byte af hvert share — ciphertext, metadata, audit-chain-poster, logs — ligger
+          på en enkelt Linux-VM i <strong>Falkenstein FSN1, Tyskland</strong>, lejet hos{" "}
+          <strong>Hetzner Online GmbH</strong>. Hetzner er et 100% EU-indregistreret selskab
+          (Gunzenhausen, Bayern) uden amerikansk moderselskab — der er ingen eksponering for US
+          CLOUD Act, som AWS Frankfurt eller Azure Germany har via deres amerikanske ejerstruktur.
+        </p>
+        <p className="text-sm leading-relaxed text-[var(--color-muted)]">
+          DNS for slothbox.philipsloth.com peger direkte på VM&apos;ens offentlige IP (Cloudflare
+          står på <em>DNS-only</em>, IKKE proxy — ingen Cloudflare-edge ligger i datavejen). TLS
+          termineres inde i VM&apos;en hos <strong>Caddy 2.8</strong> med Let&apos;s
+          Encrypt-certifikater udstedt via ACME HTTP-01. Ingen CDN eller WAF under amerikansk
+          jurisdiktion sidder mellem dig og dine bytes.
+        </p>
+      </Section>
+
+      <Section title="Underdatabehandlere">
+        <p className="text-sm leading-relaxed text-[var(--color-muted)]">
+          Tredjeparter der berører share-data i produktionens datavej:
+        </p>
+        <Table
+          rows={[
+            ["Hetzner Online GmbH", "Compute + storage (host)", "Tyskland · EU"],
+            ["Let's Encrypt (ISRG)", "Kun udstedelse af TLS-certifikater", "USA"],
+          ]}
+        />
+        <p className="mt-3 text-xs leading-relaxed text-[var(--color-muted)]">
+          Let&apos;s Encrypt er en nonprofit under amerikansk jurisdiktion, men de ser NUL
+          share-data — kun domænenavnet under ACME-challenge&apos;en. Certifikat-udstedelsen
+          transporterer hverken ciphertext, plaintext eller metadata.
+        </p>
+        <p className="mt-2 text-xs leading-relaxed text-[var(--color-muted)]">
+          Tredjeparter der berører <em>operatør</em>-data (ikke share-data):
+        </p>
+        <Table
+          rows={[
+            ["GitHub (Microsoft)", "Hosting af kildekode + CI-runners", "USA"],
+            ["Cloudflare DNS", "Autoritative DNS-records for domænet", "USA"],
+          ]}
+        />
+        <p className="mt-3 text-xs leading-relaxed text-[var(--color-muted)]">
+          GitHub ser open source-koden (allerede offentlig). Cloudflare DNS ser A-record-IP&apos;en
+          og resolver-forespørgsler fra besøgende — præcis som enhver anden autoritativ DNS.
+        </p>
+      </Section>
+
+      <Section title="Cookies, trackere, analytics">
+        <p className="text-sm leading-relaxed text-[var(--color-muted)]">
+          Nul af hver. Marketingsiderne sætter ingen førsteparts-cookies, der ryger intet
+          analytics-script med i bundtet, og ingen tredjeparts tag-manager kører. Den eneste
+          tilstand der gemmes i din browser er det du selv har valgt:
+        </p>
+        <ul className="list-disc pl-6 text-sm leading-relaxed text-[var(--color-muted)]">
+          <li>
+            <code className="font-mono text-xs">slothbox.myShares.v1</code> i localStorage — listen
+            over shares som denne enhed har oprettet, plus det 32-byte revoke-token for hvert (se{" "}
+            <a
+              href="/my-shares"
+              className="text-[var(--color-accent)] underline-offset-4 hover:underline"
+            >
+              /my-shares
+            </a>
+            ). Listen ligger kun i din browser. Serveren gemmer den krypterede fil og et hash af
+            revoke-tokenet — den har intet begreb om &quot;shares oprettet af denne bruger&quot;,
+            fordi v0.2 ikke har konti. Slettes når browser-data ryddes.
+          </li>
+          <li>
+            Sprogvalg under <code className="font-mono text-xs">slothbox.lang</code> — sættes via
+            UI&apos;ens en/da-toggle.
+          </li>
+        </ul>
+      </Section>
+
+      <Section title="Logs der gemmes">
+        <p className="text-sm leading-relaxed text-[var(--color-muted)]">
+          En self-hosted observability-stack (Prometheus, Grafana, Loki, Promtail) kører i samme VM.
+          De felter der logges:
+        </p>
+        <ul className="list-disc pl-6 text-sm leading-relaxed text-[var(--color-muted)]">
+          <li>Request-method, path, status code, varighed, request-id</li>
+          <li>
+            Hashet afsender-IP (SHA-256, trunkeret, kun til rate-limiting — aldrig den rå IP) ved
+            share-create
+          </li>
+          <li>
+            Grov afsender-region (fx &quot;EU-DK&quot;) ved share-create, til kvittermings-metadata
+          </li>
+          <li>Audit-chain-events (share_created, share_destroyed, share_downloaded)</li>
+        </ul>
+        <p className="text-sm leading-relaxed text-[var(--color-muted)]">
+          Logs gemmes 30 dage (rullende), audit-chain-poster for evigt (de er
+          tamper-evidence-ankeret — se{" "}
+          <a
+            href="/security"
+            className="text-[var(--color-accent)] underline-offset-4 hover:underline"
+          >
+            /security
+          </a>
+          ). Logs indeholder aldrig plaintext-indhold, dekrypteringsnøgler, passwords eller rå
+          IP&apos;er.
+        </p>
+      </Section>
+
+      <Section title="Audit-status">
+        <Table
+          rows={[
+            [
+              "libsodium (browser-primitiver)",
+              "Igangværende",
+              "Auditeret upstream (NCC Group + andre)",
+            ],
+            ["age (asymmetrisk, v1.0+)", "2022", "Auditeret upstream (NCC Group)"],
+            [
+              "SlothBox integrationskode",
+              "—",
+              "Endnu ikke — ekstern review er en hard gate for v1.0",
+            ],
+            ["API-gateway authn/z + rate limit", "—", "Endnu ikke pen-testet"],
+            ["Postgres RLS-policies", "—", "Endnu ikke pen-testet"],
+          ]}
+        />
+        <p className="mt-3 text-xs leading-relaxed text-[var(--color-muted)]">
+          Indtil v1.0 lander med den eksterne integrations-audit under{" "}
+          <code className="font-mono">/audits/</code>, er SlothBox kun egnet til portfolio-review og
+          personlig brug. README og{" "}
+          <a
+            href="/security"
+            className="text-[var(--color-accent)] underline-offset-4 hover:underline"
+          >
+            SECURITY-policyen
+          </a>{" "}
+          bevarer denne mangel eksplicit.
+        </p>
+      </Section>
+
+      <Section title="Sådan verificerer du ovenstående">
+        <p className="text-sm leading-relaxed text-[var(--color-muted)]">
+          Kildekoden er offentlig — hvert udsagn på denne side er forankret i noget du selv kan
+          inspicere:
+        </p>
+        <ul className="list-disc pl-6 font-mono text-xs leading-relaxed text-[var(--color-muted)]">
+          <li>
+            DNS: <code>dig slothbox.philipsloth.com A</code> — resolver til Hetzner-VM&apos;ens
+            offentlige IP, ikke en Cloudflare-edge
+          </li>
+          <li>
+            TLS:{" "}
+            <code>
+              openssl s_client -connect slothbox.philipsloth.com:443 -servername
+              slothbox.philipsloth.com
+            </code>{" "}
+            — issuer er Let&apos;s Encrypt ISRG Root, ikke Cloudflare
+          </li>
+          <li>
+            Cookies på et frisk besøg: <code>document.cookie</code> i DevTools — tom indtil du selv
+            vælger <code>/my-shares</code>
+          </li>
+          <li>
+            Underdatabehandler-listen:{" "}
+            <a
+              href="https://github.com/SloThdk/slothbox/blob/master/docker-compose.prod.yml"
+              className="text-[var(--color-accent)] underline-offset-4 hover:underline"
+            >
+              <code>docker-compose.prod.yml</code>
+            </a>{" "}
+            viser hver container i datavejen
+          </li>
+        </ul>
+      </Section>
+
+      <footer className="rounded-lg border border-[var(--color-border)]/60 bg-[var(--color-card)]/60 p-4 text-xs text-[var(--color-muted)]">
+        <p className="leading-relaxed">
+          <strong className="text-[var(--color-fg)]">Når noget ændrer sig.</strong> Når en
+          underdatabehandler eller et element i datavejen ændrer sig, opdateres denne side i samme
+          commit som den driftsmæssige ændring. &quot;Sidst opdateret&quot;-linjen rykker frem;
+          tidligere versioner ligger i source-repoets git-historik.
+        </p>
+      </footer>
+    </section>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Layout primitives — shared across both language renders.
 // ---------------------------------------------------------------------------
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {

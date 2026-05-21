@@ -17,7 +17,43 @@ the project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Stripe billing for free vs pro tiers
 - Grafana dashboards published
 
-## [0.2.10] — 2026-05-21
+## [0.2.11] — 2026-05-21
+
+Transparency page now ships in Danish alongside English, and the
+`v0.2` line-anchor phrasing across `translations.ts`, the how-page
+roadmap tag, the api.ts comment, and the transparency page itself
+all read consistently as `v0.2` rather than the original `v0.2.0`
+point-anchor — so the phrasing survives future patch releases
+without a manual content sweep.
+
+### Added
+
+- **Transparency page Danish translation**
+  (`apps/web/src/app/transparency/transparency-content.tsx`). Dual
+  JSX render via `useLanguage().lang` — the English tree and the
+  Danish tree share the layout primitives at the bottom of the
+  file. Native Danish throughout with real æ ø å; proper nouns and
+  brand names (Hetzner Online GmbH, Falkenstein FSN1, Caddy 2.8,
+  libsodium, age, etc.) stay English in both. The cookies /
+  `/my-shares` paragraph gains a one-sentence explainer that the
+  device-local share list lives only in the browser — the server
+  stores the ciphertext and a hash of the revoke token, with no
+  concept of "shares created by this user" until accounts land in
+  v0.5.
+
+### Changed
+
+- **Version-anchor phrasing across the web app** — every
+  user-visible `v0.2.0` reference rephrased to `v0.2 line`:
+  - `hero.statusPill` in `translations.ts` (the landing-page pill)
+  - `about.status.body`, `about.tradeoffs.body`,
+    `security.audit.body`, `tradeoffs.item3.title` in
+    `translations.ts` (longer-form paragraphs across /about,
+    /security, and the homepage trade-offs section)
+  - `tag` on the v0.2 row of the /how-page roadmap card
+  - The "Endpoints used by …" comment in `apps/web/src/lib/api.ts`
+  - The Transparency page header line + "Last updated" date
+- **Transparency page "Last updated" → 2026-05-21**.
 
 npm dependency vulnerability sweep + a documentation pass across the
 README and tooling docs. Three open Dependabot advisories on the
@@ -723,7 +759,8 @@ non-directory`). Switched to `.` so only the root main package
 - WebRTC P2P transfer not yet implemented
 - No external cryptographer review yet — see `SECURITY.md` audit status table
 
-[Unreleased]: https://github.com/SloThdk/slothbox/compare/v0.2.10...HEAD
+[Unreleased]: https://github.com/SloThdk/slothbox/compare/v0.2.11...HEAD
+[0.2.11]: https://github.com/SloThdk/slothbox/compare/v0.2.10...v0.2.11
 [0.2.10]: https://github.com/SloThdk/slothbox/compare/v0.2.9...v0.2.10
 [0.2.9]: https://github.com/SloThdk/slothbox/compare/v0.2.8...v0.2.9
 [0.2.8]: https://github.com/SloThdk/slothbox/compare/v0.2.7...v0.2.8
