@@ -120,8 +120,8 @@ export const TRANSLATIONS = {
 
   // ─── Landing — hero ───────────────────────────────────────────
   "hero.statusPill": {
-    en: "v0.2.0 · open source",
-    da: "v0.2.0 · open source",
+    en: "v0.2 · open source",
+    da: "v0.2 · open source",
   },
 
   // ─── Footer abuse + takedown link ─────────────────────────────
@@ -568,8 +568,8 @@ export const TRANSLATIONS = {
     da: "Status",
   },
   "about.status.body": {
-    en: "v0.2.0 is the first stable public release. The URL-leak race conditions called out in the v0.1 warning are closed (per-share password, sender-revoke tokens, single-use chunk tokens). The cryptographic primitives (libsodium, age) are battle-tested upstream, but the SlothBox integration code has not yet been independently audited — external cryptographer review and a third-party pen test gate v1.0 before any high-stakes-secrets framing.",
-    da: "v0.2.0 er den første stabile offentlige release. De URL-lækage-race conditions, som v0.1-warningen nævnte, er lukket (per-share password, sender-revoke tokens, single-use chunk tokens). De kryptografiske primitiver (libsodium, age) er gennemtestede upstream, men SlothBox-integrationskoden er endnu ikke uafhængigt auditeret — ekstern kryptografgennemgang og tredjeparts pen-test er gate-kravet for v1.0 før nogen formulering om kritiske hemmeligheder.",
+    en: "The v0.2 line closed the URL-leak race conditions called out in the v0.1 warning (per-share password, sender-revoke tokens, single-use chunk tokens). The cryptographic primitives (libsodium, age) are battle-tested upstream, but the SlothBox integration code has not yet been independently audited — external cryptographer review and a third-party pen test gate v1.0 before any high-stakes-secrets framing.",
+    da: "v0.2-linjen lukkede de URL-lækage-race conditions som v0.1-warningen nævnte (per-share password, sender-revoke tokens, single-use chunk tokens). De kryptografiske primitiver (libsodium, age) er gennemtestede upstream, men SlothBox-integrationskoden er endnu ikke uafhængigt auditeret — ekstern kryptografgennemgang og tredjeparts pen-test er gate-kravet for v1.0 før nogen formulering om kritiske hemmeligheder.",
   },
   "about.status.body.tail": {
     en: "",
@@ -610,8 +610,8 @@ export const TRANSLATIONS = {
     da: "Hvad du afgiver",
   },
   "about.tradeoffs.body": {
-    en: "Every architectural decision trades something. SlothBox runs on one ARM virtual machine in Falkenstein, Germany — not a global edge network — so a four-gigabyte download from a Tokyo client takes longer than the same file from WeTransfer. Files have an expiry; there is no permanent shareable link. The recipient needs the complete URL including the part after “#”, which means a chat client that strips fragments breaks the share. And v0.2.0 has not been independently audited yet — the underlying primitives (libsodium, age) have, but the SlothBox glue around them is gated on external cryptographer review before any “production-grade” wording lands. Until v1.0, treat this as the working file-transfer tool it is: stable, hardened against URL-leak races, open source — but with the audit-pending caveat surfaced everywhere it matters.",
-    da: "Hvert arkitekturvalg er en byttehandel. SlothBox kører på én ARM-virtuel maskine i Falkenstein, Tyskland — ikke et globalt edge-netværk — så en fire-gigabyte-download til en kunde i Tokyo tager længere tid end samme fil fra WeTransfer. Filer udløber; der findes ikke noget permanent delingslink. Modtageren har brug for hele URL'en inklusive delen efter “#”, så en chatklient, der fjerner fragmenter, bryder delingen. Og v0.2.0 er endnu ikke uafhængigt auditeret — de underliggende primitiver (libsodium, age) er, men SlothBox-integrationen omkring dem er gate'et på ekstern kryptografgennemgang, før nogen “production-grade”-formulering rammer pladen. Indtil v1.0 er dette det fil-overførselsværktøj det er: stabilt, hærdet mod URL-lækage-races, open source — men med audit-pending forbeholdet synligt der hvor det betyder noget.",
+    en: "Every architectural decision trades something. SlothBox runs on one ARM virtual machine in Falkenstein, Germany — not a global edge network — so a four-gigabyte download from a Tokyo client takes longer than the same file from WeTransfer. Files have an expiry; there is no permanent shareable link. The recipient needs the complete URL including the part after “#”, which means a chat client that strips fragments breaks the share. And the v0.2 line has not been independently audited yet — the underlying primitives (libsodium, age) have, but the SlothBox glue around them is gated on external cryptographer review before any “production-grade” wording lands. Until v1.0, treat this as the working file-transfer tool it is: stable, hardened against URL-leak races, open source — but with the audit-pending caveat surfaced everywhere it matters.",
+    da: "Hvert arkitekturvalg er en byttehandel. SlothBox kører på én ARM-virtuel maskine i Falkenstein, Tyskland — ikke et globalt edge-netværk — så en fire-gigabyte-download til en kunde i Tokyo tager længere tid end samme fil fra WeTransfer. Filer udløber; der findes ikke noget permanent delingslink. Modtageren har brug for hele URL'en inklusive delen efter “#”, så en chatklient der fjerner fragmenter bryder delingen. Og v0.2-linjen er endnu ikke uafhængigt auditeret — de underliggende primitiver (libsodium, age) er, men SlothBox-integrationen omkring dem er gate'et på ekstern kryptografgennemgang før nogen “production-grade”-formulering rammer pladen. Indtil v1.0 er dette det fil-overførselsværktøj det er: stabilt, hærdet mod URL-lækage-races, open source — men med audit-pending-forbeholdet synligt der hvor det betyder noget.",
   },
 
   // ─── Security page ────────────────────────────────────────────
@@ -656,8 +656,8 @@ export const TRANSLATIONS = {
     da: "Audit-roadmap",
   },
   "security.audit.body": {
-    en: "v0.2.0 — internal review only, hardened against the URL-leak races called out in the v0.1 warning. v1.0 — independent cryptographer review + third-party application pen test, with reports published under /audits/. We will not soften this milestone to ship faster.",
-    da: "v0.2.0 — kun intern gennemgang, hærdet mod de URL-lækage-races der blev nævnt i v0.1-warningen. v1.0 — uafhængig kryptografgennemgang + tredjeparts pen-test af applikationen, med rapporter publiceret under /audits/. Denne milepæl bliver ikke blødt op for at sende hurtigere.",
+    en: "The v0.2 line — internal review only, hardened against the URL-leak races called out in the v0.1 warning. v1.0 — independent cryptographer review + third-party application pen test, with reports published under /audits/. This milestone will not be softened to ship faster.",
+    da: "v0.2-linjen — kun intern gennemgang, hærdet mod de URL-lækage-races der blev nævnt i v0.1-warningen. v1.0 — uafhængig kryptografgennemgang + tredjeparts pen-test af applikationen, med rapporter publiceret under /audits/. Denne milepæl bliver ikke blødt op for at sende hurtigere.",
   },
   "security.disclose.heading": {
     en: "Reporting a vulnerability",
@@ -950,8 +950,8 @@ export const TRANSLATIONS = {
     da: "Maks. syv dage i v0.2. Udløbne delinger er væk — ikke soft-slettet. Den krypterede fil fjernes fra MinIO, og share-rækken destrueres. Hvis modtageren ikke har downloadet inden da, sender du igen.",
   },
   "tradeoffs.item3.title": {
-    en: "v0.2.0 is pre-v1.0. External audit gates the production-grade label.",
-    da: "v0.2.0 er pre-v1.0. Ekstern audit er gate-kravet for production-grade-etiketten.",
+    en: "The v0.2 line is pre-v1.0. External audit gates the production-grade label.",
+    da: "v0.2-linjen er pre-v1.0. Ekstern audit er gate-kravet for production-grade-etiketten.",
   },
   "tradeoffs.item3.body": {
     en: "The cryptographic primitives — libsodium and age — are battle-tested upstream. The SlothBox glue around them has not yet been independently audited. Independent cryptographer review and a third-party pen test gate v1.0 before any “production-grade” framing.",
