@@ -113,6 +113,67 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           a dev server doesn't accidentally satisfy the production check.
         */}
         <meta name="x-build-sha" content={process.env.NEXT_PUBLIC_BUILD_SHA ?? "dev"} />
+        {/*
+          JSON-LD structured data — schema.org @graph with three linked
+          entities so search engines can understand what SlothBox is:
+            - Organization (the project, founded by Philip Sloth)
+            - WebSite (the deployment, bilingual en + da)
+            - SoftwareApplication (the open-source product itself)
+          Cross-referenced via @id so crawlers (Google, Bing, etc.)
+          treat them as one entity-graph rather than three separate
+          unrelated objects. Nonce-stamped to satisfy strict CSP.
+        */}
+        <script
+          type="application/ld+json"
+          nonce={nonce}
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@graph": [
+                {
+                  "@type": "Organization",
+                  "@id": `${PUBLIC_URL}#organization`,
+                  name: APP_NAME,
+                  url: PUBLIC_URL,
+                  logo: `${PUBLIC_URL}/icon`,
+                  founder: {
+                    "@type": "Person",
+                    "@id": "https://philipsloth.com#person",
+                    name: "Philip Sloth",
+                    url: "https://philipsloth.com",
+                  },
+                  sameAs: ["https://github.com/SloThdk/slothbox"],
+                },
+                {
+                  "@type": "WebSite",
+                  "@id": `${PUBLIC_URL}#website`,
+                  url: PUBLIC_URL,
+                  name: APP_NAME,
+                  description: APP_TAGLINE,
+                  publisher: { "@id": `${PUBLIC_URL}#organization` },
+                  inLanguage: ["en", "da"],
+                },
+                {
+                  "@type": "SoftwareApplication",
+                  "@id": `${PUBLIC_URL}#software`,
+                  name: APP_NAME,
+                  url: PUBLIC_URL,
+                  applicationCategory: "SecurityApplication",
+                  operatingSystem: "Web",
+                  offers: {
+                    "@type": "Offer",
+                    price: "0",
+                    priceCurrency: "EUR",
+                  },
+                  license: "https://opensource.org/licenses/MIT",
+                  creator: { "@id": "https://philipsloth.com#person" },
+                  codeRepository: "https://github.com/SloThdk/slothbox",
+                  description: APP_TAGLINE,
+                },
+              ],
+            }),
+          }}
+        />
       </head>
       <body className="flex min-h-screen flex-col font-sans antialiased" data-nonce={nonce}>
         {/*
