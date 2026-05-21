@@ -17,6 +17,78 @@ the project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Stripe billing for free vs pro tiers
 - Grafana dashboards published
 
+## [0.2.9] — 2026-05-21
+
+Documentation coherence pass + cross-platform dev tooling. Two
+threads land in one release:
+
+1. Every version surface in the repo now agrees on what shipped.
+   The README status badge, every workspace `package.json`, the git
+   tag history, the CHANGELOG entries, and the GitHub Releases page
+   all point at the same current version. v0.2.7 and v0.2.8 also
+   gained their missing tags + release notes so the CHANGELOG entries
+   for those releases are no longer phantom.
+2. The `start_local_server` helper now ships in both `.bat` and
+   `.sh` so a fresh clone on macOS or Linux runs the same way as on
+   Windows. Both helpers install dependencies if the clone lacks
+   `node_modules/`, free the dev port, clear the Next cache, and
+   open the browser once the port is listening. The `.sh` script
+   also runs a credential-doctor pass that reads `.env` and warns
+   about common misconfigurations before the dev server starts.
+3. The service-worker cache name now derives from the build SHA
+   instead of the manual `slothbox-shell-v0.2.x` constant the v0.2.6
+   release introduced. Every prod build automatically evicts the
+   prior cache without a hand-bump; the v0.2.6 manual-version
+   pattern was the right hotfix at the time but doesn't scale.
+
+### Added
+
+- **`apps/web/src/app/start_local_server.sh`** (and `start_local_server.bat`
+  parity) — cross-platform dev-server bootstrapper, fresh-clone safe.
+  Both verify Node + npm in PATH, run `npm install` when `node_modules/`
+  is missing, free port 3021 via OS-native tools (PowerShell
+  `Get-NetTCPConnection` + `Stop-Process` on Windows; `lsof -ti
+:3021 | xargs kill` on macOS/Linux), clear `apps/web/.next/`,
+  start the dev server in the background, wait for port LISTENING,
+  and open the browser.
+- **`docs/CREDENTIALS.md`** — operator guide for the credential
+  doctor's environment-variable checks. Documents which `.env`
+  values are load-bearing for dev mode and what each missing-value
+  warning means.
+
+### Changed
+
+- **Service worker cache name auto-versions from build SHA**
+  (`apps/web/scripts/build-sw.mjs`, `apps/web/public/sw.js`). The
+  build step reads the current commit SHA and writes
+  `CACHE_NAME = "slothbox-shell-${SHORT_SHA}"` at build time. Every
+  prod release evicts the prior cache automatically; no more
+  manual constant bumps that get forgotten between brand refreshes
+  (the v0.2.6 hotfix exists precisely because the constant got
+  forgotten for four releases).
+- **README** — status badge bumped to v0.2.9, NOTE block rewritten
+  to describe the current shipped state rather than the original
+  v0.2.0 framing, `Crypto: libsodium + age` badge expanded to
+  `libsodium (E2E) + age (backups)` to make the role of each
+  primitive explicit, roadmap table refreshed so the v0.2 row
+  reflects everything actually shipped through v0.2.9, and the
+  Quick Start section now mentions both `.bat` and `.sh` helpers.
+- **SECURITY.md** footer refreshed to enumerate every security-relevant
+  change across the v0.2 line through v0.2.9 (was previously frozen
+  at v0.2.4).
+- **All workspace `package.json` files** synced to 0.2.9 (root,
+  `@slothbox/web`, `@slothbox/api-gateway`, `@slothbox/crypto-core`,
+  `@slothbox/db`). The api-gateway / crypto-core / db packages had
+  been left at 0.2.6 through the v0.2.7 / v0.2.8 web-side releases.
+
+### Removed
+
+- **Deprecated Husky v9 prelude** (`.husky/pre-commit`,
+  `.husky/commit-msg`, `.husky/pre-push`). Husky v9 dropped the
+  `. "$(dirname -- "$0")/_/husky.sh"` shim line; keeping it in the
+  hook files produced "DEPRECATED" warnings on every commit. The
+  hooks now contain only their command, matching the v9 template.
+
 ## [0.2.8] — 2026-05-19
 
 Favicon design tweak — drop the dark slate tile around the
@@ -635,7 +707,10 @@ non-directory`). Switched to `.` so only the root main package
 - WebRTC P2P transfer not yet implemented
 - No external cryptographer review yet — see `SECURITY.md` audit status table
 
-[Unreleased]: https://github.com/SloThdk/slothbox/compare/v0.2.6...HEAD
+[Unreleased]: https://github.com/SloThdk/slothbox/compare/v0.2.9...HEAD
+[0.2.9]: https://github.com/SloThdk/slothbox/compare/v0.2.8...v0.2.9
+[0.2.8]: https://github.com/SloThdk/slothbox/compare/v0.2.7...v0.2.8
+[0.2.7]: https://github.com/SloThdk/slothbox/compare/v0.2.6...v0.2.7
 [0.2.6]: https://github.com/SloThdk/slothbox/compare/v0.2.5...v0.2.6
 [0.2.5]: https://github.com/SloThdk/slothbox/compare/v0.2.4...v0.2.5
 [0.2.4]: https://github.com/SloThdk/slothbox/compare/v0.2.3...v0.2.4

@@ -17,7 +17,7 @@ REM  WHY THE AUTO-MIRROR EXISTS:
 REM    Files inside C:\Users\phili\Sync\... carry the Windows ReparsePoint
 REM    attribute (0x400) even after full hydration, because Sync.com's
 REM    filesystem driver uses it to track sync state. Docker BuildKit
-REM    refuses to include reparse points in build context — it can't tell
+REM    refuses to include reparse points in build context - it can't tell
 REM    a Sync placeholder from a malicious symlink, so it rejects all of
 REM    them with "invalid file request <path>". Sync.com's driver also
 REM    re-applies the flag immediately if anything tries to strip it.
@@ -42,7 +42,7 @@ REM The browser auto-opens to the Caddy-fronted production-shape URL on
 REM port 80 because that's what's running the moment the docker stack
 REM finishes coming up. The pnpm dev hot-reload server at :3021 is also
 REM started below for code-tweak workflows, but it can take 30-60 seconds
-REM to compile its first bundle — opening the browser there racy-fails
+REM to compile its first bundle - opening the browser there racy-fails
 REM with "connection refused". The :80 URL is identical in shape to
 REM production (Caddy reverse proxy, all 13 services live) and is what
 REM most users actually want to look at.
@@ -127,7 +127,7 @@ echo ===========================================================================
 echo.
 
 REM Pre-flight: docker, docker compose, node, pnpm, Node 18+ all on PATH.
-REM Fresh-clone parity with start_local_server.sh — collaborators on Windows
+REM Fresh-clone parity with start_local_server.sh - collaborators on Windows
 REM get clear errors with install hints instead of cryptic docker compose
 REM failures or "pnpm not recognized".
 where docker >nul 2>&1
@@ -182,7 +182,7 @@ if not exist "node_modules" (
 )
 
 REM Auto-copy .env.example to .env if .env is missing. .env is .gitignored
-REM and never reaches GitHub — your local secrets stay on your machine.
+REM and never reaches GitHub - your local secrets stay on your machine.
 if not exist ".env" if exist ".env.example" (
     echo [setup] .env not found - copying .env.example to .env...
     copy /Y ".env.example" ".env" >nul
@@ -253,7 +253,7 @@ echo       Ingest is ready.
 echo [4/5] Running database migrations (idempotent) ...
 REM Run migrations via `docker compose exec` instead of `pnpm db:migrate`.
 REM The pnpm script reads DATABASE_URL from .env which uses the docker-
-REM internal hostname `postgres:5432` — that doesn't resolve from the
+REM internal hostname `postgres:5432` - that doesn't resolve from the
 REM host shell, so pnpm db:migrate silently no-ops on Windows. Piping
 REM each .sql file into psql inside the postgres container always works.
 REM Re-applying is safe: every migration is idempotent (CREATE IF NOT
