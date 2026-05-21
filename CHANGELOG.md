@@ -17,6 +17,56 @@ the project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Stripe billing for free vs pro tiers
 - Grafana dashboards published
 
+## [0.2.9] — 2026-05-21
+
+Release lines up version surfaces across README, every workspace
+`package.json`, git tags, CHANGELOG entries, and GitHub Releases at
+v0.2.9. v0.2.7 and v0.2.8 pick up matching tags + release notes
+alongside this commit. Plus a cross-platform dev-tooling pass and a
+service-worker cache-name change.
+
+### Added
+
+- **`start_local_server.sh`** alongside `start_local_server.bat` for
+  cross-platform dev parity. Both verify Node + npm in PATH, install
+  dependencies on first run, free port 3021 via OS-native tools
+  (PowerShell `Get-NetTCPConnection` + `Stop-Process` on Windows;
+  `lsof -ti :3021 | xargs kill` on macOS/Linux), clear
+  `apps/web/.next/`, start the dev server in the background, wait
+  for port LISTENING, and open the browser.
+- **`docs/CREDENTIALS.md`** — operator guide for the credential
+  doctor's environment-variable checks. Documents which `.env`
+  values are load-bearing for dev mode and what each missing-value
+  warning means.
+
+### Changed
+
+- **Service-worker cache name now derives from the build SHA at
+  build time** (`apps/web/scripts/build-sw.mjs`,
+  `apps/web/public/sw.js`). The build step reads the current commit
+  SHA and writes `CACHE_NAME = "slothbox-shell-${SHORT_SHA}"`. Every
+  prod release evicts the prior cache automatically.
+- **README** — status badge at v0.2.9, NOTE block describes the
+  v0.2.9 shipped state (the URL-leak trio plus an explicit split
+  between `libsodium` for user-facing E2E crypto and `age` for
+  operator backup encryption via the `pg-backup` sidecar), Crypto
+  badge reads `libsodium (E2E) + age (backups)`, roadmap table v0.2
+  row enumerates the full line through v0.2.9, Quick Start covers
+  both `.bat` + `.sh` helpers.
+- **SECURITY.md** footer enumerates security-relevant additions
+  across v0.2.0 through v0.2.9.
+- **All workspace `package.json` files** at 0.2.9 (root,
+  `@slothbox/web`, `@slothbox/api-gateway`, `@slothbox/crypto-core`,
+  `@slothbox/db`).
+
+### Removed
+
+- **Husky v9 prelude lines** (`.husky/pre-commit`,
+  `.husky/commit-msg`, `.husky/pre-push`). Husky v9 reads the hook
+  body directly without the `. "$(dirname -- "$0")/_/husky.sh"`
+  shim; hooks now contain only their command, matching the v9
+  template.
+
 ## [0.2.8] — 2026-05-19
 
 Favicon design tweak — drop the dark slate tile around the
@@ -635,7 +685,10 @@ non-directory`). Switched to `.` so only the root main package
 - WebRTC P2P transfer not yet implemented
 - No external cryptographer review yet — see `SECURITY.md` audit status table
 
-[Unreleased]: https://github.com/SloThdk/slothbox/compare/v0.2.6...HEAD
+[Unreleased]: https://github.com/SloThdk/slothbox/compare/v0.2.9...HEAD
+[0.2.9]: https://github.com/SloThdk/slothbox/compare/v0.2.8...v0.2.9
+[0.2.8]: https://github.com/SloThdk/slothbox/compare/v0.2.7...v0.2.8
+[0.2.7]: https://github.com/SloThdk/slothbox/compare/v0.2.6...v0.2.7
 [0.2.6]: https://github.com/SloThdk/slothbox/compare/v0.2.5...v0.2.6
 [0.2.5]: https://github.com/SloThdk/slothbox/compare/v0.2.4...v0.2.5
 [0.2.4]: https://github.com/SloThdk/slothbox/compare/v0.2.3...v0.2.4

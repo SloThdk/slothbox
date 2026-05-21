@@ -24,30 +24,30 @@ them in `.env` and re-run the script.
 
 ### Required for any deployment (placeholder breaks production)
 
-| Variable | Purpose | How to generate / where to get |
-|---|---|---|
-| `INTERNAL_TOKEN` | Service-to-service shared secret for reaper's `DELETE /chunk/*` calls into ingest. Without a real value, leaked URLs could be replayed against the reaper endpoint. | `openssl rand -hex 32` |
-| `POSTGRES_PASSWORD` | Postgres `slothbox` user password. Used by every service that touches the DB. The example value `CHANGE_ME_LOCAL_DEV_ONLY` is intentionally insecure to force you to rotate. | `openssl rand -hex 24` |
-| `MINIO_SECRET_KEY` | MinIO (S3-compatible) blob storage credential. Encrypted chunks live here; the secret key gates access. | `openssl rand -hex 24` (≥ 8 chars required by MinIO) |
-| `AUTH_SECRET` | Lucia auth session-cookie signing key. Required when v0.5+ session auth ships. Until then it's unused but should be set for forward-compat. | `openssl rand -hex 32` |
+| Variable            | Purpose                                                                                                                                                                      | How to generate / where to get                       |
+| ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
+| `INTERNAL_TOKEN`    | Service-to-service shared secret for reaper's `DELETE /chunk/*` calls into ingest. Without a real value, leaked URLs could be replayed against the reaper endpoint.          | `openssl rand -hex 32`                               |
+| `POSTGRES_PASSWORD` | Postgres `slothbox` user password. Used by every service that touches the DB. The example value `CHANGE_ME_LOCAL_DEV_ONLY` is intentionally insecure to force you to rotate. | `openssl rand -hex 24`                               |
+| `MINIO_SECRET_KEY`  | MinIO (S3-compatible) blob storage credential. Encrypted chunks live here; the secret key gates access.                                                                      | `openssl rand -hex 24` (≥ 8 chars required by MinIO) |
+| `AUTH_SECRET`       | Lucia auth session-cookie signing key. Required when v0.5+ session auth ships. Until then it's unused but should be set for forward-compat.                                  | `openssl rand -hex 32`                               |
 
 After updating any of these, **also update `DATABASE_URL`** if you
 changed `POSTGRES_PASSWORD` — the URL embeds the password inline.
 
 ### Optional (feature-flag gated, safe to leave default)
 
-| Variable | Default | Why you might change it |
-|---|---|---|
-| `GRAFANA_ADMIN_PASSWORD` | `admin` | Grafana dashboard login. Local dev fine with `admin`. |
-| `VALKEY_PASSWORD` | empty | Redis-fork password. Empty is fine for local dev (no external access). Set in production. |
-| `FEATURE_BURN_AFTER_READ` | `true` | Toggle burn-after-read feature. |
-| `FEATURE_MITID_AUTH` | `false` | Enables MitID authentication route. Needs MitID broker credentials (see below) if turned on. |
-| `FEATURE_PASSWORD_PROTECTED_SHARES` | `true` | Per-share password gating in addition to URL fragment. |
-| `FEATURE_PER_RECIPIENT_ENCRYPTION` | `false` | Per-recipient key wrap (v1.0+ roadmap). |
-| `RATE_LIMIT_ANONYMOUS_PER_MINUTE` | `10` | Anonymous-user rate limit. |
-| `RATE_LIMIT_ANONYMOUS_PER_DAY` | `100` | Daily rate limit. |
-| `RATE_LIMIT_AUTHED_PER_MINUTE` | `60` | Logged-in user rate limit. |
-| `SHARE_MAX_DOWNLOADS` | `100` | Hard cap on per-share download count. |
+| Variable                            | Default | Why you might change it                                                                      |
+| ----------------------------------- | ------- | -------------------------------------------------------------------------------------------- |
+| `GRAFANA_ADMIN_PASSWORD`            | `admin` | Grafana dashboard login. Local dev fine with `admin`.                                        |
+| `VALKEY_PASSWORD`                   | empty   | Redis-fork password. Empty is fine for local dev (no external access). Set in production.    |
+| `FEATURE_BURN_AFTER_READ`           | `true`  | Toggle burn-after-read feature.                                                              |
+| `FEATURE_MITID_AUTH`                | `false` | Enables MitID authentication route. Needs MitID broker credentials (see below) if turned on. |
+| `FEATURE_PASSWORD_PROTECTED_SHARES` | `true`  | Per-share password gating in addition to URL fragment.                                       |
+| `FEATURE_PER_RECIPIENT_ENCRYPTION`  | `false` | Per-recipient key wrap (v1.0+ roadmap).                                                      |
+| `RATE_LIMIT_ANONYMOUS_PER_MINUTE`   | `10`    | Anonymous-user rate limit.                                                                   |
+| `RATE_LIMIT_ANONYMOUS_PER_DAY`      | `100`   | Daily rate limit.                                                                            |
+| `RATE_LIMIT_AUTHED_PER_MINUTE`      | `60`    | Logged-in user rate limit.                                                                   |
+| `SHARE_MAX_DOWNLOADS`               | `100`   | Hard cap on per-share download count.                                                        |
 
 ### Production-only (defaults work locally but need real values to deploy)
 
