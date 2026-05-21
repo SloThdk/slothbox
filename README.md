@@ -10,14 +10,14 @@
 [![Security](https://github.com/SloThdk/slothbox/actions/workflows/security.yml/badge.svg)](https://github.com/SloThdk/slothbox/actions/workflows/security.yml)
 [![Deploy](https://github.com/SloThdk/slothbox/actions/workflows/deploy.yml/badge.svg)](https://github.com/SloThdk/slothbox/actions/workflows/deploy.yml)
 [![Crypto: libsodium (E2E) + age (backups)](https://img.shields.io/badge/crypto-libsodium%20E2E%20%2B%20age%20backups-brightgreen)](docs/CRYPTO.md)
-[![Status: v0.2.9](https://img.shields.io/badge/status-v0.2.9-blue)](MILESTONES.md)
+[![Status: v0.2.10](https://img.shields.io/badge/status-v0.2.10-blue)](MILESTONES.md)
 [![EU-hosted](https://img.shields.io/badge/region-EU--only-blue)](#why-eu-hosted)
 
 > [!NOTE]
-> **v0.2.9 — current release. Read this before sending real data.**
+> **v0.2.10 — current release. Read this before sending real data.**
 >
 > The v0.2 line closed the two URL-leak risks the v0.1 warning block
-> called out. As of v0.2.9 the shipped guarantees are:
+> called out. As of v0.2.10 the shipped guarantees are:
 >
 > - **Per-share password protection** (sender-opt-in) adds a second
 >   factor on top of the URL fragment via Argon2id + BLAKE2b-keyed,
@@ -50,7 +50,7 @@
 > derivation, revoke-token commitment scheme, RLS hardening — has only
 > been internally reviewed. Independent cryptographer review and a
 > third-party application pen test are hard gates for **v1.0** before
-> any "production-grade" or "high-stakes secrets" framing. v0.2.9 is
+> any "production-grade" or "high-stakes secrets" framing. v0.2.10 is
 > appropriate for working file transfer, portfolio review, and
 > personal experimentation. Full threat model and non-goals:
 > [`SECURITY.md`](SECURITY.md).
@@ -245,14 +245,14 @@ The polyglot choice is deliberate. Different services hit different
 bottlenecks — each service is matched to the runtime that solves its actual
 problem rather than picking one language and forcing it everywhere:
 
-| Service                    | Language                   | Reasoning                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
-| -------------------------- | -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Frontend + API gateway** | TypeScript (Next 15, Hono) | Zod schemas are shared across the boundary, so a shape change in the API forces a frontend type error at compile time — that bug class is eliminated. Next.js 15 ships a Server Components model that streams HTML over a strict CSP without bolting on a separate template engine.                                                                                                                                                                                                                                                                             |
-| **Ingest service**         | C# (ASP.NET Core 8)        | The perf-critical path — multi-GB chunked uploads with real backpressure. Kestrel + `PipeReader` provides zero-copy reads from socket to disk; Node's stream API buffers eagerly and starves the GC at scale. .NET 8 also has the cleanest minimal-API surface (no controllers, no boilerplate) so the ingest code stays as small as a Hono handler.                                                                                                                                                                                                            |
-| **Receipt service**        | C# (ASP.NET Core 8)        | RFC 3161 timestamp clients need Bouncy Castle. The Java / .NET BC fork is the only mature, audited implementation; rebuilding ASN.1 + CMS in TypeScript would be a multi-month project with no security justification. Sharing Kestrel + DTO conventions with the ingest service keeps the operational surface small.                                                                                                                                                                                                                                           |
-| **Reaper daemon**          | Go 1.24                    | Cron-style workers don't need 80 MB of Node. Go produces a single static binary, ~8 MB RAM footprint, no runtime dependency on the host VM. The reaper sweeps every 60 seconds — at that frequency, the GC + cold-start savings vs Node are real, and Go's `pgx` is the fastest Postgres client benchmarked for this workload.                                                                                                                                                                                                                                  |
-| **Verifier CLI**           | Go 1.24                    | Recipients must be able to audit a receipt offline, on Windows / macOS / Linux, without installing Node or .NET. Go cross-compiles to a single static binary per platform — `brew install slothbox-verify` or `scoop install slothbox-verify` and the tool is ready. No "first install Node 20" friction; no `node_modules` exposing the audit tool's supply chain to whatever happens to be installed locally.                                                                                                                                                 |
-| **Database**               | SQL (Postgres 16)          | Trust guarantees that live in application code can be bypassed by the next bug. Trust guarantees enforced by the database can't. Row-level security, the audit chain's hash linkage, and provider-separation triggers all live in Postgres — same discipline used in [SlothCV](https://slothcv.pages.dev). v0.5 will partition `audit_chain` by month so retention sweeps are an `ALTER TABLE DETACH` instead of a `DELETE`; v0.1 keeps the chain as a single growing table because at portfolio-build scale the partitioning isn't earning its complexity yet. |
+| Service                    | Language                   | Reasoning                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| -------------------------- | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Frontend + API gateway** | TypeScript (Next 15, Hono) | Zod schemas are shared across the boundary, so a shape change in the API forces a frontend type error at compile time — that bug class is eliminated. Next.js 15 ships a Server Components model that streams HTML over a strict CSP without bolting on a separate template engine.                                                                                                                                                                                                                                                                                      |
+| **Ingest service**         | C# (ASP.NET Core 8)        | The perf-critical path — multi-GB chunked uploads with real backpressure. Kestrel + `PipeReader` provides zero-copy reads from socket to disk; Node's stream API buffers eagerly and starves the GC at scale. .NET 8 also has the cleanest minimal-API surface (no controllers, no boilerplate) so the ingest code stays as small as a Hono handler.                                                                                                                                                                                                                     |
+| **Receipt service**        | C# (ASP.NET Core 8)        | RFC 3161 timestamp clients need Bouncy Castle. The Java / .NET BC fork is the only mature, audited implementation; rebuilding ASN.1 + CMS in TypeScript would be a multi-month project with no security justification. Sharing Kestrel + DTO conventions with the ingest service keeps the operational surface small.                                                                                                                                                                                                                                                    |
+| **Reaper daemon**          | Go 1.24                    | Cron-style workers don't need 80 MB of Node. Go produces a single static binary, ~8 MB RAM footprint, no runtime dependency on the host VM. The reaper sweeps every 60 seconds — at that frequency, the GC + cold-start savings vs Node are real, and Go's `pgx` is the fastest Postgres client benchmarked for this workload.                                                                                                                                                                                                                                           |
+| **Verifier CLI**           | Go 1.24                    | Recipients must be able to audit a receipt offline, on Windows / macOS / Linux, without installing Node or .NET. Go cross-compiles to a single static binary per platform — `brew install slothbox-verify` or `scoop install slothbox-verify` and the tool is ready. No "first install Node 20" friction; no `node_modules` exposing the audit tool's supply chain to whatever happens to be installed locally.                                                                                                                                                          |
+| **Database**               | SQL (Postgres 16)          | Trust guarantees that live in application code can be bypassed by the next bug. Trust guarantees enforced by the database can't. Row-level security, the audit chain's hash linkage, and provider-separation triggers all live in Postgres — same discipline used in [SlothCV](https://slothcv.pages.dev). v0.5 will partition `audit_chain` by month so retention sweeps are an `ALTER TABLE DETACH` instead of a `DELETE`; the v0.2 line keeps the chain as a single growing table because at portfolio-build scale the partitioning isn't earning its complexity yet. |
 
 ---
 
@@ -387,7 +387,7 @@ it. Nothing on this list is decorative.
 - **Alternatives rejected:** nginx + certbot (adds a manual cert pipeline);
   Traefik (good, but its config-via-Docker-labels pattern makes the cert + CSP
   - body-cap rules harder to read in one place); HAProxy (rock-solid but
-    doesn't terminate TLS with auto-issuance out of the box).
+    doesn't ship TLS auto-issuance without a separate cert pipeline).
 
 ### Ingest path
 
@@ -483,15 +483,15 @@ it. Nothing on this list is decorative.
   CHECK constraints on every shape-critical column mean a compromised
   application server cannot rewrite history without breaking verification.
   RLS policies are wired (`db/migrations/0003_rls_hardening.sql`) but
-  **not yet enforced in v0.1** — see "Trust model" below for the honest
-  framing.
-- **Trust model — v0.1:** the api-gateway connects to Postgres as the
-  `slothbox` role (the table owner), for whom Postgres bypasses RLS by
-  design. The `app.current_short_id` GUC the policy reads is also not yet
-  set by the gateway. So in v0.1 the actual scoping comes from the
-  application's `WHERE short_id = $1` clauses on every read — RLS is
-  there as defence-in-depth groundwork that activates the moment the
-  gateway switches to a non-owner role and starts setting the GUC
+  **not yet enforced as of v0.2.10** — see "Trust model" below for the
+  honest framing.
+- **Trust model — current state:** the api-gateway connects to Postgres
+  as the `slothbox` role (the table owner), for whom Postgres bypasses
+  RLS by design. The `app.current_short_id` GUC the policy reads is
+  also not yet set by the gateway. So today the actual scoping comes
+  from the application's `WHERE short_id = $1` clauses on every read —
+  RLS is there as defence-in-depth groundwork that activates the moment
+  the gateway switches to a non-owner role and starts setting the GUC
   per-request. Provider-separation triggers on `auth.identities` (v0.5)
   prevent silent account-takeover via a second OAuth provider.
 - **Why this stack:** Postgres is the only database where the security
@@ -587,8 +587,8 @@ it. Nothing on this list is decorative.
   build sustainable on a personal budget. Hetzner's cloud-init + automated
   reverse-DNS + IPv6 default + flat egress pricing also remove three things
   that would otherwise be ~30 lines of config on AWS.
-- **Why a single VM (not multi-region, not Kubernetes):** for a v0.1 portfolio
-  reference, a single VM in one EU DC is the right shape — multi-region adds
+- **Why a single VM (not multi-region, not Kubernetes):** for a portfolio
+  reference at this scope, a single VM in one EU DC is the right shape — multi-region adds
   cost without solving any current problem, and the EU-only data path is a
   product feature, not a limitation. Multi-arch Docker Buildx makes the
   `linux/arm64` build a one-line change in the workflow, so contributors on
@@ -637,13 +637,13 @@ read the prose above when you want to know why each line is there.
 
 ## Roadmap
 
-| Version                | Status     | Highlights                                                                                                                                                                                                                                                                                     |
-| ---------------------- | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **v0.1.0-alpha**       | ✅ shipped | Drag-drop encrypted upload · symmetric key in URL · burn-after-read · expiry · MinIO storage · WebSocket progress · full GitHub repo polish · security gating                                                                                                                                  |
-| **v0.2 line (→0.2.9)** | ✅ shipped | URL-leak hardening: per-share password (Argon2id + BLAKE2b) · sender-revoke tokens · single-use chunk tokens · folder uploads · in-browser preview · PWA · age-encrypted operator backups (sidecar) · CSP-nonce + HSTS-preload edge · 11-rule Prometheus alerting · cross-platform dev tooling |
-| **v0.5.0**             | 🔜 next    | Lucia / better-auth + dashboard · server-side share history · RFC 3161 timestamp receipts · audit chain extension · Stripe billing                                                                                                                                                             |
-| **v1.0.0**             | planned    | Per-recipient `age` sealed-boxes · verifiable deletion proofs · standalone verifier CLI · external cryptographer review · third-party application pen test                                                                                                                                     |
-| **v1.1.0**             | planned    | WebRTC P2P file transfer · MitID OIDC integration · time-locked shares                                                                                                                                                                                                                         |
+| Version                 | Status     | Highlights                                                                                                                                                                                                                                                                                                            |
+| ----------------------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **v0.1.0-alpha**        | ✅ shipped | Drag-drop encrypted upload · symmetric key in URL · burn-after-read · expiry · MinIO storage · WebSocket progress · full GitHub repo polish · security gating                                                                                                                                                         |
+| **v0.2 line (→0.2.10)** | ✅ shipped | URL-leak hardening: per-share password (Argon2id + BLAKE2b) · sender-revoke tokens · single-use chunk tokens · folder uploads · in-browser preview · PWA · age-encrypted operator backups (sidecar) · CSP-nonce + HSTS-preload edge · 11-rule Prometheus alerting · cross-platform dev tooling · npm dependency sweep |
+| **v0.5.0**              | 🔜 next    | Lucia / better-auth + dashboard · server-side share history · RFC 3161 timestamp receipts · audit chain extension · Stripe billing                                                                                                                                                                                    |
+| **v1.0.0**              | planned    | Per-recipient `age` sealed-boxes · verifiable deletion proofs · standalone verifier CLI · external cryptographer review · third-party application pen test                                                                                                                                                            |
+| **v1.1.0**              | planned    | WebRTC P2P file transfer · MitID OIDC integration · time-locked shares                                                                                                                                                                                                                                                |
 
 Detailed scope per release in [`MILESTONES.md`](MILESTONES.md).
 
@@ -666,9 +666,11 @@ in [`docs/RUNBOOK.md`](docs/RUNBOOK.md).
 - See [`SECURITY.md`](SECURITY.md) for the threat model, disclosure policy,
   and audit history.
 - **Report vulnerabilities** to the maintainer at <philipsloth1@gmail.com>,
-  or via the contact form at <https://philipsloth.com/contact>. PGP key
-  fingerprint will be published in `.well-known/security.txt` before v0.1
-  goes public; see `SECURITY.md` for the disclosure SLA.
+  or via the contact form at <https://philipsloth.com/contact>. The
+  `.well-known/security.txt` contact endpoint is live at
+  <https://slothbox.philipsloth.com/.well-known/security.txt>; the PGP
+  fingerprint joins it as part of v1.0 alongside the external audit. See
+  `SECURITY.md` for the disclosure SLA.
 - All cryptographic code lives in [`packages/crypto-core/`](packages/crypto-core/)
   and uses **only audited primitives**. PRs that introduce new primitives
   or alter existing ones are closed during maintainer review unless the
@@ -708,16 +710,16 @@ grep -rn "PutObjectAsync" services/ingest/Services/
 grep -rn "buildChunkAad" packages/crypto-core/src/
 
 # 5. Audit chain is enforced in the database (RLS is wired for v0.5;
-#    v0.1 trust comes from the gateway's WHERE clauses — see the
-#    "Trust model" note in the Postgres section above):
+#    in the v0.2 line, trust comes from the gateway's WHERE clauses —
+#    see the "Trust model" note in the Postgres section above):
 grep -rn "ROW LEVEL SECURITY\|append_audit_entry" db/migrations/
 ```
 
 For the v1.0 features (per-recipient encryption, RFC 3161 receipts, verifiable
 deletion proofs), the standalone `slothbox-verify` CLI will let any holder of
-a receipt audit it **without contacting the live service**. The v0.1 build
-ships the CLI as a skeleton that responds to `--help` and reports "verification
-lands in v1.0" for the actual subcommands — see
+a receipt audit it **without contacting the live service**. Today the CLI
+ships as a skeleton that responds to `--help` and reports "verification lands
+in v1.0" for the actual subcommands — see
 [`tools/verify/README.md`](tools/verify/README.md).
 
 Distribution channels (brew tap / scoop bucket / apt repo) are documented in

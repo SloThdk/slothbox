@@ -1,6 +1,6 @@
 {
   "name": "slothbox",
-  "version": "0.2.9",
+  "version": "0.2.10",
   "private": true,
   "description": "End-to-end encrypted file transfer with tamper-evident delivery receipts. Server cannot decrypt anything.",
   "license": "MIT",
@@ -47,7 +47,10 @@
   "pnpm": {
     "overrides": {
       "postcss@<8.5.10": ">=8.5.10",
-      "esbuild@<=0.24.2": ">=0.25.0"
+      "esbuild@<=0.24.2": ">=0.25.0",
+      "vite@<=6.4.1": ">=6.4.2",
+      "brace-expansion@>=5.0.0 <5.0.6": ">=5.0.6",
+      "ws@>=8.0.0 <8.20.1": ">=8.20.1"
     }
   }
 }
