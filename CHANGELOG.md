@@ -17,6 +17,44 @@ the project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Stripe billing for free vs pro tiers
 - Grafana dashboards published
 
+## [0.2.10] — 2026-05-21
+
+npm dependency vulnerability sweep + a documentation pass across the
+README and tooling docs. Three open Dependabot advisories on the
+default branch are closed via `pnpm.overrides`; vitest moves to the
+v3 line so the vite override doesn't break the test runner's SSR
+internals.
+
+### Changed
+
+- **`ws` 8.20.0 → 8.20.1** via `pnpm.overrides`. Closes
+  [GHSA-58qx-3vcg-4xpx](https://github.com/advisories/GHSA-58qx-3vcg-4xpx)
+  — uninitialized memory disclosure in WebSocket frame masking,
+  reached through `@hono/node-ws` on the api-gateway upgrade path.
+- **`vite` 5.4.21 → 6.4.2** via `pnpm.overrides`. Closes the
+  path-traversal advisory in vite's optimized-deps `.map` handling.
+  Vite is a vitest-internal dependency in this repo (the Next.js
+  web app uses webpack/turbopack, not vite) so the advisory
+  affected dev test runs only, not production runtime.
+- **`brace-expansion` 5.0.5 → 5.0.6** via `pnpm.overrides`. Closes
+  [GHSA-jxxr-4gwj-5jf2](https://github.com/advisories/GHSA-jxxr-4gwj-5jf2)
+  — numeric-range expansion defeats the documented `max` DoS
+  protection. Reached through `minimatch` inside the typescript-eslint
+  chain.
+- **`vitest` 2.1.9 → 3.2.4** across `@slothbox/crypto-core` and
+  `@slothbox/api-gateway`. Vitest 2.x uses vite 5.x SSR internals
+  (`__vite_ssr_exportName__`) that were removed in vite 6 — the
+  vite override above forced the bump. The 60-test crypto-core
+  suite is green on the v3 line.
+- **README + `tools/verify/README.md` + `docs/CRYPTO.md`** — language
+  pass. The Postgres trust-model section, the Verifying-the-claims
+  grep recipes, and the verifier CLI status block all reference the
+  v0.2 line as the current shipped state. First-person voice across
+  the verifier README. The Caddy / HAProxy comparison reads in
+  concrete capability terms. The `.well-known/security.txt`
+  paragraph in the README's Security section now points at the live
+  endpoint at <https://slothbox.philipsloth.com/.well-known/security.txt>.
+
 ## [0.2.9] — 2026-05-21
 
 Release lines up version surfaces across README, every workspace
@@ -685,7 +723,8 @@ non-directory`). Switched to `.` so only the root main package
 - WebRTC P2P transfer not yet implemented
 - No external cryptographer review yet — see `SECURITY.md` audit status table
 
-[Unreleased]: https://github.com/SloThdk/slothbox/compare/v0.2.9...HEAD
+[Unreleased]: https://github.com/SloThdk/slothbox/compare/v0.2.10...HEAD
+[0.2.10]: https://github.com/SloThdk/slothbox/compare/v0.2.9...v0.2.10
 [0.2.9]: https://github.com/SloThdk/slothbox/compare/v0.2.8...v0.2.9
 [0.2.8]: https://github.com/SloThdk/slothbox/compare/v0.2.7...v0.2.8
 [0.2.7]: https://github.com/SloThdk/slothbox/compare/v0.2.6...v0.2.7

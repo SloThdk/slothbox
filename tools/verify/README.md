@@ -7,10 +7,10 @@ end-to-end encrypted file transfer service.
 The tool lets anyone — sender, recipient, auditor, regulator, or
 hostile observer — independently confirm SlothBox's claims about
 **delivery receipts** and **verifiable deletion proofs** without
-contacting any SlothBox server. If we ever lie about a delivery or a
-deletion, this binary will catch it.
+contacting any SlothBox server. If SlothBox ever lies about a delivery
+or a deletion, this binary will catch it.
 
-> **Status: v0.2.0 (SKELETON).**
+> **Status: SKELETON (v0.2 line).**
 > The command structure, distribution path, and packaging story are in
 > place. The actual verification primitives (RFC 3161 signature
 > validation, Merkle inclusion proofs, append-only consistency proofs)
@@ -32,7 +32,7 @@ Go binary so that:
 3. A reproducible build can be diffed against the official release.
 
 The mere existence of this tool is the strongest claim SlothBox makes:
-**we don't trust ourselves either, and neither should you.**
+**don't trust the server, and don't trust me either — verify.**
 
 ---
 

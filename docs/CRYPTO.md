@@ -156,8 +156,8 @@ receiver browser:
 - **Per-share salt.** Each password-protected share gets a fresh 16-byte
   salt. Rainbow-table attacks across shares are blocked even when the
   same password is reused.
-- **KDF parameters stored on the row.** If we bump the default
-  `opsLimit` / `memLimit` later, existing shares keep working — each
+- **KDF parameters stored on the row.** If the default `opsLimit` /
+  `memLimit` are bumped later, existing shares keep working — each
   share's row remembers the parameters it was created with. The library
   re-derives with those exact values during decrypt.
 
