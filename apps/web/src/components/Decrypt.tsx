@@ -34,6 +34,7 @@ import {
 import type { ShareDescriptor } from "@/lib/api";
 import { isPreviewable, Preview } from "@/components/Preview";
 import { formatBytes } from "@/lib/utils";
+import { useLanguage } from "@/lib/i18n/LanguageContext";
 
 export interface DecryptProps {
   shortId: string;
@@ -47,9 +48,10 @@ type DecryptState =
   | { kind: "deriving" }
   | { kind: "busy"; progress: DownloadProgressEvent | null; controller: AbortController }
   | { kind: "done"; blob: Blob; fileName: string; mimeType: string; savedToDisk: boolean }
-  | { kind: "error"; message: string };
+  | { kind: "error"; messageKey: "decrypt.error.downloadFailed"; rawMessage: string };
 
 export function Decrypt({ shortId, descriptor, decryptionKey }: DecryptProps) {
+  const { t, lang } = useLanguage();
   const [state, setState] = React.useState<DecryptState>({ kind: "ready" });
   /**
    * Password input value (only used when `descriptor.password.enabled`).
@@ -62,16 +64,20 @@ export function Decrypt({ shortId, descriptor, decryptionKey }: DecryptProps) {
   /**
    * Marks the last attempt as a wrong-password one so the UI can render
    * an inline error under the password input rather than blowing away
-   * the form with a generic error state.
+   * the form with a generic error state. We hold a translation KEY so
+   * a mid-decrypt locale toggle re-renders the error in the new language
+   * instead of stranding the user with an English string.
    */
-  const [passwordError, setPasswordError] = React.useState<string | null>(null);
+  const [passwordErrorKey, setPasswordErrorKey] = React.useState<
+    "decrypt.password.errorRequired" | "decrypt.password.errorWrong" | null
+  >(null);
 
   const passwordRequired = descriptor.password.enabled;
 
   const startDownload = React.useCallback(async () => {
-    setPasswordError(null);
+    setPasswordErrorKey(null);
     if (passwordRequired && password.length === 0) {
-      setPasswordError("Enter the password the sender gave you.");
+      setPasswordErrorKey("decrypt.password.errorRequired");
       return;
     }
 
@@ -119,7 +125,7 @@ export function Decrypt({ shortId, descriptor, decryptionKey }: DecryptProps) {
           mimeType: result.mimeType,
           savedToDisk: false,
         });
-        toast.success("Decrypted. Preview below — save when ready.");
+        toast.success(t("decrypt.toast.previewReady"));
       } else {
         triggerBlobDownload(result.blob, result.fileName);
         setState({
@@ -129,7 +135,7 @@ export function Decrypt({ shortId, descriptor, decryptionKey }: DecryptProps) {
           mimeType: result.mimeType,
           savedToDisk: true,
         });
-        toast.success("Decrypted. Saved to your downloads folder.");
+        toast.success(t("decrypt.toast.savedAuto"));
       }
 
       // Notify the gateway the download completed. For burn-after-read shares,
@@ -144,24 +150,24 @@ export function Decrypt({ shortId, descriptor, decryptionKey }: DecryptProps) {
       // context. All other error codes fall through to the generic
       // error state (the existing v0.1 behaviour).
       const code = err instanceof DownloadError ? err.code : "unknown";
-      const message = err instanceof Error ? err.message : "download failed";
-      if (code === "cancelled" || message === "download cancelled") {
+      const rawMessage = err instanceof Error ? err.message : "download failed";
+      if (code === "cancelled" || rawMessage === "download cancelled") {
         setState({ kind: "ready" });
         return;
       }
       if (code === "wrong_password" || code === "password_required") {
-        setPasswordError(
+        setPasswordErrorKey(
           code === "wrong_password"
-            ? "Incorrect password — try again."
-            : "Enter the password the sender gave you."
+            ? "decrypt.password.errorWrong"
+            : "decrypt.password.errorRequired"
         );
         setState({ kind: "ready" });
         return;
       }
-      setState({ kind: "error", message });
-      toast.error(message);
+      setState({ kind: "error", messageKey: "decrypt.error.downloadFailed", rawMessage });
+      toast.error(t("decrypt.toast.downloadFailed"));
     }
-  }, [shortId, decryptionKey, passwordRequired, password]);
+  }, [shortId, decryptionKey, passwordRequired, password, t]);
 
   const cancel = React.useCallback(() => {
     if (state.kind === "busy") state.controller.abort();
@@ -184,6 +190,12 @@ export function Decrypt({ shortId, descriptor, decryptionKey }: DecryptProps) {
   // safety — convert here for display only.
   const fileSizeBytes = Number(descriptor.fileSize);
 
+  // Build the "expires in 24h" / "selv-destruerer..." chip text. Done
+  // outside JSX so the conditional doesn't tangle the meta-row.
+  const expiryLabel = descriptor.burnAfterRead
+    ? t("decrypt.file.burnAfterRead")
+    : t("decrypt.file.expires", { when: formatExpiresIn(descriptor.expiresAt, t, lang) });
+
   return (
     <div className="flex flex-col gap-6">
       {/* File card — pre-decryption shows only payload size + expiry. */}
@@ -193,14 +205,11 @@ export function Decrypt({ shortId, descriptor, decryptionKey }: DecryptProps) {
         </div>
         <div className="min-w-0 flex-1">
           <p className="truncate text-base font-medium text-[var(--color-fg)]">
-            {state.kind === "done" ? state.fileName : "Encrypted payload"}
+            {state.kind === "done" ? state.fileName : t("decrypt.file.encryptedPayload")}
           </p>
           <p className="text-xs text-[var(--color-muted)]">
-            {formatBytes(fileSizeBytes)} ·{" "}
-            {descriptor.burnAfterRead
-              ? "self-destructs after this download"
-              : `expires ${formatExpiresIn(descriptor.expiresAt)}`}
-            {passwordRequired ? " · password-protected" : null}
+            {formatBytes(fileSizeBytes)} · {expiryLabel}
+            {passwordRequired ? ` · ${t("decrypt.file.passwordProtected")}` : null}
           </p>
         </div>
       </div>
@@ -219,7 +228,7 @@ export function Decrypt({ shortId, descriptor, decryptionKey }: DecryptProps) {
             >
               <Label htmlFor="decrypt-password" className="flex items-center gap-2 leading-tight">
                 <Key className="h-3.5 w-3.5 text-[var(--color-accent)]" aria-hidden />
-                Password
+                {t("decrypt.password.label")}
               </Label>
               <Input
                 id="decrypt-password"
@@ -237,38 +246,39 @@ export function Decrypt({ shortId, descriptor, decryptionKey }: DecryptProps) {
                 data-lpignore="true"
                 spellCheck={false}
                 autoFocus
-                placeholder="Password the sender gave you"
+                placeholder={t("decrypt.password.placeholder")}
                 value={password}
                 onChange={(e) => {
                   setPassword(e.target.value);
-                  if (passwordError) setPasswordError(null);
+                  if (passwordErrorKey) setPasswordErrorKey(null);
                 }}
-                aria-invalid={passwordError !== null}
+                aria-invalid={passwordErrorKey !== null}
                 aria-describedby="decrypt-password-help"
               />
               <p
                 id="decrypt-password-help"
                 className="text-[0.7rem] leading-snug font-light text-[var(--color-muted)]"
               >
-                The sender sent the password through a separate channel (Signal, SMS, in-person). It
-                is checked locally — the server never sees it.
+                {t("decrypt.password.help")}
               </p>
-              {passwordError ? (
-                <p className="text-xs font-medium text-[var(--color-danger)]">{passwordError}</p>
+              {passwordErrorKey ? (
+                <p className="text-xs font-medium text-[var(--color-danger)]">
+                  {t(passwordErrorKey)}
+                </p>
               ) : null}
               <Button type="submit" size="lg" className="mt-1 w-full">
                 <Download className="h-4 w-4" aria-hidden />
-                Decrypt + download
+                {t("decrypt.button.passwordSubmit")}
               </Button>
             </form>
           ) : (
             <>
               <Button onClick={startDownload} size="lg" className="w-full">
                 <Download className="h-4 w-4" aria-hidden />
-                Download + decrypt
+                {t("decrypt.button.download")}
               </Button>
               <p className="text-center text-xs text-[var(--color-muted)]">
-                Decryption runs in your browser. Nothing leaves this tab.
+                {t("decrypt.hint.localOnly")}
               </p>
             </>
           )}
@@ -281,7 +291,7 @@ export function Decrypt({ shortId, descriptor, decryptionKey }: DecryptProps) {
           <div className="flex items-center justify-center text-xs">
             <span className="flex items-center gap-1.5 text-[var(--color-accent)]">
               <RefreshCw className="h-3 w-3 animate-spin" aria-hidden />
-              Hardening password (Argon2id)…
+              {t("decrypt.status.deriving")}
             </span>
           </div>
         </div>
@@ -294,17 +304,20 @@ export function Decrypt({ shortId, descriptor, decryptionKey }: DecryptProps) {
             <span className="flex items-center gap-1.5 text-[var(--color-accent)]">
               <RefreshCw className="h-3 w-3 animate-spin" aria-hidden />
               {state.progress
-                ? `${Math.floor(state.progress.fraction * 100)}% downloaded + decrypted`
-                : "fetching first chunk…"}
+                ? t("decrypt.status.percent", { pct: Math.floor(state.progress.fraction * 100) })
+                : t("decrypt.status.fetchingFirst")}
             </span>
             <span className="text-[var(--color-muted)]">
               {state.progress
-                ? `${state.progress.chunksDownloaded}/${state.progress.chunksTotal} chunks`
-                : "verifying key…"}
+                ? t("decrypt.status.chunks", {
+                    done: state.progress.chunksDownloaded,
+                    total: state.progress.chunksTotal,
+                  })
+                : t("decrypt.status.verifyingKey")}
             </span>
           </div>
           <Button variant="ghost" onClick={cancel} className="self-end">
-            Cancel
+            {t("common.cancel")}
           </Button>
         </div>
       ) : null}
@@ -328,13 +341,19 @@ export function Decrypt({ shortId, descriptor, decryptionKey }: DecryptProps) {
                 <Eye className="h-4 w-4 text-[var(--color-accent)]" aria-hidden />
               )}
               {state.savedToDisk
-                ? `Decrypted and saved.${descriptor.burnAfterRead ? " Share has been destroyed." : " You can close this tab."}`
-                : `Decrypted — preview above. Save when you're ready.${descriptor.burnAfterRead ? " The share is destroyed regardless of whether you save." : ""}`}
+                ? descriptor.burnAfterRead
+                  ? t("decrypt.done.savedBurned")
+                  : t("decrypt.done.savedClose")
+                : descriptor.burnAfterRead
+                  ? t("decrypt.done.previewBurned")
+                  : t("decrypt.done.previewKeep")}
             </p>
             <div>
               <Button variant={state.savedToDisk ? "secondary" : "primary"} onClick={downloadAgain}>
                 <Download className="h-4 w-4" aria-hidden />
-                {state.savedToDisk ? "Save again" : "Save to downloads"}
+                {state.savedToDisk
+                  ? t("decrypt.button.saveAgain")
+                  : t("decrypt.button.saveToDownloads")}
               </Button>
             </div>
           </div>
@@ -345,11 +364,11 @@ export function Decrypt({ shortId, descriptor, decryptionKey }: DecryptProps) {
         <div className="flex flex-col gap-3 rounded-lg border border-[color-mix(in_srgb,var(--color-danger)_50%,var(--color-border))] bg-[color-mix(in_srgb,var(--color-danger)_10%,var(--color-card))] p-4">
           <p className="flex items-center gap-2 text-sm font-medium text-[var(--color-fg)]">
             <AlertTriangle className="h-4 w-4 text-[var(--color-danger)]" aria-hidden />
-            {state.message}
+            {t(state.messageKey)}
           </p>
           <div>
             <Button variant="secondary" onClick={() => setState({ kind: "ready" })}>
-              Try again
+              {t("common.tryAgain")}
             </Button>
           </div>
         </div>
@@ -358,15 +377,28 @@ export function Decrypt({ shortId, descriptor, decryptionKey }: DecryptProps) {
   );
 }
 
-function formatExpiresIn(iso: string): string {
+/**
+ * Localized "in 24h" / "om 24t" formatter for the share-expiry chip on
+ * the file card. Buckets at hour vs day granularity to match the v0.1
+ * UX — we don't want minute-precision because it would race the clock
+ * during a slow page load.
+ */
+function formatExpiresIn(
+  iso: string,
+  t: (
+    key: import("@/lib/i18n/translations").TranslationKey,
+    args?: Record<string, string | number>
+  ) => string,
+  _lang: "en" | "da"
+): string {
   try {
     const ms = new Date(iso).getTime() - Date.now();
-    if (!Number.isFinite(ms) || ms <= 0) return "soon";
+    if (!Number.isFinite(ms) || ms <= 0) return t("decrypt.file.expiresSoon");
     const hours = Math.round(ms / (1000 * 60 * 60));
-    if (hours < 24) return `in ${hours}h`;
+    if (hours < 24) return t("decrypt.file.expiresInHours", { n: hours });
     const days = Math.round(hours / 24);
-    return `in ${days}d`;
+    return t("decrypt.file.expiresInDays", { n: days });
   } catch {
-    return "soon";
+    return t("decrypt.file.expiresSoon");
   }
 }

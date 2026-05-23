@@ -1055,6 +1055,229 @@ export const TRANSLATIONS = {
     en: "Could not access clipboard — copy manually.",
     da: "Kunne ikke tilgå udklipsholderen — kopiér manuelt.",
   },
+
+  // ─── Common UI atoms (used on receiver page + error / 404 pages) ─────
+  "common.backHome": {
+    en: "Back to home",
+    da: "Tilbage til forsiden",
+  },
+  "common.tryAgain": {
+    en: "Try again",
+    da: "Prøv igen",
+  },
+  "common.cancel": {
+    en: "Cancel",
+    da: "Annullér",
+  },
+
+  // ─── Receiver page (/s/[id]) shell ───────────────────────────────────
+  "receiver.eyebrow": {
+    en: "Encrypted share",
+    da: "Krypteret deling",
+  },
+  "receiver.title": {
+    en: "Decrypt + download",
+    da: "Dekryptér + download",
+  },
+  "receiver.subtitle": {
+    en: "The decryption happens in this tab. The unlock key was passed to you in the URL fragment and never reaches our servers.",
+    da: "Dekrypteringen sker i denne fane. Oplåsningsnøglen blev sendt til dig i URL-fragmentet og når aldrig vores servere.",
+  },
+  "receiver.missingKey.title": {
+    en: "The decryption key is missing.",
+    da: "Dekrypteringsnøglen mangler.",
+  },
+  // Split before/after so the receiver page can render `<code>#</code>`
+  // inline without losing the mono styling. Interpolated strings can't
+  // carry JSX, so two keys plus a JSX <code> element between them.
+  "receiver.missingKey.bodyBefore": {
+    en: "Your URL doesn't contain the part after the",
+    da: "Din URL indeholder ikke delen efter",
+  },
+  "receiver.missingKey.bodyAfter": {
+    en: ". Some chat apps strip it. Ask the sender to copy and paste the full link directly.",
+    da: ". Nogle chatapps fjerner den. Bed afsenderen om at kopiere og indsætte hele linket direkte.",
+  },
+  "receiver.error.title": {
+    en: "We couldn't load this share.",
+    da: "Vi kunne ikke indlæse denne deling.",
+  },
+  "receiver.error.cause": {
+    en: "The most likely cause: the share has expired, was burned after a previous download, or the id is wrong.",
+    da: "Den mest sandsynlige årsag: delingen er udløbet, blev destrueret efter et tidligere download, eller id'et er forkert.",
+  },
+  "receiver.error.notFound": {
+    en: "Share not found.",
+    da: "Deling ikke fundet.",
+  },
+  "receiver.error.gateway": {
+    en: "Could not reach the SlothBox service. Check your connection and try again.",
+    da: "Kunne ikke nå SlothBox-tjenesten. Tjek din forbindelse og prøv igen.",
+  },
+  "receiver.error.generic": {
+    en: "Something went wrong while loading the share.",
+    da: "Noget gik galt under indlæsning af delingen.",
+  },
+  "receiver.footnote": {
+    en: "SlothBox runs in the EU. Your browser performs the decryption and the key never leaves this tab.",
+    da: "SlothBox kører i EU. Din browser udfører dekrypteringen, og nøglen forlader aldrig denne fane.",
+  },
+
+  // ─── Decrypt component (file card + actions + statuses) ──────────────
+  "decrypt.file.encryptedPayload": {
+    en: "Encrypted payload",
+    da: "Krypteret indhold",
+  },
+  "decrypt.file.burnAfterRead": {
+    en: "self-destructs after this download",
+    da: "selv-destruerer efter dette download",
+  },
+  "decrypt.file.expires": {
+    en: "expires {when}",
+    da: "udløber {when}",
+  },
+  "decrypt.file.expiresSoon": {
+    en: "soon",
+    da: "snart",
+  },
+  "decrypt.file.expiresInHours": {
+    en: "in {n}h",
+    da: "om {n}t",
+  },
+  "decrypt.file.expiresInDays": {
+    en: "in {n}d",
+    da: "om {n}d",
+  },
+  "decrypt.file.passwordProtected": {
+    en: "password-protected",
+    da: "adgangskode-beskyttet",
+  },
+  "decrypt.password.label": {
+    en: "Password",
+    da: "Adgangskode",
+  },
+  "decrypt.password.placeholder": {
+    en: "Password the sender gave you",
+    da: "Adgangskoden afsenderen gav dig",
+  },
+  "decrypt.password.help": {
+    en: "The sender sent the password through a separate channel (Signal, SMS, in-person). It is checked locally — the server never sees it.",
+    da: "Afsenderen sendte adgangskoden gennem en separat kanal (Signal, SMS, personligt). Den tjekkes lokalt — serveren ser den aldrig.",
+  },
+  "decrypt.password.errorRequired": {
+    en: "Enter the password the sender gave you.",
+    da: "Indtast adgangskoden afsenderen gav dig.",
+  },
+  "decrypt.password.errorWrong": {
+    en: "Incorrect password — try again.",
+    da: "Forkert adgangskode — prøv igen.",
+  },
+  "decrypt.button.passwordSubmit": {
+    en: "Decrypt + download",
+    da: "Dekryptér + download",
+  },
+  "decrypt.button.download": {
+    en: "Download + decrypt",
+    da: "Download + dekryptér",
+  },
+  "decrypt.button.saveAgain": {
+    en: "Save again",
+    da: "Gem igen",
+  },
+  "decrypt.button.saveToDownloads": {
+    en: "Save to downloads",
+    da: "Gem i downloads",
+  },
+  "decrypt.hint.localOnly": {
+    en: "Decryption runs in your browser. Nothing leaves this tab.",
+    da: "Dekrypteringen kører i din browser. Intet forlader denne fane.",
+  },
+  "decrypt.status.deriving": {
+    en: "Hardening password (Argon2id)…",
+    da: "Hærder adgangskode (Argon2id)…",
+  },
+  "decrypt.status.fetchingFirst": {
+    en: "fetching first chunk…",
+    da: "henter første bid…",
+  },
+  "decrypt.status.percent": {
+    en: "{pct}% downloaded + decrypted",
+    da: "{pct}% downloadet + dekrypteret",
+  },
+  "decrypt.status.chunks": {
+    en: "{done}/{total} chunks",
+    da: "{done}/{total} bidder",
+  },
+  "decrypt.status.verifyingKey": {
+    en: "verifying key…",
+    da: "verificerer nøgle…",
+  },
+  "decrypt.done.savedBurned": {
+    en: "Decrypted and saved. Share has been destroyed.",
+    da: "Dekrypteret og gemt. Delingen er blevet destrueret.",
+  },
+  "decrypt.done.savedClose": {
+    en: "Decrypted and saved. You can close this tab.",
+    da: "Dekrypteret og gemt. Du kan lukke denne fane.",
+  },
+  "decrypt.done.previewBurned": {
+    en: "Decrypted — preview above. Save when you're ready. The share is destroyed regardless of whether you save.",
+    da: "Dekrypteret — forhåndsvisning ovenfor. Gem når du er klar. Delingen destrueres uanset om du gemmer.",
+  },
+  "decrypt.done.previewKeep": {
+    en: "Decrypted — preview above. Save when you're ready.",
+    da: "Dekrypteret — forhåndsvisning ovenfor. Gem når du er klar.",
+  },
+  "decrypt.toast.previewReady": {
+    en: "Decrypted. Preview below — save when ready.",
+    da: "Dekrypteret. Forhåndsvisning nedenfor — gem når du er klar.",
+  },
+  "decrypt.toast.savedAuto": {
+    en: "Decrypted. Saved to your downloads folder.",
+    da: "Dekrypteret. Gemt i din downloads-mappe.",
+  },
+  "decrypt.toast.downloadFailed": {
+    en: "Download failed",
+    da: "Download mislykkedes",
+  },
+  "decrypt.error.downloadFailed": {
+    en: "Download failed. Try again or ask the sender for a fresh link.",
+    da: "Download mislykkedes. Prøv igen eller bed afsenderen om et nyt link.",
+  },
+
+  // ─── 404 page (/not-found) ───────────────────────────────────────────
+  "notFound.title": {
+    en: "That share doesn't exist.",
+    da: "Den deling findes ikke.",
+  },
+  // Two halves wrapping the `<code>#</code>` element — same reasoning as
+  // receiver.missingKey.body{Before,After}.
+  "notFound.bodyBefore": {
+    en: "It may have expired, been burned after a previous download, or the URL may be missing the part after the",
+    da: "Den kan være udløbet, destrueret efter et tidligere download, eller URL'en mangler delen efter",
+  },
+  "notFound.bodyAfter": {
+    en: ". Most chat clients strip URL fragments — ask the sender to copy and paste the link directly.",
+    da: ". De fleste chatklienter fjerner URL-fragmenter — bed afsenderen om at kopiere og indsætte linket direkte.",
+  },
+
+  // ─── Error boundary (/error.tsx) ─────────────────────────────────────
+  "error.eyebrow": {
+    en: "unexpected error",
+    da: "uventet fejl",
+  },
+  "error.title": {
+    en: "Something went wrong.",
+    da: "Noget gik galt.",
+  },
+  "error.body": {
+    en: "A hiccup we didn't plan for. Try again, or refresh the page. If it keeps happening, mention error code {code} when reporting.",
+    da: "En uventet fejl. Prøv igen, eller genindlæs siden. Hvis det fortsætter, så nævn fejlkode {code} ved indberetning.",
+  },
+  "error.codeUnknown": {
+    en: "unknown",
+    da: "ukendt",
+  },
 } as const satisfies Record<string, TranslationEntry>;
 
 /** Literal-union of every key in TRANSLATIONS. The `t()` function uses
