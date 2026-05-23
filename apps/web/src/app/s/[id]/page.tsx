@@ -13,12 +13,23 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Decrypt } from "@/components/Decrypt";
 import { fetchShareMetadata, extractKeyFromHash } from "@/lib/download";
 import type { ShareDescriptor } from "@/lib/api";
+import { ApiError } from "@/lib/api";
+import { useLanguage } from "@/lib/i18n/LanguageContext";
+import type { TranslationKey } from "@/lib/i18n/translations";
+
+// Symbolic error key the page renders, set by mapApiError(). Keeps the
+// human-facing string in the translation table — we never pass the raw
+// English message from the server through to the user.
+type ReceiverErrorKey =
+  | "receiver.error.notFound"
+  | "receiver.error.gateway"
+  | "receiver.error.generic";
 
 type Status =
   | { kind: "loading" }
   | { kind: "ready"; descriptor: ShareDescriptor; key: Uint8Array }
   | { kind: "missing-key" }
-  | { kind: "error"; message: string };
+  | { kind: "error"; messageKey: ReceiverErrorKey };
 
 interface PageProps {
   // Next 15 ships params as a Promise — the React `use()` hook unwraps it.
@@ -51,7 +62,25 @@ function ReceiverFallback() {
   );
 }
 
+/**
+ * Translate a server-side / network failure into a stable translation key
+ * — we never want to render the raw English error string from the gateway
+ * directly, because it bypasses the locale toggle and reads like a bug
+ * report. Coarse mapping is intentional: the receiver shows the same
+ * "expired / burned / wrong id" hint paragraph regardless of cause, so
+ * three buckets (not found, network, generic) is enough.
+ */
+function mapApiError(err: unknown): ReceiverErrorKey {
+  if (err instanceof ApiError) {
+    if (err.status === 0) return "receiver.error.gateway";
+    if (err.status === 404 || err.status === 410) return "receiver.error.notFound";
+    return "receiver.error.generic";
+  }
+  return "receiver.error.generic";
+}
+
 function ShareReceiver({ params }: PageProps) {
+  const { t } = useLanguage();
   // Unwrap the param Promise (Next 15 contract).
   const { id } = usePromise(params);
   const shortId = decodeURIComponent(id);
@@ -78,8 +107,7 @@ function ShareReceiver({ params }: PageProps) {
         if (!cancelled) setStatus({ kind: "ready", descriptor, key });
       } catch (err) {
         if (cancelled) return;
-        const message = err instanceof Error ? err.message : "share not found";
-        setStatus({ kind: "error", message });
+        setStatus({ kind: "error", messageKey: mapApiError(err) });
       }
     })();
 
@@ -92,15 +120,12 @@ function ShareReceiver({ params }: PageProps) {
     <section className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-12 sm:px-6 sm:py-16">
       <header>
         <p className="text-xs font-semibold tracking-wider text-[var(--color-accent)] uppercase">
-          Encrypted share
+          {t("receiver.eyebrow")}
         </p>
         <h1 className="font-display mt-2 text-3xl font-semibold text-[var(--color-fg)] sm:text-4xl">
-          Decrypt + download
+          {t("receiver.title")}
         </h1>
-        <p className="mt-2 text-sm text-[var(--color-muted)]">
-          The decryption happens in this tab. The unlock key was passed to you in the URL fragment
-          and never reaches our servers.
-        </p>
+        <p className="mt-2 text-sm text-[var(--color-muted)]">{t("receiver.subtitle")}</p>
       </header>
 
       <Card>
@@ -110,7 +135,7 @@ function ShareReceiver({ params }: PageProps) {
           ) : status.kind === "missing-key" ? (
             <MissingKeyState />
           ) : status.kind === "error" ? (
-            <ErrorState message={status.message} />
+            <ErrorState messageKey={status.messageKey} />
           ) : (
             <Decrypt shortId={shortId} descriptor={status.descriptor} decryptionKey={status.key} />
           )}
@@ -142,60 +167,57 @@ function LoadingState() {
 }
 
 function MissingKeyState() {
+  const { t } = useLanguage();
   return (
     <div className="flex flex-col gap-3 text-center">
       <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--color-danger)_15%,transparent)] text-[var(--color-danger)]">
         <AlertTriangle className="h-6 w-6" aria-hidden />
       </span>
       <h2 className="font-display text-xl font-semibold text-[var(--color-fg)]">
-        The decryption key is missing.
+        {t("receiver.missingKey.title")}
       </h2>
       <p className="text-sm text-[var(--color-muted)]">
-        Your URL doesn&apos;t contain the part after the <code className="font-mono">#</code>. Some
-        chat apps strip it. Ask the sender to copy and paste the full link directly.
+        {t("receiver.missingKey.bodyBefore")} <code className="font-mono">#</code>
+        {t("receiver.missingKey.bodyAfter")}
       </p>
       <Link
         href="/"
         className="mx-auto mt-2 text-sm font-medium text-[var(--color-accent)] underline-offset-4 hover:underline"
       >
-        Back to home
+        {t("common.backHome")}
       </Link>
     </div>
   );
 }
 
-function ErrorState({ message }: { message: string }) {
+function ErrorState({ messageKey }: { messageKey: TranslationKey }) {
+  const { t } = useLanguage();
   return (
     <div className="flex flex-col gap-3 text-center">
       <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--color-danger)_15%,transparent)] text-[var(--color-danger)]">
         <AlertTriangle className="h-6 w-6" aria-hidden />
       </span>
       <h2 className="font-display text-xl font-semibold text-[var(--color-fg)]">
-        We couldn&apos;t load this share.
+        {t("receiver.error.title")}
       </h2>
-      <p className="text-sm text-[var(--color-muted)]">{message}</p>
-      <p className="text-xs text-[var(--color-muted)]">
-        The most likely cause: the share has expired, was burned after a previous download, or the
-        id is wrong.
-      </p>
+      <p className="text-sm text-[var(--color-muted)]">{t(messageKey)}</p>
+      <p className="text-xs text-[var(--color-muted)]">{t("receiver.error.cause")}</p>
       <Link
         href="/"
         className="mx-auto mt-2 text-sm font-medium text-[var(--color-accent)] underline-offset-4 hover:underline"
       >
-        Back to home
+        {t("common.backHome")}
       </Link>
     </div>
   );
 }
 
 function ReceiverFootnote() {
+  const { t } = useLanguage();
   return (
     <div className="flex items-start gap-3 rounded-lg border border-[var(--color-border)]/60 bg-[var(--color-card)]/60 p-4 text-xs text-[var(--color-muted)]">
       <Shield className="h-4 w-4 shrink-0 text-[var(--color-accent)]" aria-hidden />
-      <p className="leading-relaxed">
-        SlothBox runs in the EU. Your browser performs the decryption and the key never leaves this
-        tab.
-      </p>
+      <p className="leading-relaxed">{t("receiver.footnote")}</p>
     </div>
   );
 }
