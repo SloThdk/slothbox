@@ -35,7 +35,7 @@ public sealed class PostgresShareRepository : IShareRepository
     {
         const string sql =
             """
-            SELECT id, short_id, state, chunk_count, chunk_size, expires_at
+            SELECT id, short_id, state, chunk_count, chunk_size, expires_at, burn_after_read
             FROM shares
             WHERE short_id = @shortId
             LIMIT 1
@@ -61,6 +61,7 @@ public sealed class PostgresShareRepository : IShareRepository
             ChunkCount = reader.GetInt32(3),
             ChunkSize = reader.GetInt32(4),
             ExpiresAt = reader.GetFieldValue<DateTimeOffset>(5),
+            BurnAfterRead = reader.GetBoolean(6),
         };
     }
 
