@@ -33,20 +33,33 @@
 //   bytes left the server. The gateway endpoint stays in place as a
 //   no-op signal for legacy clients but is no longer load-bearing.
 //
-// Parallel-reader defence (v0.2, migration 0007 — single-use chunk tokens):
+// Chunk-token regime (v0.2 migration 0007; v0.2.7 burn-only scoping):
 //   Each chunk uploaded after migration 0007 carries a 32-byte SHA-256
 //   commitment of a client-derived single-use download token. The
 //   recipient presents the raw token as `Authorization: Bearer …`;
 //   we hash incoming and constant-time compare against the stored
-//   commitment. Once `served_at` is non-null, subsequent fetches
-//   return 410 even with the same valid token. Two parallel readers
-//   now race chunk-by-chunk — whichever request wins a given chunk
-//   gets bytes; the other gets 410. Neither party can fully reassemble
-//   the file because they each get a different subset of chunks
-//   (assuming any interleave at all), and AEAD-tag verification will
-//   fail on the missing chunks. The defender's file is safe-but-
-//   undelivered to BOTH parties, which is the right behaviour for a
-//   parallel-reader race (the sender re-uploads and re-shares).
+//   commitment. The token gate establishes per-request that the
+//   requester knows the URL-fragment key — it fires on EVERY chunk
+//   request, first delivery or retry.
+//
+//   v0.2.7 behaviour change: the single-use enforcement (return 410
+//   when served_at is already set) is now SCOPED to burn-after-read
+//   shares. Non-burn shares allow re-downloads of the same chunk as
+//   long as the share is in a servable state and not expired — the
+//   recipient can re-open the link until expires_at, which matches
+//   what the sender's "burn after reading" checkbox semantically
+//   implies. Previously the 410 fired for every share regardless of
+//   the burn flag, which broke legitimate retries (flaky connection,
+//   browser auto-save fail, recipient re-opens link), and the
+//   parallel-reader defence it provided was illusory anyway: in v0.1
+//   the auth model is "knowledge of shortId + URL-fragment key
+//   equals authorisation", so an attacker who intercepted the link
+//   can re-fetch indefinitely regardless of token-burn enforcement.
+//
+//   For burn-after-read shares the original behaviour stands: the
+//   first complete chunk delivery flips served_at, the last chunk to
+//   land triggers state='destroyed' atomically via mark_chunk_served,
+//   and any subsequent fetch returns 410. This is the spec for burn.
 //
 //   Legacy chunks (uploaded before migration 0007) have NULL
 //   download_token_hash. Those rows bypass the token check and
@@ -162,26 +175,28 @@ public static class DownloadEndpoint
             return Results.NotFound(new { error = "chunk_not_found" });
         }
 
-        // Single-use chunk token validation (v0.2, migration 0007).
+        // Chunk-token validation (v0.2, migration 0007; v0.2.7 burn-only scoping).
         //
-        // Three states:
-        //   1. ServedAt is non-null
-        //      → 410 Gone. This chunk was already delivered; the
-        //        single-use property is enforced here. Same response
-        //        regardless of whether the requester is the legitimate
-        //        recipient on retry or a parallel reader who lost the
-        //        race. Returning 410 (not 403) tells a polite client
-        //        that the chunk is permanently unavailable.
-        //   2. DownloadTokenHash is non-null AND ServedAt is null
-        //      → token gate applies. Require Authorization: Bearer
-        //        with a 32-byte raw token that hashes (SHA-256) to the
-        //        stored commitment.
+        // Four states:
+        //   1. ServedAt is non-null AND share is burn-after-read
+        //      → 410 Gone. Burn-after-read shares are single-download
+        //        by spec; the served_at stamp closes the chunk for
+        //        good. Returning 410 (not 403) tells a polite client
+        //        the chunk is permanently unavailable.
+        //   2. ServedAt is non-null AND share is NOT burn-after-read
+        //      → fall through to token validation + serve. The recipient
+        //        is allowed to re-download within the share's TTL window
+        //        because they did not opt into burn-after-read semantics.
+        //   3. DownloadTokenHash is non-null
+        //      → token gate applies on EVERY request (first or retry).
+        //        Require Authorization: Bearer with a 32-byte raw token
+        //        that hashes (SHA-256) to the stored commitment.
         //          - missing/malformed → 401
         //          - hash mismatch → 403
         //          - valid → fall through to serve
-        //   3. DownloadTokenHash is null (legacy chunk, pre-0007)
+        //   4. DownloadTokenHash is null (legacy chunk, pre-0007)
         //      → no token required, serve under v0.1 semantics.
-        if (chunk.ServedAt is not null)
+        if (chunk.ServedAt is not null && share.BurnAfterRead)
         {
             ChunksServed.WithLabels("already_served").Inc();
             return Results.StatusCode(StatusCodes.Status410Gone);
@@ -199,10 +214,12 @@ public static class DownloadEndpoint
                 ChunksServed.WithLabels("bad_token").Inc();
                 return Results.StatusCode(StatusCodes.Status403Forbidden);
             }
-            // Token valid — fall through to serve. The chunk row will
-            // get ServedAt stamped after stream.CopyToAsync returns, at
-            // which point any concurrent re-request will hit branch (1)
-            // above with the same token and receive 410.
+            // Token valid — fall through to serve. For burn-after-read
+            // shares the chunk row gets ServedAt stamped after
+            // stream.CopyToAsync returns, at which point any concurrent
+            // re-request will hit branch (1) above and receive 410.
+            // For non-burn shares ServedAt may already be set from an
+            // earlier successful delivery — re-downloads are by design.
         }
 
         // Set response headers BEFORE writing the body — once the first byte goes
@@ -215,17 +232,18 @@ public static class DownloadEndpoint
         httpContext.Response.Headers["X-Content-Type-Options"] = "nosniff";
 
         // ──────────────────────────────────────────────────────────────
-        // single-use commitment timing — security boundary
+        // served_at commitment timing — security boundary (burn shares)
         //
-        // The single-use chunk token guarantee from migration 0007
-        // requires `served_at` to commit BEFORE a second request can
-        // race with the first. The naive shape (stream → then mark) is
-        // attackable: a client that aborts the TCP connection mid-body
-        // can poison `mark_chunk_served` (the await is cancelled by
-        // the ambient `ct`) while the bytes that already shipped are
-        // gone. A determined attacker can repeat this and re-fetch the
-        // same chunk indefinitely, undermining the v0.2 single-use
-        // hardening.
+        // For burn-after-read shares, `served_at` is the single-use
+        // gate: once stamped, every subsequent fetch of this chunk
+        // returns 410. The commit must land BEFORE a second request
+        // can race with the first. The naive shape (stream → then
+        // mark) is attackable: a client that aborts the TCP connection
+        // mid-body can poison `mark_chunk_served` (the await is
+        // cancelled by the ambient `ct`) while the bytes that already
+        // shipped are gone. A determined attacker could repeat this
+        // and re-fetch the same chunk indefinitely, undermining the
+        // burn semantics.
         //
         // Fix: wrap the stream in try/finally; in `finally`, if the
         // response had already started (any body byte flushed),
@@ -236,11 +254,18 @@ public static class DownloadEndpoint
         // finished cleanly, was cancelled mid-flight, or errored on
         // a MinIO read after the headers were flushed.
         //
-        // What this trades: a legitimate recipient on a flaky mobile
-        // connection who loses mid-stream cannot retry — `served_at`
-        // is now set, the chunk returns 410 Gone, the sender
-        // re-shares. That's the literal meaning of "single use" and
-        // the reviewer's preferred trade-off for a security primitive.
+        // What this trades for burn shares: a legitimate recipient on
+        // a flaky mobile connection who loses mid-stream cannot retry
+        // — `served_at` is now set, the chunk returns 410 Gone, the
+        // sender re-shares. That's the literal meaning of "burn after
+        // reading" and the documented trade-off for the security
+        // primitive.
+        //
+        // For non-burn shares (v0.2.7) the mark still runs but doesn't
+        // gate re-downloads — recipients can retry freely within the
+        // share's TTL. The mark is still useful: it records the first
+        // delivery time and bumps served_count for sender-visible
+        // download analytics.
         // ──────────────────────────────────────────────────────────────
         var bytesStartedLeaving = false;
         try

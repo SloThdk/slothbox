@@ -32,6 +32,16 @@ public sealed record Share
     public required int ChunkSize { get; init; }
     public required DateTimeOffset ExpiresAt { get; init; }
 
+    /// <summary>
+    /// Sender opted into single-download semantics. When true, the
+    /// download endpoint refuses re-fetches of any chunk whose
+    /// served_at is non-null (HTTP 410 Gone) and the share flips to
+    /// state='destroyed' once every chunk has been served. When false,
+    /// the share allows re-downloads within its TTL window — the
+    /// recipient can re-open the link until expires_at.
+    /// </summary>
+    public required bool BurnAfterRead { get; init; }
+
     /// <summary>True iff the share is in a state that accepts new chunk uploads.</summary>
     public bool CanAcceptUploads => State == ShareState.Pending || State == ShareState.Uploading;
 
