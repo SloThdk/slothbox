@@ -580,8 +580,8 @@ export const TRANSLATIONS = {
     da: "Hvorfor “sloth”",
   },
   "about.name.body": {
-    en: "Slow on purpose. Encryption that's rushed is encryption that breaks. Every primitive in this stack is audited, every default is conservative, and every shortcut is documented as such. The brand is a reminder: trust earns itself slowly.",
-    da: "Langsom med vilje. Kryptering, der bliver forhastet, er kryptering, der knækker. Hver primitiv i denne stak er auditeret, hver default er konservativ, og hver genvej er dokumenteret som sådan. Brandet er en påmindelse: tillid optjenes langsomt.",
+    en: "Sloth is my surname. I'm Philip Sloth — solo developer, the only contributor on this repo. The product carries my name because I'm the one accountable when the integration code is wrong. No corporation to point at, no team to share blame with. That's the whole brand.",
+    da: "Sloth er mit efternavn. Jeg hedder Philip Sloth — solo-udvikler, eneste contributor på dette repo. Produktet bærer mit navn fordi jeg er den der er ansvarlig når integrationskoden er forkert. Intet selskab at pege på, intet team at dele skylden med. Det er hele brandet.",
   },
   "about.host.body.lead": {
     en: "Built on a single ARM Linux VM in an EU jurisdiction, with eight other people's open-source projects holding it up. See",
