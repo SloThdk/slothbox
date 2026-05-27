@@ -139,7 +139,10 @@ if errorlevel 1 (
 docker compose version >nul 2>&1
 if errorlevel 1 (
     echo [ERROR] 'docker compose' subcommand missing.
-    echo Update Docker to v2+ (ships with Docker Desktop).
+    REM Parens MUST be escaped inside if-blocks per rules/batch-pitfalls.md.
+    REM Unescaped (text) closes the outer if-block early; cmd then reports
+    REM ". was unexpected at this time" with no useful context.
+    echo Update Docker to v2+ ^(ships with Docker Desktop^).
     pause & exit /b 1
 )
 where node >nul 2>&1
