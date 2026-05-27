@@ -169,10 +169,22 @@ if errorlevel 1 (
     pause & exit /b 1
 )
 
-REM Fresh-clone: install host-side dev tooling if node_modules missing.
+REM Fresh-clone OR fresh-mirror: install host-side dev tooling if any
+REM workspace-package node_modules is missing.
+REM
 REM (containers do their own install inside; this is for the pnpm dev frontend.)
-if not exist "node_modules" (
-    echo [setup] node_modules missing - running pnpm install for host-side dev tooling...
+REM
+REM We test apps\web\node_modules specifically, not just root, because:
+REM   1) robocopy /XD excludes ALL node_modules dirs during the auto-mirror,
+REM      so the first launch in C:\dev\slothbox arrives without any deps.
+REM   2) On subsequent runs root\node_modules can exist (left over from a
+REM      partial install) while apps\web\node_modules is still missing,
+REM      which causes pnpm dev to fail with "'next' is not recognized" —
+REM      the exact silent failure mode we hit on 2026-05-27.
+REM   3) `pnpm install` is idempotent + fast when up-to-date (~1 s), so the
+REM      check-then-skip optimization saves nothing meaningful.
+if not exist "apps\web\node_modules" (
+    echo [setup] apps\web\node_modules missing - running pnpm install for host-side dev tooling...
     call pnpm install
     if errorlevel 1 (
         echo [ERROR] pnpm install failed.
