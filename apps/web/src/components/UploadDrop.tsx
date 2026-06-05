@@ -321,8 +321,16 @@ export function UploadDrop() {
           }}
           onDragLeave={() => setIsDragOver(false)}
           onDrop={state.kind === "uploading" ? undefined : onDrop}
-          onClick={() => {
-            if (state.kind !== "uploading") fileInputRef.current?.click();
+          onClick={(e) => {
+            if (state.kind === "uploading") return;
+            // Ignore clicks that land on an interactive child (e.g. the
+            // "pick a folder" button). Without this guard the dropzone's
+            // own click ALSO fires and opens the FILE picker on top of the
+            // folder picker — two OS dialogs from one click. The button's
+            // stopPropagation should cover this, but the target check is the
+            // robust belt-and-braces fix across browsers/event timing.
+            if ((e.target as HTMLElement).closest("button, a")) return;
+            fileInputRef.current?.click();
           }}
           onKeyDown={(e) => {
             if ((e.key === "Enter" || e.key === " ") && state.kind !== "uploading") {
@@ -389,6 +397,13 @@ export function UploadDrop() {
                 </p>
                 <p className="text-xs font-light text-[var(--color-muted)]">
                   {t("upload.maxNote", { max: formatBytes(MAX_FILE_SIZE_BYTES) })}
+                </p>
+                {/* Reassure the sender that every format works — SlothBox
+                    encrypts raw bytes, so .zip and any other archive /
+                    file type upload as-is (single files) or get packed
+                    into a .zip (folders / multi-select). No accept= filter. */}
+                <p className="text-[0.72rem] leading-snug font-light text-[var(--color-muted-2)]">
+                  {t("upload.formatsNote")}
                 </p>
                 {/* Folder-pick affordance. Clicking the dropzone itself
                     triggers the bare-file picker (multi-select); this
