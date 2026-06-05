@@ -785,6 +785,105 @@ export const TRANSLATIONS = {
     en: "Something went wrong during the upload. Please try again.",
     da: "Noget gik galt under uploadet. Prøv venligst igen.",
   },
+
+  // ── /my-shares — sender dashboard ──────────────────────────────────────
+  "myShares.eyebrow": {
+    en: "Sender dashboard",
+    da: "Afsenderoversigt",
+  },
+  "myShares.heading": {
+    en: "My shares",
+    da: "Mine delinger",
+  },
+  "myShares.intro": {
+    en: "Shares created from this browser, this device. The list lives in your browser's local storage — we don't keep a sender index on the server. Revoke tokens are also stored locally.",
+    da: "Delinger oprettet fra denne browser, denne enhed. Listen ligger i din browsers lokale lager — vi gemmer ikke et afsenderindeks på serveren. Tilbagekaldelses-tokens gemmes også lokalt.",
+  },
+  "myShares.empty.heading": {
+    en: "No shares on this device.",
+    da: "Ingen delinger på denne enhed.",
+  },
+  "myShares.empty.body": {
+    en: "Shares you create from this browser will show up here, with a one-click revoke. If you sent a share from a different device, manage it from that device — there's no central account.",
+    da: "Delinger du opretter fra denne browser dukker op her, med tilbagekald i ét klik. Hvis du sendte en deling fra en anden enhed, så administrér den derfra — der er ingen central konto.",
+  },
+  "myShares.empty.cta": {
+    en: "Send your first file",
+    da: "Send din første fil",
+  },
+  "myShares.row.expires": {
+    en: "expires",
+    da: "udløber",
+  },
+  "myShares.row.burn": {
+    en: "burn after read",
+    da: "brænd efter læsning",
+  },
+  "myShares.row.password": {
+    en: "password-protected",
+    da: "adgangskodebeskyttet",
+  },
+  "myShares.row.revoke": {
+    en: "Revoke",
+    da: "Tilbagekald",
+  },
+  "myShares.row.revoking": {
+    en: "Revoking…",
+    da: "Tilbagekalder…",
+  },
+  "myShares.row.revoked": {
+    en: "Revoked",
+    da: "Tilbagekaldt",
+  },
+  "myShares.row.removeTitle": {
+    en: "Remove from this device",
+    da: "Fjern fra denne enhed",
+  },
+  "myShares.row.removeAria": {
+    en: "Remove from this device without contacting the server",
+    da: "Fjern fra denne enhed uden at kontakte serveren",
+  },
+  "myShares.row.purgeNotice": {
+    en: "The encrypted blob is queued for purge on the next reaper sweep (~60 s).",
+    da: "Den krypterede blob er sat i kø til sletning ved næste oprydning (~60 s).",
+  },
+  "myShares.confirm.revoke": {
+    en: 'Revoke "{name}" now? Anyone holding the link will see a not-found page.',
+    da: 'Tilbagekald "{name}" nu? Alle med linket vil se en "ikke fundet"-side.',
+  },
+  "myShares.toast.revoked": {
+    en: '"{name}" revoked.',
+    da: '"{name}" tilbagekaldt.',
+  },
+  "myShares.toast.revokeFailedHttp": {
+    en: "Revoke failed (HTTP {status}): {message}",
+    da: "Tilbagekald mislykkedes (HTTP {status}): {message}",
+  },
+  "myShares.toast.revokeFailed": {
+    en: "Revoke failed — try again or wait for the share to expire.",
+    da: "Tilbagekald mislykkedes — prøv igen eller vent på at delingen udløber.",
+  },
+  "myShares.expires.soon": {
+    en: "soon",
+    da: "snart",
+  },
+  "myShares.expires.hours": {
+    en: "in {n}h",
+    da: "om {n}t",
+  },
+  "myShares.expires.days": {
+    en: "in {n}d",
+    da: "om {n}d",
+  },
+  "myShares.footer.lostTitle": {
+    en: "Lost a revoke token?",
+    da: "Mistet et tilbagekaldelses-token?",
+  },
+  "myShares.footer.lostBody": {
+    en: "Without the token, a share can only end via its TTL (which you set when sending) or via the recipient's burn-after-read download. We can't help recover one — the trust model forbids it.",
+    da: "Uden tokenet kan en deling kun afsluttes via dens TTL (som du angiver ved afsendelse) eller via modtagerens brænd-efter-læsning-download. Vi kan ikke hjælpe med at gendanne et — tillidsmodellen forbyder det.",
+  },
+
   "upload.preparing": {
     en: "{size} · preparing…",
     da: "{size} · forbereder…",

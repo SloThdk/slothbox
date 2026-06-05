@@ -33,10 +33,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ApiError, destroyShare } from "@/lib/api";
 import { type MySharesEntry, pruneExpired, removeShare } from "@/lib/myShares";
 import { formatBytes } from "@/lib/utils";
+import { useLanguage } from "@/lib/i18n/LanguageContext";
 
 type RowState = { kind: "idle" } | { kind: "revoking" } | { kind: "revoked" } | { kind: "removed" };
 
 export default function MySharesPage() {
+  const { t } = useLanguage();
   const [entries, setEntries] = React.useState<MySharesEntry[]>([]);
   // Per-row state map keyed by shortId. A row's state lifecycle is
   // idle → revoking → revoked (server hit) OR idle → removed (local only).
@@ -60,11 +62,7 @@ export default function MySharesPage() {
 
   const handleRevoke = React.useCallback(
     async (entry: MySharesEntry) => {
-      if (
-        !window.confirm(
-          `Revoke "${entry.fileName}" now? Anyone holding the link will see a not-found page.`
-        )
-      ) {
+      if (!window.confirm(t("myShares.confirm.revoke", { name: entry.fileName }))) {
         return;
       }
       updateRow(entry.shortId, { kind: "revoking" });
@@ -72,19 +70,19 @@ export default function MySharesPage() {
         await destroyShare(entry.shortId, entry.revokeToken);
         removeShare(entry.shortId);
         updateRow(entry.shortId, { kind: "revoked" });
-        toast.success(`"${entry.fileName}" revoked.`);
+        toast.success(t("myShares.toast.revoked", { name: entry.fileName }));
       } catch (err) {
         const message =
           err instanceof ApiError
-            ? `Revoke failed (HTTP ${err.status}): ${err.message}`
-            : "Revoke failed — try again or wait for the share to expire.";
+            ? t("myShares.toast.revokeFailedHttp", { status: err.status, message: err.message })
+            : t("myShares.toast.revokeFailed");
         toast.error(message);
         updateRow(entry.shortId, { kind: "idle" });
         // eslint-disable-next-line no-console
         console.warn("destroyShare error", err);
       }
     },
-    [updateRow]
+    [updateRow, t]
   );
 
   const handleRemoveLocal = React.useCallback(
@@ -109,16 +107,12 @@ export default function MySharesPage() {
   return (
     <section className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-12 sm:px-6 sm:py-16">
       <header>
-        <p className="text-xs font-semibold tracking-wider text-[var(--color-accent)] uppercase">
-          Sender dashboard
-        </p>
-        <h1 className="font-display mt-2 text-3xl font-semibold text-[var(--color-fg)] sm:text-4xl">
-          My shares
+        <p className="eyebrow">{t("myShares.eyebrow")}</p>
+        <h1 className="mt-3 text-4xl font-semibold tracking-[-0.025em] text-[var(--color-fg)] sm:text-5xl">
+          {t("myShares.heading")}
         </h1>
-        <p className="mt-2 text-sm text-[var(--color-muted)]">
-          Shares created from this browser, this device. The list lives in your browser&apos;s local
-          storage — we don&apos;t keep a sender index on the server. Revoke tokens are also stored
-          locally.
+        <p className="mt-4 max-w-2xl text-[1.05rem] leading-relaxed text-[var(--color-muted)]">
+          {t("myShares.intro")}
         </p>
       </header>
 
@@ -141,19 +135,15 @@ export default function MySharesPage() {
             <span className="flex h-12 w-12 items-center justify-center rounded-full bg-[var(--color-accent-soft)] text-[var(--color-accent)]">
               <ShieldOff className="h-6 w-6" aria-hidden />
             </span>
-            <h2 className="font-display text-xl font-semibold text-[var(--color-fg)]">
-              No shares on this device.
+            <h2 className="text-xl font-semibold text-[var(--color-fg)]">
+              {t("myShares.empty.heading")}
             </h2>
-            <p className="max-w-md text-sm text-[var(--color-muted)]">
-              Shares you create from this browser will show up here, with a one-click revoke. If you
-              sent a share from a different device, manage it from that device — there&apos;s no
-              central account.
-            </p>
+            <p className="max-w-md text-sm text-[var(--color-muted)]">{t("myShares.empty.body")}</p>
             <Link
               href="/"
               className="mt-2 text-sm font-medium text-[var(--color-accent)] underline-offset-4 hover:underline"
             >
-              Send your first file
+              {t("myShares.empty.cta")}
             </Link>
           </CardContent>
         </Card>
@@ -173,10 +163,8 @@ export default function MySharesPage() {
 
       <footer className="rounded-lg border border-[var(--color-border)]/60 bg-[var(--color-card)]/60 p-4 text-xs text-[var(--color-muted)]">
         <p className="leading-relaxed">
-          <strong className="text-[var(--color-fg)]">Lost a revoke token?</strong> Without the
-          token, a share can only end via its TTL (which you set when sending) or via the
-          recipient&apos;s burn-after-read download. We can&apos;t help recover one — the trust
-          model forbids it.
+          <strong className="text-[var(--color-fg)]">{t("myShares.footer.lostTitle")}</strong>{" "}
+          {t("myShares.footer.lostBody")}
         </p>
       </footer>
     </section>
@@ -198,9 +186,13 @@ function ShareRow({
   onRevoke: () => void;
   onRemoveLocal: () => void;
 }) {
+  const { t } = useLanguage();
   const isRevoking = state.kind === "revoking";
   const isRevoked = state.kind === "revoked";
-  const expiresHuman = React.useMemo(() => formatExpiresIn(entry.expiresAt), [entry.expiresAt]);
+  const expiresHuman = React.useMemo(
+    () => formatExpiresIn(entry.expiresAt, t),
+    [entry.expiresAt, t]
+  );
 
   return (
     <li className="rounded-xl border border-[var(--color-border)] bg-[var(--color-card)] p-4 sm:p-5">
@@ -212,9 +204,9 @@ function ShareRow({
           <div className="min-w-0">
             <p className="truncate text-sm font-medium text-[var(--color-fg)]">{entry.fileName}</p>
             <p className="truncate text-xs text-[var(--color-muted)]">
-              {formatBytes(entry.fileSize)} · expires {expiresHuman}
-              {entry.burnAfterRead ? " · burn after read" : ""}
-              {entry.passwordProtected ? " · password-protected" : ""}
+              {formatBytes(entry.fileSize)} · {t("myShares.row.expires")} {expiresHuman}
+              {entry.burnAfterRead ? ` · ${t("myShares.row.burn")}` : ""}
+              {entry.passwordProtected ? ` · ${t("myShares.row.password")}` : ""}
             </p>
             <p className="mt-1 font-mono text-[10px] text-[var(--color-muted)]">
               <Lock className="mr-1 inline h-3 w-3" aria-hidden />
@@ -227,21 +219,21 @@ function ShareRow({
           {isRevoked ? (
             <span className="inline-flex items-center gap-1.5 rounded-full bg-[color-mix(in_srgb,var(--color-danger)_15%,transparent)] px-2.5 py-1 text-xs font-medium text-[var(--color-danger)]">
               <Trash2 className="h-3 w-3" aria-hidden />
-              Revoked
+              {t("myShares.row.revoked")}
             </span>
           ) : (
             <>
               <Button variant="secondary" size="sm" onClick={onRevoke} disabled={isRevoking}>
                 <Trash2 className="h-3.5 w-3.5" aria-hidden />
-                {isRevoking ? "Revoking…" : "Revoke"}
+                {isRevoking ? t("myShares.row.revoking") : t("myShares.row.revoke")}
               </Button>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={onRemoveLocal}
                 disabled={isRevoking}
-                aria-label="Remove from this device without contacting the server"
-                title="Remove from this device"
+                aria-label={t("myShares.row.removeAria")}
+                title={t("myShares.row.removeTitle")}
               >
                 <X className="h-3.5 w-3.5" aria-hidden />
               </Button>
@@ -258,7 +250,7 @@ function ShareRow({
       {isRevoked ? (
         <p className="mt-2 flex items-center gap-1.5 text-xs text-[var(--color-muted)]">
           <AlertTriangle className="h-3 w-3 text-[var(--color-danger)]" aria-hidden />
-          The encrypted blob is queued for purge on the next reaper sweep (~60 s).
+          {t("myShares.row.purgeNotice")}
         </p>
       ) : null}
     </li>
@@ -269,15 +261,15 @@ function ShareRow({
 // Small helpers — kept inline since they're only used by the row.
 // ----------------------------------------------------------------------------
 
-function formatExpiresIn(iso: string): string {
+function formatExpiresIn(iso: string, t: ReturnType<typeof useLanguage>["t"]): string {
   try {
     const ms = new Date(iso).getTime() - Date.now();
-    if (!Number.isFinite(ms) || ms <= 0) return "soon";
+    if (!Number.isFinite(ms) || ms <= 0) return t("myShares.expires.soon");
     const hours = Math.round(ms / (1000 * 60 * 60));
-    if (hours < 24) return `in ${hours}h`;
+    if (hours < 24) return t("myShares.expires.hours", { n: hours });
     const days = Math.round(hours / 24);
-    return `in ${days}d`;
+    return t("myShares.expires.days", { n: days });
   } catch {
-    return "soon";
+    return t("myShares.expires.soon");
   }
 }
