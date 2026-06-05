@@ -76,8 +76,8 @@ export function Header() {
   const { t } = useLanguage();
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-[var(--color-glass-stroke)] bg-[var(--color-bg)]/70 backdrop-blur-xl">
-      <div className="mx-auto flex h-16 w-full max-w-[var(--container-xl)] items-center justify-between px-4 sm:px-6">
+    <header className="sticky top-0 z-40 w-full px-3 pt-3 sm:px-5 sm:pt-4">
+      <div className="nav-floating mx-auto flex h-14 w-full max-w-[var(--container-xl)] items-center justify-between pr-2 pl-4 sm:pr-3 sm:pl-5">
         <Link
           href="/"
           className="flex items-center gap-2 transition-opacity hover:opacity-90"

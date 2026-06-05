@@ -179,14 +179,76 @@
     background-color: var(--color-card);
     border: 1px solid var(--color-border);
     border-radius: 14px;
-    box-shadow: var(--shadow-sm);
+    /* Subtle top-edge highlight gives the border a crafted, lit-from-above
+       feel — depth without any glow. */
+    box-shadow:
+      inset 0 1px 0 0 rgba(255, 255, 255, 0.04),
+      var(--shadow-sm);
   }
 
   .glass-elevated {
     background-color: var(--color-card-elevated);
     border: 1px solid var(--color-border-strong);
-    border-radius: 16px;
-    box-shadow: var(--shadow-md);
+    border-radius: 18px;
+    box-shadow:
+      inset 0 1px 0 0 rgba(255, 255, 255, 0.06),
+      var(--shadow-lg);
+  }
+
+  /* Lift-on-hover for interactive cards — a small rise + crisper border +
+     deeper shadow. This is where "flair" comes from: motion + depth, not
+     colour effects. */
+  .lift {
+    transition:
+      transform 0.18s cubic-bezier(0.16, 1, 0.3, 1),
+      border-color 0.18s ease,
+      box-shadow 0.18s ease;
+  }
+  .lift:hover {
+    transform: translateY(-3px);
+    border-color: var(--color-border-strong);
+    box-shadow:
+      inset 0 1px 0 0 rgba(255, 255, 255, 0.05),
+      var(--shadow-lg);
+  }
+
+  /* Confined single-hue product spotlight — a soft teal glow placed BEHIND
+     a focal element (the hero upload card). Single hue, low opacity: reads
+     as ambient product lighting, NOT the multi-colour aurora that got
+     rejected. Always absolutely positioned + behind content. */
+  .hero-spot {
+    position: absolute;
+    border-radius: 9999px;
+    background: radial-gradient(closest-side, rgba(43, 196, 173, 0.18), transparent 78%);
+    filter: blur(36px);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* Floating nav bar — a rounded, bordered, slightly translucent pill that
+     sits off the top edge (the Raycast/Vercel detail that reads premium). */
+  .nav-floating {
+    background-color: color-mix(in srgb, var(--color-bg-2) 72%, transparent);
+    border: 1px solid var(--color-border);
+    border-radius: 9999px;
+    backdrop-filter: blur(16px) saturate(140%);
+    -webkit-backdrop-filter: blur(16px) saturate(140%);
+    box-shadow:
+      inset 0 1px 0 0 rgba(255, 255, 255, 0.05),
+      var(--shadow-md);
+  }
+
+  /* Small trust / status chip — bordered pill for the hero credibility row. */
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    border: 1px solid var(--color-border);
+    background-color: var(--color-card);
+    border-radius: 9999px;
+    padding: 0.4rem 0.75rem;
+    font-size: 0.78rem;
+    color: var(--color-fg-2);
   }
 
   /* Clickable card hover — a brighter border, no fill wash, no glow. */
@@ -225,12 +287,12 @@
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
-    height: 2.75rem;
-    padding-inline: 1.35rem;
-    border-radius: 8px;
+    height: 3.1rem;
+    padding-inline: 1.7rem;
+    border-radius: 10px;
     background-color: var(--color-solid);
     color: var(--color-on-solid);
-    font-size: 0.925rem;
+    font-size: 1rem;
     font-weight: 600;
     cursor: pointer;
     box-shadow: var(--shadow-sm);
