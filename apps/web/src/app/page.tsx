@@ -29,22 +29,20 @@ function Hero() {
   const { t } = useLanguage();
 
   return (
-    <section className="mx-auto w-full max-w-[var(--container-2xl)] px-4 pt-20 pb-24 sm:px-6 sm:pt-28 sm:pb-32">
-      <div className="grid grid-cols-1 items-center gap-14 lg:grid-cols-[minmax(0,1fr)_minmax(0,540px)] lg:gap-20">
+    <section className="relative mx-auto w-full max-w-[var(--container-2xl)] px-4 pt-16 pb-24 sm:px-6 sm:pt-24 sm:pb-32">
+      <div className="grid grid-cols-1 items-center gap-14 lg:grid-cols-[minmax(0,1fr)_minmax(0,500px)] lg:gap-20">
         {/* Left column — copy block */}
-        <div className="animate-in-fade flex flex-col gap-8 pt-2">
-          {/* Status pill — minimal mono caps, glass background */}
-          <span className="glass inline-flex w-fit items-center gap-2.5 rounded-full px-4 py-2">
+        <div className="animate-in-fade flex flex-col gap-7 pt-2">
+          {/* Status chip */}
+          <span className="chip w-fit font-mono tracking-[0.16em] uppercase">
             <span className="animate-pulse-soft inline-flex h-1.5 w-1.5 rounded-full bg-[var(--color-accent)]" />
-            <span className="font-mono text-[0.7rem] tracking-[0.18em] text-[var(--color-fg-2)] uppercase">
-              {t("hero.statusPill")}
-            </span>
+            {t("hero.statusPill")}
           </span>
 
-          {/* Hero headline. Solid white, tight tracking — the reference-set
-              look. Hierarchy comes from weight + a muted closing line, never
-              from gradient or colour effects. */}
-          <h1 className="text-[2.85rem] leading-[1.04] font-medium tracking-[-0.03em] text-[var(--color-fg)] sm:text-[3.6rem] md:text-[4.25rem] lg:text-[4.6rem]">
+          {/* Hero headline — big + bold, solid white, tight tracking. The
+              weight + scale carry the presence; the muted closing line gives
+              hierarchy. No gradient, no colour effects. */}
+          <h1 className="text-[3rem] leading-[1.02] font-semibold tracking-[-0.035em] text-[var(--color-fg)] sm:text-[3.85rem] md:text-[4.4rem] lg:text-[4.7rem]">
             {t("hero.headline.l1")}
             <br />
             {t("hero.headline.l2")}
@@ -52,7 +50,7 @@ function Hero() {
             <span className="text-[var(--color-muted)]">{t("hero.headline.l3")}</span>
           </h1>
 
-          <p className="max-w-[46ch] text-[1.05rem] leading-[1.6] font-normal text-[var(--color-fg-2)]">
+          <p className="max-w-[46ch] text-[1.2rem] leading-[1.6] font-normal text-[var(--color-fg-2)]">
             {t("hero.copy.before")}{" "}
             <code className="rounded-md border border-[var(--color-accent-tint)] bg-[var(--color-accent-soft)] px-1.5 py-0.5 font-mono text-[0.85em] text-[var(--color-accent)]">
               #
@@ -60,29 +58,43 @@ function Hero() {
             {t("hero.copy.after")}
           </p>
 
-          {/* CTAs — the single accent-filled primary (btn-primary) plus a
-              quiet text link. Only ONE accent button on the page. */}
-          <div className="flex flex-wrap items-center gap-5 pt-2">
+          {/* CTAs — solid white primary + a quiet text link. */}
+          <div className="flex flex-wrap items-center gap-5 pt-1">
             <Link href="/security" className="btn-primary group">
               {t("hero.cta.primary")}
               <ArrowRight
-                className="h-4 w-4 transition-transform group-hover:translate-x-0.5"
+                className="h-[18px] w-[18px] transition-transform group-hover:translate-x-0.5"
                 aria-hidden
                 strokeWidth={2.25}
               />
             </Link>
             <Link
               href="/about"
-              className="text-sm font-medium text-[var(--color-fg-2)] underline-offset-[5px] transition-colors hover:text-[var(--color-fg)] hover:underline"
+              className="text-[0.95rem] font-medium text-[var(--color-fg-2)] underline-offset-[5px] transition-colors hover:text-[var(--color-fg)] hover:underline"
             >
               {t("hero.cta.secondary")}
             </Link>
           </div>
+
+          {/* Trust row — technical credibility chips. Factual proper nouns,
+              kept verbatim across locales (they match the OG card). */}
+          <div className="flex flex-wrap items-center gap-2.5 pt-4">
+            <span className="chip font-mono text-[0.72rem]">XChaCha20-Poly1305</span>
+            <span className="chip text-[0.78rem]">EU-hosted</span>
+            <span className="chip text-[0.78rem]">No accounts</span>
+            <span className="chip text-[0.78rem]">Open source</span>
+          </div>
         </div>
 
-        {/* Right column — upload widget, a solid bordered card (no glow). */}
-        <div className="animate-in-fade flex w-full justify-center lg:justify-end">
-          <div className="w-full max-w-[500px]">
+        {/* Right column — upload widget as a product showpiece: a single-hue
+            teal spotlight behind it (product lighting, not the rejected
+            multi-colour aurora) + the elevated, depth-layered card on top. */}
+        <div className="animate-in-fade relative flex w-full justify-center lg:justify-end">
+          <div
+            className="hero-spot top-2 right-2 bottom-6 left-2 sm:top-4 sm:right-8 sm:bottom-8 sm:left-8"
+            aria-hidden
+          />
+          <div className="relative z-10 w-full max-w-[480px]">
             <UploadDrop />
           </div>
         </div>
@@ -129,10 +141,10 @@ function WhyNotAlternatives() {
 
       <div className="mb-14 max-w-2xl">
         <p className="eyebrow">{t("whyNot.eyebrow")}</p>
-        <h2 className="mt-4 text-[2rem] leading-[1.15] font-light text-[var(--color-fg)] sm:text-[2.5rem]">
+        <h2 className="mt-4 text-[2.25rem] leading-[1.1] font-semibold tracking-[-0.02em] text-[var(--color-fg)] sm:text-[2.9rem]">
           {t("whyNot.heading")}
         </h2>
-        <p className="mt-6 max-w-[58ch] text-[1.0rem] leading-[1.65] font-light text-[var(--color-fg-2)]">
+        <p className="mt-6 max-w-[58ch] text-[1.1rem] leading-[1.6] font-normal text-[var(--color-fg-2)]">
           {t("whyNot.lede")}
         </p>
       </div>
@@ -159,7 +171,7 @@ function WhyNotAlternatives() {
               <div className="text-[1rem] font-medium text-[var(--color-fg)] sm:self-center">
                 {t(row.productKey)}
               </div>
-              <div className="text-[0.95rem] leading-[1.6] font-light text-[var(--color-fg-2)] sm:self-center sm:border-l sm:border-[var(--color-glass-stroke)] sm:pl-6">
+              <div className="text-[1rem] leading-[1.6] font-normal text-[var(--color-fg-2)] sm:self-center sm:border-l sm:border-[var(--color-glass-stroke)] sm:pl-6">
                 {t(row.bodyKey)}
               </div>
             </li>
@@ -197,25 +209,24 @@ function UseCases() {
 
       <div className="mb-14 max-w-2xl">
         <p className="eyebrow">{t("useCases.eyebrow")}</p>
-        <h2 className="mt-4 text-[2rem] leading-[1.15] font-light text-[var(--color-fg)] sm:text-[2.5rem]">
+        <h2 className="mt-4 text-[2.25rem] leading-[1.1] font-semibold tracking-[-0.02em] text-[var(--color-fg)] sm:text-[2.9rem]">
           {t("useCases.heading")}
         </h2>
-        <p className="mt-6 max-w-[58ch] text-[1.0rem] leading-[1.65] font-light text-[var(--color-fg-2)]">
+        <p className="mt-6 max-w-[58ch] text-[1.1rem] leading-[1.6] font-normal text-[var(--color-fg-2)]">
           {t("useCases.lede")}
         </p>
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         {USE_CASE_KEYS.map((item, i) => (
-          <article
-            key={item.titleKey}
-            className="glass flex flex-col gap-3 p-7 transition-colors hover:border-[var(--color-glass-stroke-strong)]"
-          >
+          <article key={item.titleKey} className="glass lift flex flex-col gap-3.5 p-8">
             <span className="font-mono text-[0.7rem] tracking-[0.18em] text-[var(--color-muted-2)]">
               {String(i + 1).padStart(2, "0")}
             </span>
-            <h3 className="text-[1.1rem] font-medium text-[var(--color-fg)]">{t(item.titleKey)}</h3>
-            <p className="text-[0.95rem] leading-[1.6] font-light text-[var(--color-fg-2)]">
+            <h3 className="text-[1.2rem] font-semibold text-[var(--color-fg)]">
+              {t(item.titleKey)}
+            </h3>
+            <p className="text-[1rem] leading-[1.6] font-normal text-[var(--color-fg-2)]">
               {t(item.bodyKey)}
             </p>
           </article>
@@ -252,22 +263,21 @@ function Guarantees() {
 
       <div className="mb-14 max-w-2xl">
         <p className="eyebrow">{t("guarantees.eyebrow")}</p>
-        <h2 className="mt-4 text-[2rem] leading-[1.15] font-light text-[var(--color-fg)] sm:text-[2.5rem]">
+        <h2 className="mt-4 text-[2.25rem] leading-[1.1] font-semibold tracking-[-0.02em] text-[var(--color-fg)] sm:text-[2.9rem]">
           {t("guarantees.heading")}
         </h2>
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         {GUARANTEE_KEYS.map((item, i) => (
-          <article
-            key={item.titleKey}
-            className="glass flex flex-col gap-3 p-7 transition-colors hover:border-[var(--color-glass-stroke-strong)]"
-          >
+          <article key={item.titleKey} className="glass lift flex flex-col gap-3.5 p-8">
             <span className="font-mono text-[0.7rem] tracking-[0.18em] text-[var(--color-muted-2)]">
               {String(i + 1).padStart(2, "0")}
             </span>
-            <h3 className="text-[1.1rem] font-medium text-[var(--color-fg)]">{t(item.titleKey)}</h3>
-            <p className="text-[0.95rem] leading-[1.6] font-light text-[var(--color-fg-2)]">
+            <h3 className="text-[1.2rem] font-semibold text-[var(--color-fg)]">
+              {t(item.titleKey)}
+            </h3>
+            <p className="text-[1rem] leading-[1.6] font-normal text-[var(--color-fg-2)]">
               {t(item.bodyKey)}
             </p>
           </article>
@@ -300,7 +310,7 @@ function HowItWorks() {
 
       <div className="mb-14 max-w-2xl">
         <p className="eyebrow">{t("how.eyebrow")}</p>
-        <h2 className="mt-4 text-[2rem] leading-[1.15] font-light text-[var(--color-fg)] sm:text-[2.5rem]">
+        <h2 className="mt-4 text-[2.25rem] leading-[1.1] font-semibold tracking-[-0.02em] text-[var(--color-fg)] sm:text-[2.9rem]">
           {t("how.heading")}
         </h2>
       </div>
@@ -316,8 +326,10 @@ function HowItWorks() {
                 {t("how.step.label")}
               </span>
             </div>
-            <h3 className="text-[1.1rem] font-medium text-[var(--color-fg)]">{t(step.titleKey)}</h3>
-            <p className="text-[0.95rem] leading-[1.6] font-light text-[var(--color-fg-2)]">
+            <h3 className="text-[1.2rem] font-semibold text-[var(--color-fg)]">
+              {t(step.titleKey)}
+            </h3>
+            <p className="text-[1rem] leading-[1.6] font-normal text-[var(--color-fg-2)]">
               {t(step.bodyKey)}
             </p>
           </li>
@@ -383,10 +395,10 @@ function Tradeoffs() {
 
       <div className="mb-14 max-w-2xl">
         <p className="eyebrow">{t("tradeoffs.eyebrow")}</p>
-        <h2 className="mt-4 text-[2rem] leading-[1.15] font-light text-[var(--color-fg)] sm:text-[2.5rem]">
+        <h2 className="mt-4 text-[2.25rem] leading-[1.1] font-semibold tracking-[-0.02em] text-[var(--color-fg)] sm:text-[2.9rem]">
           {t("tradeoffs.heading")}
         </h2>
-        <p className="mt-6 max-w-[58ch] text-[1.0rem] leading-[1.65] font-light text-[var(--color-fg-2)]">
+        <p className="mt-6 max-w-[58ch] text-[1.1rem] leading-[1.6] font-normal text-[var(--color-fg-2)]">
           {t("tradeoffs.lede")}
         </p>
       </div>
@@ -402,7 +414,7 @@ function Tradeoffs() {
             <h3 className="text-[1.05rem] font-medium text-[var(--color-fg)]">
               {t(item.titleKey)}
             </h3>
-            <p className="text-[0.95rem] leading-[1.6] font-light text-[var(--color-fg-2)]">
+            <p className="text-[1rem] leading-[1.6] font-normal text-[var(--color-fg-2)]">
               {t(item.bodyKey)}
             </p>
           </li>
@@ -428,7 +440,7 @@ function FooterCta() {
           <h3 className="mt-4 text-[1.5rem] leading-[1.2] font-light text-[var(--color-fg)] sm:text-[1.75rem]">
             {t("ctaBlock.heading")}
           </h3>
-          <p className="mt-4 max-w-lg text-[0.95rem] leading-[1.6] font-light text-[var(--color-fg-2)]">
+          <p className="mt-4 max-w-lg text-[1rem] leading-[1.6] font-normal text-[var(--color-fg-2)]">
             {t("ctaBlock.body")}
           </p>
         </div>
