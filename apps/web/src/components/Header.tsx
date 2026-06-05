@@ -66,7 +66,7 @@ function Wordmark() {
         <CubeMark size={22} />
       </span>
       <span className="text-[1.2rem] leading-none font-semibold tracking-tight text-[var(--color-fg)]">
-        Sloth<span className="text-aurora">Box</span>
+        SlothBox
       </span>
     </span>
   );

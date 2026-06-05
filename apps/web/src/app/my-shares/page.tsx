@@ -206,7 +206,7 @@ function ShareRow({
     <li className="rounded-xl border border-[var(--color-border)] bg-[var(--color-card)] p-4 sm:p-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex min-w-0 items-center gap-3">
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-[var(--color-accent)] to-[var(--color-accent-2)] text-[#04221b]">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-[var(--color-border)] bg-[var(--color-accent-soft)] text-[var(--color-accent)]">
             <FileLock2 className="h-5 w-5" aria-hidden />
           </span>
           <div className="min-w-0">

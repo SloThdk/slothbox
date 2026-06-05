@@ -31,12 +31,11 @@ export default async function OgImage() {
         alignItems: "flex-start",
         justifyContent: "center",
         padding: "80px",
-        // Deep near-black canvas with a teal→violet aurora lift in the
-        // corner. Matches --color-bg + the ambient gradients in
-        // globals.css so a visitor jumping from a social-preview crawl
-        // to the live site sees the same identity.
+        // Flat neutral near-black with a single faint top highlight — no
+        // brand-colour bloom. Matches --color-bg in globals.css so the
+        // social-preview and the live site read as the same product.
         background:
-          "radial-gradient(1100px 520px at 100% 0%, rgba(46,230,198,0.14), transparent 60%), radial-gradient(900px 500px at 0% 100%, rgba(139,123,255,0.10), transparent 60%), #060910",
+          "radial-gradient(1200px 600px at 70% -15%, rgba(255,255,255,0.035), transparent 60%), #08090b",
         fontFamily: "Inter, system-ui, sans-serif",
       }}
     >
@@ -63,9 +62,9 @@ export default async function OgImage() {
             strokeWidth="1"
           />
           {/* Isometric cube — same coords as Header CubeMark + favicon. */}
-          <path d="M16 4.5 L26 10 L16 15.5 L6 10 Z" fill="#2ee6c6" />
-          <path d="M6 10 L16 15.5 L16 27 L6 21.5 Z" fill="#0fb89c" />
-          <path d="M26 10 L16 15.5 L16 27 L26 21.5 Z" fill="#118a78" />
+          <path d="M16 4.5 L26 10 L16 15.5 L6 10 Z" fill="#2bc4ad" />
+          <path d="M6 10 L16 15.5 L16 27 L6 21.5 Z" fill="#169683" />
+          <path d="M26 10 L16 15.5 L16 27 L26 21.5 Z" fill="#0f5e52" />
         </svg>
         <div
           style={{
@@ -98,7 +97,7 @@ export default async function OgImage() {
           gap: "40px",
           marginTop: "64px",
           fontSize: "24px",
-          color: "#2ee6c6",
+          color: "#2bc4ad",
           fontFamily: "JetBrains Mono, ui-monospace, monospace",
         }}
       >

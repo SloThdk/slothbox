@@ -22,12 +22,11 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        // Primary CTA. Aurora-teal accent fill on near-black ink
-        // (--color-on-accent), with a soft teal glow beneath that reads
-        // as ambient accent light. Hover lifts to the brighter teal +
-        // a stronger glow.
+        // Primary CTA — solid near-white pill, near-black ink (the
+        // Linear/Vercel move). No coloured glow; a subtle neutral shadow
+        // only. This is the single highest-signal "real product" element.
         primary:
-          "bg-[var(--color-accent)] text-[var(--color-on-accent)] font-semibold hover:bg-[var(--color-accent-strong)] active:scale-[0.99] shadow-[var(--shadow-accent)] hover:shadow-[0_16px_48px_-10px_rgba(46,230,198,0.5)]",
+          "bg-[var(--color-solid)] text-[var(--color-on-solid)] font-semibold hover:bg-[var(--color-solid-hover)] active:scale-[0.99] shadow-[var(--shadow-sm)]",
         secondary:
           "bg-[var(--color-card)] text-[var(--color-fg)] border border-[var(--color-border)] hover:border-[var(--color-accent-tint)] hover:bg-[var(--color-card-elevated)]",
         ghost: "bg-transparent text-[var(--color-fg)] hover:bg-[var(--color-card)]",
