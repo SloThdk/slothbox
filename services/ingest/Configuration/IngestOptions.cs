@@ -62,6 +62,17 @@ public sealed class IngestOptions
     /// <summary>Required nonce length after base64url decode. XChaCha20-Poly1305.</summary>
     public int NonceBytes { get; set; } = 24;
 
+    /// <summary>
+    /// AEAD authentication-tag length appended to every chunk's ciphertext.
+    /// libsodium's XChaCha20-Poly1305 (crypto_aead_xchacha20poly1305_ietf)
+    /// appends a fixed 16-byte Poly1305 tag to each encrypted chunk. The
+    /// sender declares <c>ChunkSize</c> as the PLAINTEXT slice size, so the
+    /// body actually PUT for a full chunk is <c>ChunkSize + AeadTagBytes</c>.
+    /// The upload size checks add this so they compare ciphertext-to-ciphertext
+    /// instead of ciphertext-to-plaintext — see UploadEndpoint.HandleAsync.
+    /// </summary>
+    public int AeadTagBytes { get; set; } = 16;
+
     // ─── Validation ─────────────────────────────────────────────
     /// <summary>
     /// Run DataAnnotations validation. Returns a non-empty string of error messages
