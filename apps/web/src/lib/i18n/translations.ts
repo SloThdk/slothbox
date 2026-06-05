@@ -685,6 +685,10 @@ export const TRANSLATIONS = {
     en: "Up to {max} · sealed in your browser before upload",
     da: "Op til {max} · forseglet i din browser før upload",
   },
+  "upload.formatsNote": {
+    en: "Any file type — images, video, docs, .zip & other archives. Everything's accepted.",
+    da: "Alle filtyper — billeder, video, dokumenter, .zip og andre arkiver. Alt er tilladt.",
+  },
   "upload.dropPromptMulti": {
     en: "Drop a file, a folder, or many — encrypted before upload",
     da: "Slip en fil, en mappe eller flere — krypteret før upload",
