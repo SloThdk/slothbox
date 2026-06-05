@@ -22,13 +22,12 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        // Primary CTA. Sky-blue accent on slate text — matches the
-        // visionOS dark-glass palette. The drop-shadow uses the same
-        // sky-blue rgba (not the v0.1 champagne-gold leftover) so the
-        // glow under the button reads as ambient accent light rather
-        // than a separate warm-on-cool stamp.
+        // Primary CTA. Aurora-teal accent fill on near-black ink
+        // (--color-on-accent), with a soft teal glow beneath that reads
+        // as ambient accent light. Hover lifts to the brighter teal +
+        // a stronger glow.
         primary:
-          "bg-[var(--color-accent)] text-[var(--color-bg)] hover:bg-[var(--color-accent-strong)] active:scale-[0.99] shadow-[0_4px_24px_-10px_rgba(91,158,255,0.45)]",
+          "bg-[var(--color-accent)] text-[var(--color-on-accent)] font-semibold hover:bg-[var(--color-accent-strong)] active:scale-[0.99] shadow-[var(--shadow-accent)] hover:shadow-[0_16px_48px_-10px_rgba(46,230,198,0.5)]",
         secondary:
           "bg-[var(--color-card)] text-[var(--color-fg)] border border-[var(--color-border)] hover:border-[var(--color-accent-tint)] hover:bg-[var(--color-card-elevated)]",
         ghost: "bg-transparent text-[var(--color-fg)] hover:bg-[var(--color-card)]",

@@ -31,16 +31,17 @@ export default async function OgImage() {
         alignItems: "flex-start",
         justifyContent: "center",
         padding: "80px",
-        // visionOS-style deep slate with a subtle diagonal lift toward
-        // the navy variant. Matches --color-bg / --color-bg-elev in
+        // Deep near-black canvas with a teal→violet aurora lift in the
+        // corner. Matches --color-bg + the ambient gradients in
         // globals.css so a visitor jumping from a social-preview crawl
-        // to the live site sees the same palette.
-        background: "linear-gradient(135deg, #0a0d14 0%, #0d1220 100%)",
+        // to the live site sees the same identity.
+        background:
+          "radial-gradient(1100px 520px at 100% 0%, rgba(46,230,198,0.14), transparent 60%), radial-gradient(900px 500px at 0% 100%, rgba(139,123,255,0.10), transparent 60%), #060910",
         fontFamily: "Inter, system-ui, sans-serif",
       }}
     >
-      {/* Box-with-keyhole glyph echoing the favicon + Header Wordmark.
-          Single brand mark across all three surfaces. */}
+      {/* Isometric-cube glyph echoing the favicon + Header CubeMark.
+          Single brand mark across all four surfaces. */}
       <div
         style={{
           display: "flex",
@@ -50,7 +51,7 @@ export default async function OgImage() {
         }}
       >
         <svg width="120" height="120" viewBox="0 0 32 32">
-          <rect width="32" height="32" rx="6" fill="#0a0d14" />
+          <rect width="32" height="32" rx="6" fill="rgba(255,255,255,0.04)" />
           <rect
             x="0.5"
             y="0.5"
@@ -58,22 +59,13 @@ export default async function OgImage() {
             height="31"
             rx="5.5"
             fill="none"
-            stroke="rgba(255,255,255,0.08)"
+            stroke="rgba(255,255,255,0.12)"
             strokeWidth="1"
           />
-          {/* Box outline + keyhole — same coords as Header Wordmark. */}
-          <rect
-            x="6"
-            y="6"
-            width="20"
-            height="20"
-            rx="3.5"
-            stroke="#5b9eff"
-            strokeWidth="2"
-            fill="none"
-          />
-          <circle cx="16" cy="14.5" r="2" fill="#5b9eff" />
-          <rect x="15" y="14.5" width="2" height="5" fill="#5b9eff" />
+          {/* Isometric cube — same coords as Header CubeMark + favicon. */}
+          <path d="M16 4.5 L26 10 L16 15.5 L6 10 Z" fill="#2ee6c6" />
+          <path d="M6 10 L16 15.5 L16 27 L6 21.5 Z" fill="#0fb89c" />
+          <path d="M26 10 L16 15.5 L16 27 L26 21.5 Z" fill="#118a78" />
         </svg>
         <div
           style={{
@@ -106,7 +98,7 @@ export default async function OgImage() {
           gap: "40px",
           marginTop: "64px",
           fontSize: "24px",
-          color: "#5b9eff",
+          color: "#2ee6c6",
           fontFamily: "JetBrains Mono, ui-monospace, monospace",
         }}
       >

@@ -1,23 +1,28 @@
 /*
- * SlothBox global stylesheet — visionOS-inspired dark glass.
+ * SlothBox global stylesheet — "aurora glass" dark identity.
  *
  * Tailwind v4 entrypoint. Theme tokens live in `@theme`; surfaces, motion,
  * and ambient lighting live in @layer base / components below.
  *
- * Visual identity: deep cool slate base, frosted-glass surfaces with
- * backdrop-blur, ambient overhead light, ONE soft accent (sky-blue) used
- * sparingly. Direct lift of the visionOS panel aesthetic — translucent
- * cards floating in space, lit from above, no decoration. The point is
- * restraint: a security product earns trust through composure, not through
- * gradient hero text and pulsing neon CTAs.
+ * Visual identity (v0.3 refresh): a near-black cool-slate canvas, frosted
+ * glass surfaces lit from above, and ONE signature accent — a luminous
+ * aurora TEAL (not the generic SaaS sky-blue it replaced). Teal reads as
+ * "cryptographic / encrypted / precise" and is distinctive rather than
+ * template-default. A second accent (soft violet) appears ONLY in the
+ * ambient background gradients to give the canvas depth — never on text,
+ * never on a control.
  *
- * What this design DELIBERATELY avoids:
- *   - Gradient text (overused 2024 SaaS-template hero aesthetic)
- *   - Lucide icons in colored circles with glow
- *   - Drop shadows on cards (real ambient light only)
- *   - Decorative serif italics mid-sentence
- *   - "Three-column features grid" with stock icons
- *   - Centered-everything hero with one giant headline
+ * The brief that drove this refresh: the previous flat sky-blue build read
+ * as a demo. The fix is not decoration-for-decoration's-sake — it's a
+ * bigger type + spacing scale, a richer (but still restrained) accent, real
+ * elevation on the focal surfaces, and one tasteful gradient reserved for a
+ * single hero word + the wordmark. A security product earns trust through
+ * composure; "premium" here means precise, not loud.
+ *
+ * Token-name compatibility: every token name from the prior build is kept
+ * (only values changed) so existing component class references keep working.
+ * New tokens are additive (--color-accent-2, --color-on-accent, shadow-*,
+ * --container-2xl, etc.).
  */
 
 @import "tailwindcss";
@@ -26,67 +31,89 @@
  * Theme tokens — CSS-first.
  * -------------------------------------------------------------------------- */
 @theme {
-  /* Base canvas — very deep slate with a subtle blue undertone. Pure black
-     reads as "void"; this colour reads as "darkened glass against the sky". */
-  --color-bg: #0a0d14;
+  /* Base canvas — near-black with a faint cool undertone. Deeper than the
+     prior #0a0d14 so the glass surfaces and the teal accent read brighter
+     against it (more contrast = more "premium product", less "flat demo"). */
+  --color-bg: #060910;
+  --color-bg-2: #0a0e17;
 
   /* Solid surfaces (used SPARINGLY — most cards are glass, see below). */
-  --color-card: #14181f;
-  --color-card-elevated: #1a1f29;
+  --color-card: #11151e;
+  --color-card-elevated: #171c28;
 
   /* Foreground — luminous off-white, never #ffffff. Pure white on dark
      reads as harsh; this is the colour of a frosted lightbulb. */
-  --color-fg: #f0f4fa;
-  --color-fg-2: #cdd5e2;
-  --color-muted: #8a93a5;
-  /* `--color-muted-2` is the eyebrow / step-label colour used across the
-     landing page (`01 / STEP`, `Encrypted locally / STEP`, etc.) and on
-     /how. The previous value `#5e6878` rendered ~3.4:1 on `--color-bg`,
-     under WCAG AA's 4.5:1 floor for sub-18px text — Lighthouse a11y
-     flagged every step-label on the 2026-05-15 audit. Bumped to
-     `#7c8696` (~5.3:1) so the eyebrow stays visually subdued but
-     passes the contrast bar; the hierarchy with `--color-muted`
-     (~5.5:1) is preserved by tracking + font-mono + uppercase
-     treatment rather than a 30%-darker shade. */
-  --color-muted-2: #7c8696;
+  --color-fg: #f3f6fc;
+  --color-fg-2: #c7d0de;
+  --color-muted: #939db0;
+  /* `--color-muted-2` is the eyebrow / step-label colour. Kept at a
+     contrast-safe value (~5.3:1 on the canvas) — Lighthouse a11y flagged
+     anything darker on the 2026-05-15 audit. The subdued feel comes from
+     mono + uppercase + tracking, not from a darker shade. */
+  --color-muted-2: #818b9c;
 
-  /* Glass strokes — used as 1-pixel hairlines on every translucent surface
-     to give it edge definition. White at low alpha reads as "light reflecting
-     off a glass edge", which is exactly the vision OS panel signature. */
-  --color-glass-stroke: rgba(255, 255, 255, 0.08);
-  --color-glass-stroke-strong: rgba(255, 255, 255, 0.14);
+  /* Glass strokes — 1px hairlines on every translucent surface for edge
+     definition. White at low alpha reads as light catching a glass edge —
+     the signature of the panel aesthetic. Nudged slightly brighter than the
+     prior build so panels feel more defined / less washed out. */
+  --color-glass-stroke: rgba(255, 255, 255, 0.09);
+  --color-glass-stroke-strong: rgba(255, 255, 255, 0.16);
   --color-glass-fill: rgba(255, 255, 255, 0.04);
-  --color-glass-fill-elevated: rgba(255, 255, 255, 0.06);
+  --color-glass-fill-elevated: rgba(255, 255, 255, 0.065);
 
   /* Solid borders — when we genuinely need a non-translucent line. */
-  --color-border: #1f2531;
-  --color-border-strong: #2a3140;
+  --color-border: #1d2330;
+  --color-border-strong: #2b3346;
 
-  /* Accent — soft sky-blue. Used ONLY for: primary CTAs, the active link
-     state, and the upload zone hover. Never decorative. */
-  --color-accent: #5b9eff;
-  --color-accent-strong: #7eb3ff;
-  --color-accent-soft: rgba(91, 158, 255, 0.12);
-  --color-accent-tint: rgba(91, 158, 255, 0.22);
-  --color-accent-glow: rgba(91, 158, 255, 0.06);
+  /* ── Accent — signature aurora teal ──────────────────────────────────
+     Used for: primary CTAs, active link state, focal numerals, the upload
+     zone hover, focus rings. Distinct from the old sky-blue; reads as
+     "encrypted". `--color-on-accent` is the near-black ink that sits ON a
+     teal fill (dark-on-light, very high contrast — passes AA comfortably). */
+  --color-accent: #2ee6c6;
+  --color-accent-strong: #5ff2da;
+  --color-accent-deep: #0fb89c;
+  --color-on-accent: #03130f;
+  --color-accent-soft: rgba(46, 230, 198, 0.12);
+  --color-accent-tint: rgba(46, 230, 198, 0.24);
+  --color-accent-glow: rgba(46, 230, 198, 0.16);
+
+  /* Secondary accent — soft violet. AMBIENT-ONLY (background gradients,
+     the wordmark gradient). Never on body text or a control. Pairing a
+     cool teal with a violet glow is what gives the canvas its "aurora"
+     depth instead of a single flat hue. */
+  --color-accent-2: #8b7bff;
+  --color-accent-2-soft: rgba(139, 123, 255, 0.1);
 
   /* Danger — warm coral, very sparingly used (burn-after-read warnings).
      Cool palette overall + one warm signal makes the warning unmissable. */
   --color-danger: #ff7a85;
   --color-danger-soft: rgba(255, 122, 133, 0.12);
 
-  /* Type stack — Inter for everything. No Playfair. visionOS is sans-only;
-     the serif drop was the right call. JetBrains Mono kept for hashes/code. */
+  /* Success — a calm green distinct from the teal accent, for "delivered /
+     verified / copied" confirmations. */
+  --color-success: #5fd6a0;
+  --color-success-soft: rgba(95, 214, 160, 0.12);
+
+  /* Type stack — Inter for everything, JetBrains Mono for hashes/code. */
   --font-family-sans:
     var(--font-inter), -apple-system, BlinkMacSystemFont, ui-sans-serif, system-ui, sans-serif;
   --font-family-display:
     var(--font-inter), -apple-system, BlinkMacSystemFont, ui-sans-serif, system-ui, sans-serif;
   --font-family-mono: var(--font-jetbrains-mono), ui-monospace, "SF Mono", monospace;
 
-  /* Container widths. */
-  --container-md: 720px;
-  --container-lg: 960px;
-  --container-xl: 1180px;
+  /* Container widths — bumped one step wider so the layout feels more
+     spacious / product-grade rather than cramped-demo. */
+  --container-md: 760px;
+  --container-lg: 1000px;
+  --container-xl: 1240px;
+  --container-2xl: 1360px;
+
+  /* Elevation — reusable shadow tokens so panels share one depth language. */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 8px 28px -8px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 24px 64px -16px rgba(0, 0, 0, 0.6);
+  --shadow-accent: 0 12px 40px -12px rgba(46, 230, 198, 0.35);
 }
 
 /* --------------------------------------------------------------------------
@@ -105,23 +132,23 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
-    /* Slightly tighter character spacing across the whole UI — Apple's
-       signature optical move. -0.011em is barely perceptible at body sizes
-       but stops headlines from looking lazy. */
+    /* Slightly tighter character spacing across the whole UI — the Apple
+       optical move. Barely perceptible at body sizes; stops headlines from
+       looking lazy. */
     letter-spacing: -0.011em;
     min-height: 100%;
   }
 
   body {
-    /* Ambient overhead light. Two layered radial gradients simulate a window
-       above-and-behind the content area — a cool slightly-violet light
-       fading away. The result is the same "panel floating in a quiet room"
-       feel as a Vision Pro home screen. NO neon glow, NO brand-color bloom —
-       just real-light directionality. */
+    /* Ambient overhead light — three layered radial gradients simulate a
+       window above-and-behind the content: a cool teal wash up top, a soft
+       violet bloom top-right, and a faint teal glow bottom-left. Real-light
+       directionality, NOT a neon brand bloom. `fixed` so it stays put while
+       the page scrolls (the "panel floating in a quiet room" feel). */
     background-image:
-      radial-gradient(ellipse 60% 40% at 50% -10%, rgba(91, 158, 255, 0.07), transparent 70%),
-      radial-gradient(ellipse 80% 50% at 100% 0%, rgba(140, 110, 255, 0.04), transparent 60%),
-      radial-gradient(ellipse 50% 30% at 0% 100%, rgba(91, 158, 255, 0.03), transparent 60%);
+      radial-gradient(ellipse 60% 42% at 50% -12%, rgba(46, 230, 198, 0.1), transparent 70%),
+      radial-gradient(ellipse 70% 50% at 100% 0%, rgba(139, 123, 255, 0.07), transparent 62%),
+      radial-gradient(ellipse 55% 36% at 0% 100%, rgba(46, 230, 198, 0.05), transparent 60%);
     background-attachment: fixed;
   }
 
@@ -133,7 +160,7 @@
   :focus-visible {
     outline: 2px solid var(--color-accent);
     outline-offset: 2px;
-    border-radius: 6px;
+    border-radius: 8px;
   }
 
   input,
@@ -145,23 +172,24 @@
     letter-spacing: inherit;
   }
 
-  /* Body copy — looser leading than Tailwind's default. visionOS reads
-     more like a magazine than a SaaS dashboard. */
+  /* Body copy — looser leading than Tailwind's default; reads more like a
+     magazine than a SaaS dashboard. */
   p {
     line-height: 1.65;
   }
 
-  /* Tighten leading on headlines. Apple-style display tracking. */
+  /* Tighten leading + tracking on headlines. Apple-style display treatment.
+     The bigger sizes in the components lean on these. */
   h1,
   h2,
   h3 {
-    letter-spacing: -0.02em;
+    letter-spacing: -0.025em;
   }
   h1 {
-    line-height: 1.05;
+    line-height: 1.02;
   }
   h2 {
-    line-height: 1.15;
+    line-height: 1.12;
   }
 }
 
@@ -173,53 +201,58 @@
  * surfaces are translucent, blurred, with a faint white edge highlight.
  * -------------------------------------------------------------------------- */
 @layer components {
-  /* Standard glass surface — used on cards, the upload zone, the header. */
+  /* Standard glass surface — cards, the header, secondary panels. */
   .glass {
     background-color: var(--color-glass-fill);
-    backdrop-filter: blur(40px) saturate(140%);
-    -webkit-backdrop-filter: blur(40px) saturate(140%);
+    backdrop-filter: blur(40px) saturate(150%);
+    -webkit-backdrop-filter: blur(40px) saturate(150%);
     border: 1px solid var(--color-glass-stroke);
-    border-radius: 16px;
-    /* Top-edge inner highlight — the same trick visionOS uses to make
-       glass panels feel lit from above. 1px inset white at low alpha,
-       fading to transparent on the bottom. */
+    border-radius: 18px;
+    /* Top-edge inner highlight — the trick that makes glass feel lit from
+       above: 1px inset white at low alpha, plus a soft drop for separation
+       from the canvas. */
     box-shadow:
-      inset 0 1px 0 0 rgba(255, 255, 255, 0.06),
-      0 1px 0 0 rgba(0, 0, 0, 0.2);
+      inset 0 1px 0 0 rgba(255, 255, 255, 0.07),
+      var(--shadow-sm);
   }
 
-  /* Elevated glass — for the most prominent panel on a page (e.g. the
-     upload widget on the hero). Stronger blur, brighter edge. */
+  /* Elevated glass — the most prominent panel on a page (the upload widget,
+     the closing CTA). Stronger blur, brighter edge, real depth. */
   .glass-elevated {
     background-color: var(--color-glass-fill-elevated);
-    backdrop-filter: blur(60px) saturate(160%);
-    -webkit-backdrop-filter: blur(60px) saturate(160%);
+    backdrop-filter: blur(64px) saturate(170%);
+    -webkit-backdrop-filter: blur(64px) saturate(170%);
     border: 1px solid var(--color-glass-stroke-strong);
-    border-radius: 20px;
+    border-radius: 24px;
     box-shadow:
-      inset 0 1px 0 0 rgba(255, 255, 255, 0.1),
-      0 4px 32px 0 rgba(0, 0, 0, 0.3);
+      inset 0 1px 0 0 rgba(255, 255, 255, 0.11),
+      var(--shadow-lg);
   }
 
   /* Hover state for clickable glass — accent edge + faint accent fill. */
+  .glass-hover {
+    transition:
+      border-color 0.2s ease,
+      background-color 0.2s ease,
+      transform 0.2s ease;
+  }
   .glass-hover:hover {
     border-color: var(--color-accent-tint);
     background-color: var(--color-accent-soft);
   }
 
-  /* Eyebrow label — small mono caps above section headlines. visionOS
-     uses these everywhere as the "this is a chapter heading" cue. */
+  /* Eyebrow label — small mono caps above section headlines. The "this is a
+     chapter heading" cue used across the site. */
   .eyebrow {
     font-family: var(--font-family-mono);
-    font-size: 0.7rem;
+    font-size: 0.72rem;
     font-weight: 500;
-    letter-spacing: 0.18em;
+    letter-spacing: 0.2em;
     text-transform: uppercase;
-    color: var(--color-muted);
+    color: var(--color-accent);
   }
 
-  /* Hairline divider — 1px white at low alpha. Replaces decorated rules
-     and ornaments from the previous design language. */
+  /* Hairline divider — 1px white at low alpha, faded at both ends. */
   .divider {
     height: 1px;
     background: linear-gradient(
@@ -229,6 +262,106 @@
       var(--color-glass-stroke-strong) 70%,
       transparent 100%
     );
+  }
+
+  /* Primary button — the single accent-filled CTA shape. Teal fill, near-
+     black ink, a soft accent glow that intensifies on hover. Used for the
+     hero CTA and any "do the main thing" action. */
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    height: 3rem;
+    padding-inline: 1.5rem;
+    border-radius: 9999px;
+    background-color: var(--color-accent);
+    color: var(--color-on-accent);
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: var(--shadow-accent);
+    transition:
+      background-color 0.2s ease,
+      box-shadow 0.2s ease,
+      transform 0.2s ease;
+  }
+  .btn-primary:hover {
+    background-color: var(--color-accent-strong);
+    box-shadow: 0 16px 48px -10px rgba(46, 230, 198, 0.5);
+    transform: translateY(-1px);
+  }
+  .btn-primary:active {
+    transform: translateY(0);
+  }
+
+  /* Secondary button — glass pill, neutral until hover, then accent edge. */
+  .btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    height: 3rem;
+    padding-inline: 1.5rem;
+    border-radius: 9999px;
+    border: 1px solid var(--color-glass-stroke-strong);
+    background-color: var(--color-glass-fill);
+    color: var(--color-fg);
+    font-size: 0.95rem;
+    font-weight: 500;
+    cursor: pointer;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    transition:
+      border-color 0.2s ease,
+      color 0.2s ease,
+      background-color 0.2s ease;
+  }
+  .btn-secondary:hover {
+    border-color: var(--color-accent-tint);
+    color: var(--color-accent);
+    background-color: var(--color-accent-soft);
+  }
+
+  /* Aurora wordmark / single-emphasis gradient. Reserved for the wordmark
+     and AT MOST one hero word — a teal→violet sweep. Used sparingly so it
+     reads as identity, not as the overused gradient-everything hero. */
+  .text-aurora {
+    background: linear-gradient(
+      105deg,
+      var(--color-accent-strong) 0%,
+      var(--color-accent) 42%,
+      var(--color-accent-2) 100%
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  /* Accent glow ring — wraps a focal element (the upload widget) in a soft
+     teal halo so it reads as the page's centre of gravity. */
+  .glow-accent {
+    position: relative;
+  }
+  .glow-accent::before {
+    content: "";
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(
+      140deg,
+      var(--color-accent-tint),
+      transparent 40%,
+      transparent 60%,
+      var(--color-accent-2-soft)
+    );
+    -webkit-mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
   }
 }
 
@@ -242,7 +375,23 @@
   @keyframes fade-in {
     from {
       opacity: 0;
-      transform: translateY(8px);
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Staggered rise for grids — set `--d` per child for a cascade. */
+  .animate-rise {
+    animation: rise 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+    animation-delay: var(--d, 0ms);
+  }
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(16px);
     }
     to {
       opacity: 1;
@@ -255,14 +404,24 @@
     0%,
     100% {
       opacity: 0.6;
-      box-shadow: 0 0 0 0 rgba(91, 158, 255, 0.4);
+      box-shadow: 0 0 0 0 rgba(46, 230, 198, 0.45);
     }
     50% {
       opacity: 1;
-      box-shadow: 0 0 0 5px rgba(91, 158, 255, 0);
+      box-shadow: 0 0 0 5px rgba(46, 230, 198, 0);
     }
   }
   .animate-pulse-soft {
     animation: pulse-soft 2.4s ease-out infinite;
+  }
+
+  /* Respect reduced-motion: kill the entrance + pulse animations entirely
+     for users who asked the OS to minimise motion. */
+  @media (prefers-reduced-motion: reduce) {
+    .animate-in-fade,
+    .animate-rise,
+    .animate-pulse-soft {
+      animation: none;
+    }
   }
 }

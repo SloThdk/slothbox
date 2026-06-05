@@ -29,54 +29,47 @@ function Hero() {
   const { t } = useLanguage();
 
   return (
-    <section className="mx-auto w-full max-w-[var(--container-xl)] px-4 pt-20 pb-24 sm:px-6 sm:pt-28 sm:pb-32">
-      <div className="grid grid-cols-1 items-start gap-14 lg:grid-cols-[minmax(0,1fr)_minmax(0,520px)] lg:gap-20">
+    <section className="mx-auto w-full max-w-[var(--container-2xl)] px-4 pt-20 pb-24 sm:px-6 sm:pt-28 sm:pb-32">
+      <div className="grid grid-cols-1 items-center gap-14 lg:grid-cols-[minmax(0,1fr)_minmax(0,540px)] lg:gap-20">
         {/* Left column — copy block */}
-        <div className="flex flex-col gap-8 pt-2">
+        <div className="animate-in-fade flex flex-col gap-8 pt-2">
           {/* Status pill — minimal mono caps, glass background */}
-          <span className="glass inline-flex w-fit items-center gap-2.5 rounded-full px-3.5 py-1.5">
+          <span className="glass inline-flex w-fit items-center gap-2.5 rounded-full px-4 py-2">
             <span className="animate-pulse-soft inline-flex h-1.5 w-1.5 rounded-full bg-[var(--color-accent)]" />
             <span className="font-mono text-[0.7rem] tracking-[0.18em] text-[var(--color-fg-2)] uppercase">
               {t("hero.statusPill")}
             </span>
           </span>
 
-          {/* Hero headline. Three lines, single sans typeface, weight gradient
-              from light (display) to medium. NO gradient text. The visual
-              weight comes from line break composition + tracking, not from
-              colour effects. */}
-          <h1 className="text-[2.75rem] leading-[1.02] font-light text-[var(--color-fg)] sm:text-[3.5rem] md:text-[4rem]">
+          {/* Hero headline. Three lines: a light opener, the aurora-gradient
+              emphasis line (the ONE place gradient text is allowed — it's
+              the brand signature, not decoration), and a muted closer. The
+              visual weight comes from size + the single accent sweep. */}
+          <h1 className="text-[3rem] leading-[1.01] font-light tracking-[-0.03em] text-[var(--color-fg)] sm:text-[3.9rem] md:text-[4.6rem] lg:text-[5rem]">
             {t("hero.headline.l1")}
             <br />
-            <span className="font-medium">{t("hero.headline.l2")}</span>
+            <span className="text-aurora font-semibold">{t("hero.headline.l2")}</span>
             <br />
             <span className="text-[var(--color-muted)]">{t("hero.headline.l3")}</span>
           </h1>
 
-          <p className="max-w-[42ch] text-[1.05rem] leading-[1.65] font-light text-[var(--color-fg-2)]">
+          <p className="max-w-[44ch] text-[1.1rem] leading-[1.65] font-light text-[var(--color-fg-2)]">
             {t("hero.copy.before")}{" "}
-            <code className="rounded-md border border-[var(--color-glass-stroke)] bg-[var(--color-glass-fill)] px-1.5 py-0.5 font-mono text-[0.85em] text-[var(--color-accent)]">
+            <code className="rounded-md border border-[var(--color-accent-tint)] bg-[var(--color-accent-soft)] px-1.5 py-0.5 font-mono text-[0.85em] text-[var(--color-accent)]">
               #
             </code>{" "}
             {t("hero.copy.after")}
           </p>
 
-          {/* CTAs — primary uses accent fill, secondary is plain underline.
-              The contrast is intentional: only ONE accent-coloured button on
-              the page. Everything else is text + glass.
-              2026-05-08: secondary "Source" CTA removed alongside the
-              header GitHub button — slothbox's official site no longer
-              surfaces its source repo. */}
-          <div className="flex flex-wrap items-center gap-4 pt-2">
-            <Link
-              href="/security"
-              className="group inline-flex h-11 cursor-pointer items-center gap-2 rounded-full bg-[var(--color-accent)] px-5 text-sm font-medium text-[var(--color-bg)] transition-colors hover:bg-[var(--color-accent-strong)]"
-            >
+          {/* CTAs — the single accent-filled primary (btn-primary) plus a
+              quiet text link. Only ONE accent button on the page. */}
+          <div className="flex flex-wrap items-center gap-5 pt-2">
+            <Link href="/security" className="btn-primary group">
               {t("hero.cta.primary")}
               <ArrowRight
                 className="h-4 w-4 transition-transform group-hover:translate-x-0.5"
                 aria-hidden
-                strokeWidth={2}
+                strokeWidth={2.25}
               />
             </Link>
             <Link
@@ -88,10 +81,13 @@ function Hero() {
           </div>
         </div>
 
-        {/* Right column — upload widget, glass-elevated, floats slightly above
-            the rest of the page. */}
-        <div className="flex w-full justify-center lg:justify-end">
-          <UploadDrop />
+        {/* Right column — upload widget, the page's centre of gravity. The
+            glow-accent ring wraps it in a soft teal halo so the eye lands
+            here first. */}
+        <div className="animate-in-fade flex w-full justify-center lg:justify-end">
+          <div className="glow-accent w-full max-w-[540px] rounded-[24px]">
+            <UploadDrop />
+          </div>
         </div>
       </div>
     </section>
