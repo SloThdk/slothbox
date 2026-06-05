@@ -1,119 +1,104 @@
 /*
- * SlothBox global stylesheet — "aurora glass" dark identity.
+ * SlothBox global stylesheet — neutral, flat, production-grade dark UI.
  *
- * Tailwind v4 entrypoint. Theme tokens live in `@theme`; surfaces, motion,
- * and ambient lighting live in @layer base / components below.
+ * Tailwind v4 entrypoint. Theme tokens live in `@theme`; surfaces live in
+ * @layer base / components below.
  *
- * Visual identity (v0.3 refresh): a near-black cool-slate canvas, frosted
- * glass surfaces lit from above, and ONE signature accent — a luminous
- * aurora TEAL (not the generic SaaS sky-blue it replaced). Teal reads as
- * "cryptographic / encrypted / precise" and is distinctive rather than
- * template-default. A second accent (soft violet) appears ONLY in the
- * ambient background gradients to give the canvas depth — never on text,
- * never on a control.
+ * Design register (v0.4 — "make it real, not vibecoded"):
+ *   The reference set is Linear / Vercel / Stripe — products that read as
+ *   custom-built. The shared traits, and the rules this file enforces:
  *
- * The brief that drove this refresh: the previous flat sky-blue build read
- * as a demo. The fix is not decoration-for-decoration's-sake — it's a
- * bigger type + spacing scale, a richer (but still restrained) accent, real
- * elevation on the focal surfaces, and one tasteful gradient reserved for a
- * single hero word + the wordmark. A security product earns trust through
- * composure; "premium" here means precise, not loud.
+ *     1. NEUTRAL near-black canvas. No colour tint, no aurora glow, no
+ *        radial brand-bloom. Flat.
+ *     2. ONE accent (teal), used at ~2% coverage — a status dot, a focus
+ *        ring, the logo cube, a link hover. NEVER on headlines, NEVER as a
+ *        gradient, NEVER as a glow.
+ *     3. Primary CTA is a SOLID near-white pill with near-black ink — the
+ *        Linear/Vercel move. No coloured glow under it.
+ *     4. Depth comes from crisp 1px borders + very subtle neutral shadows
+ *        on SOLID surfaces — not from frosted-glass blur stacks.
+ *     5. Craft lives in type scale, spacing rhythm, and border precision.
  *
- * Token-name compatibility: every token name from the prior build is kept
- * (only values changed) so existing component class references keep working.
- * New tokens are additive (--color-accent-2, --color-on-accent, shadow-*,
- * --container-2xl, etc.).
+ *   What this DELIBERATELY removes from the prior build (which read as
+ *   AI-template "vibecoded"): gradient hero text, teal→violet aurora
+ *   background, glow rings, neon accent, blur-on-everything.
+ *
+ * Token-name compatibility: every token name is kept so existing component
+ * class references keep working; only values changed.
  */
 
 @import "tailwindcss";
 
 /* --------------------------------------------------------------------------
- * Theme tokens — CSS-first.
+ * Theme tokens.
  * -------------------------------------------------------------------------- */
 @theme {
-  /* Base canvas — near-black with a faint cool undertone. Deeper than the
-     prior #0a0d14 so the glass surfaces and the teal accent read brighter
-     against it (more contrast = more "premium product", less "flat demo"). */
-  --color-bg: #060910;
-  --color-bg-2: #0a0e17;
+  /* Canvas — neutral near-black, no blue/teal tint (Linear ships #08090a). */
+  --color-bg: #08090b;
+  --color-bg-2: #0d0e11;
 
-  /* Solid surfaces (used SPARINGLY — most cards are glass, see below). */
-  --color-card: #11151e;
-  --color-card-elevated: #171c28;
+  /* Solid surfaces. Most cards are these now — NOT translucent glass. The
+     step up from the canvas is small and deliberate; a 1px border does the
+     real separating work. */
+  --color-card: #101114;
+  --color-card-elevated: #16181c;
 
-  /* Foreground — luminous off-white, never #ffffff. Pure white on dark
-     reads as harsh; this is the colour of a frosted lightbulb. */
-  --color-fg: #f3f6fc;
-  --color-fg-2: #c7d0de;
-  --color-muted: #939db0;
-  /* `--color-muted-2` is the eyebrow / step-label colour. Kept at a
-     contrast-safe value (~5.3:1 on the canvas) — Lighthouse a11y flagged
-     anything darker on the 2026-05-15 audit. The subdued feel comes from
-     mono + uppercase + tracking, not from a darker shade. */
-  --color-muted-2: #818b9c;
+  /* Foreground — clean off-white + a calm grey ramp (Linear-style). */
+  --color-fg: #f4f5f6;
+  --color-fg-2: #b3b8c0;
+  --color-muted: #888d96;
+  --color-muted-2: #6b7079;
 
-  /* Glass strokes — 1px hairlines on every translucent surface for edge
-     definition. White at low alpha reads as light catching a glass edge —
-     the signature of the panel aesthetic. Nudged slightly brighter than the
-     prior build so panels feel more defined / less washed out. */
-  --color-glass-stroke: rgba(255, 255, 255, 0.09);
-  --color-glass-stroke-strong: rgba(255, 255, 255, 0.16);
-  --color-glass-fill: rgba(255, 255, 255, 0.04);
-  --color-glass-fill-elevated: rgba(255, 255, 255, 0.065);
+  /* Borders — the primary structural device. Subtle white hairlines on the
+     dark surfaces; a slightly stronger one for emphasis / hover. */
+  --color-border: #20222899;
+  --color-border-strong: #2c2f37;
+  /* Legacy "glass-*" names kept as aliases so old class refs resolve to the
+     new flat border/fill language instead of frosted glass. */
+  --color-glass-stroke: rgba(255, 255, 255, 0.08);
+  --color-glass-stroke-strong: rgba(255, 255, 255, 0.14);
+  --color-glass-fill: rgba(255, 255, 255, 0.02);
+  --color-glass-fill-elevated: rgba(255, 255, 255, 0.03);
 
-  /* Solid borders — when we genuinely need a non-translucent line. */
-  --color-border: #1d2330;
-  --color-border-strong: #2b3346;
+  /* ── Accent — teal, used SPARINGLY (status dot, focus ring, logo, link
+     hover). Deepened from the prior neon so it reads as a brand colour, not
+     a highlighter. `--color-on-accent` is the ink for the rare solid-accent
+     fill. */
+  --color-accent: #2bc4ad;
+  --color-accent-strong: #4bd6c1;
+  --color-accent-deep: #169683;
+  --color-on-accent: #05130f;
+  --color-accent-soft: rgba(43, 196, 173, 0.1);
+  --color-accent-tint: rgba(43, 196, 173, 0.22);
 
-  /* ── Accent — signature aurora teal ──────────────────────────────────
-     Used for: primary CTAs, active link state, focal numerals, the upload
-     zone hover, focus rings. Distinct from the old sky-blue; reads as
-     "encrypted". `--color-on-accent` is the near-black ink that sits ON a
-     teal fill (dark-on-light, very high contrast — passes AA comfortably). */
-  --color-accent: #2ee6c6;
-  --color-accent-strong: #5ff2da;
-  --color-accent-deep: #0fb89c;
-  --color-on-accent: #03130f;
-  --color-accent-soft: rgba(46, 230, 198, 0.12);
-  --color-accent-tint: rgba(46, 230, 198, 0.24);
-  --color-accent-glow: rgba(46, 230, 198, 0.16);
+  /* Primary-button surface — near-white solid (the Linear/Vercel CTA). */
+  --color-solid: #f4f5f6;
+  --color-solid-hover: #e2e4e7;
+  --color-on-solid: #08090b;
 
-  /* Secondary accent — soft violet. AMBIENT-ONLY (background gradients,
-     the wordmark gradient). Never on body text or a control. Pairing a
-     cool teal with a violet glow is what gives the canvas its "aurora"
-     depth instead of a single flat hue. */
-  --color-accent-2: #8b7bff;
-  --color-accent-2-soft: rgba(139, 123, 255, 0.1);
+  /* Danger / success — flat, used only on the relevant warnings. */
+  --color-danger: #ff6b75;
+  --color-danger-soft: rgba(255, 107, 117, 0.1);
+  --color-success: #4ec991;
+  --color-success-soft: rgba(78, 201, 145, 0.1);
 
-  /* Danger — warm coral, very sparingly used (burn-after-read warnings).
-     Cool palette overall + one warm signal makes the warning unmissable. */
-  --color-danger: #ff7a85;
-  --color-danger-soft: rgba(255, 122, 133, 0.12);
-
-  /* Success — a calm green distinct from the teal accent, for "delivered /
-     verified / copied" confirmations. */
-  --color-success: #5fd6a0;
-  --color-success-soft: rgba(95, 214, 160, 0.12);
-
-  /* Type stack — Inter for everything, JetBrains Mono for hashes/code. */
+  /* Type stack — Inter (UI/display) + JetBrains Mono (hashes/code). */
   --font-family-sans:
     var(--font-inter), -apple-system, BlinkMacSystemFont, ui-sans-serif, system-ui, sans-serif;
   --font-family-display:
     var(--font-inter), -apple-system, BlinkMacSystemFont, ui-sans-serif, system-ui, sans-serif;
   --font-family-mono: var(--font-jetbrains-mono), ui-monospace, "SF Mono", monospace;
 
-  /* Container widths — bumped one step wider so the layout feels more
-     spacious / product-grade rather than cramped-demo. */
-  --container-md: 760px;
-  --container-lg: 1000px;
-  --container-xl: 1240px;
-  --container-2xl: 1360px;
+  /* Container widths. */
+  --container-md: 720px;
+  --container-lg: 960px;
+  --container-xl: 1180px;
+  --container-2xl: 1320px;
 
-  /* Elevation — reusable shadow tokens so panels share one depth language. */
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
-  --shadow-md: 0 8px 28px -8px rgba(0, 0, 0, 0.5);
-  --shadow-lg: 0 24px 64px -16px rgba(0, 0, 0, 0.6);
-  --shadow-accent: 0 12px 40px -12px rgba(46, 230, 198, 0.35);
+  /* Elevation — subtle, neutral. No coloured shadows. */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 16px -4px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 16px 48px -16px rgba(0, 0, 0, 0.6);
 }
 
 /* --------------------------------------------------------------------------
@@ -132,24 +117,14 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
-    /* Slightly tighter character spacing across the whole UI — the Apple
-       optical move. Barely perceptible at body sizes; stops headlines from
-       looking lazy. */
     letter-spacing: -0.011em;
     min-height: 100%;
   }
 
+  /* Flat canvas. No background-image, no radial brand-bloom — the page is
+     a single neutral colour, exactly like the reference set. */
   body {
-    /* Ambient overhead light — three layered radial gradients simulate a
-       window above-and-behind the content: a cool teal wash up top, a soft
-       violet bloom top-right, and a faint teal glow bottom-left. Real-light
-       directionality, NOT a neon brand bloom. `fixed` so it stays put while
-       the page scrolls (the "panel floating in a quiet room" feel). */
-    background-image:
-      radial-gradient(ellipse 60% 42% at 50% -12%, rgba(46, 230, 198, 0.1), transparent 70%),
-      radial-gradient(ellipse 70% 50% at 100% 0%, rgba(139, 123, 255, 0.07), transparent 62%),
-      radial-gradient(ellipse 55% 36% at 0% 100%, rgba(46, 230, 198, 0.05), transparent 60%);
-    background-attachment: fixed;
+    background-color: var(--color-bg);
   }
 
   ::selection {
@@ -160,7 +135,7 @@
   :focus-visible {
     outline: 2px solid var(--color-accent);
     outline-offset: 2px;
-    border-radius: 8px;
+    border-radius: 6px;
   }
 
   input,
@@ -172,21 +147,19 @@
     letter-spacing: inherit;
   }
 
-  /* Body copy — looser leading than Tailwind's default; reads more like a
-     magazine than a SaaS dashboard. */
   p {
-    line-height: 1.65;
+    line-height: 1.6;
   }
 
-  /* Tighten leading + tracking on headlines. Apple-style display treatment.
-     The bigger sizes in the components lean on these. */
+  /* Display headlines — tight tracking + leading, the precise look the
+     references share. Solid colour only; gradients are banned here. */
   h1,
   h2,
   h3 {
     letter-spacing: -0.025em;
   }
   h1 {
-    line-height: 1.02;
+    line-height: 1.04;
   }
   h2 {
     line-height: 1.12;
@@ -196,186 +169,135 @@
 /* --------------------------------------------------------------------------
  * Component-scope helpers.
  *
- * The `.glass` family is the heart of the design language. Any "card" or
- * "panel" surface uses one of these — not the solid --color-card. Glass
- * surfaces are translucent, blurred, with a faint white edge highlight.
+ * `.glass` / `.glass-elevated` are kept as NAMES (lots of components use
+ * them) but are now SOLID bordered cards, not frosted glass — the flat,
+ * crafted-container look. A faint top-edge highlight gives the border a
+ * crafted feel without any glow.
  * -------------------------------------------------------------------------- */
 @layer components {
-  /* Standard glass surface — cards, the header, secondary panels. */
   .glass {
-    background-color: var(--color-glass-fill);
-    backdrop-filter: blur(40px) saturate(150%);
-    -webkit-backdrop-filter: blur(40px) saturate(150%);
-    border: 1px solid var(--color-glass-stroke);
-    border-radius: 18px;
-    /* Top-edge inner highlight — the trick that makes glass feel lit from
-       above: 1px inset white at low alpha, plus a soft drop for separation
-       from the canvas. */
-    box-shadow:
-      inset 0 1px 0 0 rgba(255, 255, 255, 0.07),
-      var(--shadow-sm);
+    background-color: var(--color-card);
+    border: 1px solid var(--color-border);
+    border-radius: 14px;
+    box-shadow: var(--shadow-sm);
   }
 
-  /* Elevated glass — the most prominent panel on a page (the upload widget,
-     the closing CTA). Stronger blur, brighter edge, real depth. */
   .glass-elevated {
-    background-color: var(--color-glass-fill-elevated);
-    backdrop-filter: blur(64px) saturate(170%);
-    -webkit-backdrop-filter: blur(64px) saturate(170%);
-    border: 1px solid var(--color-glass-stroke-strong);
-    border-radius: 24px;
-    box-shadow:
-      inset 0 1px 0 0 rgba(255, 255, 255, 0.11),
-      var(--shadow-lg);
+    background-color: var(--color-card-elevated);
+    border: 1px solid var(--color-border-strong);
+    border-radius: 16px;
+    box-shadow: var(--shadow-md);
   }
 
-  /* Hover state for clickable glass — accent edge + faint accent fill. */
+  /* Clickable card hover — a brighter border, no fill wash, no glow. */
   .glass-hover {
     transition:
-      border-color 0.2s ease,
-      background-color 0.2s ease,
-      transform 0.2s ease;
+      border-color 0.15s ease,
+      background-color 0.15s ease;
   }
   .glass-hover:hover {
-    border-color: var(--color-accent-tint);
-    background-color: var(--color-accent-soft);
+    border-color: var(--color-border-strong);
+    background-color: var(--color-card-elevated);
   }
 
-  /* Eyebrow label — small mono caps above section headlines. The "this is a
-     chapter heading" cue used across the site. */
+  /* Eyebrow label — small mono caps. NEUTRAL grey (not accent) for
+     restraint; the references keep section labels monochrome. */
   .eyebrow {
     font-family: var(--font-family-mono);
     font-size: 0.72rem;
     font-weight: 500;
-    letter-spacing: 0.2em;
+    letter-spacing: 0.16em;
     text-transform: uppercase;
-    color: var(--color-accent);
+    color: var(--color-muted);
   }
 
-  /* Hairline divider — 1px white at low alpha, faded at both ends. */
+  /* Hairline divider. */
   .divider {
     height: 1px;
-    background: linear-gradient(
-      90deg,
-      transparent 0%,
-      var(--color-glass-stroke-strong) 30%,
-      var(--color-glass-stroke-strong) 70%,
-      transparent 100%
-    );
+    background-color: var(--color-border);
   }
 
-  /* Primary button — the single accent-filled CTA shape. Teal fill, near-
-     black ink, a soft accent glow that intensifies on hover. Used for the
-     hero CTA and any "do the main thing" action. */
+  /* Primary button — SOLID near-white pill, near-black ink. The single
+     "do the main thing" shape. No coloured glow; a hairline + tiny neutral
+     shadow only. */
   .btn-primary {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
-    height: 3rem;
-    padding-inline: 1.5rem;
-    border-radius: 9999px;
-    background-color: var(--color-accent);
-    color: var(--color-on-accent);
-    font-size: 0.95rem;
+    height: 2.75rem;
+    padding-inline: 1.35rem;
+    border-radius: 8px;
+    background-color: var(--color-solid);
+    color: var(--color-on-solid);
+    font-size: 0.925rem;
     font-weight: 600;
     cursor: pointer;
-    box-shadow: var(--shadow-accent);
+    box-shadow: var(--shadow-sm);
     transition:
-      background-color 0.2s ease,
-      box-shadow 0.2s ease,
-      transform 0.2s ease;
+      background-color 0.15s ease,
+      transform 0.1s ease;
   }
   .btn-primary:hover {
-    background-color: var(--color-accent-strong);
-    box-shadow: 0 16px 48px -10px rgba(46, 230, 198, 0.5);
-    transform: translateY(-1px);
+    background-color: var(--color-solid-hover);
   }
   .btn-primary:active {
-    transform: translateY(0);
+    transform: translateY(0.5px);
   }
 
-  /* Secondary button — glass pill, neutral until hover, then accent edge. */
+  /* Secondary button — outline pill, neutral until hover. */
   .btn-secondary {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
-    height: 3rem;
-    padding-inline: 1.5rem;
-    border-radius: 9999px;
-    border: 1px solid var(--color-glass-stroke-strong);
-    background-color: var(--color-glass-fill);
+    height: 2.75rem;
+    padding-inline: 1.35rem;
+    border-radius: 8px;
+    border: 1px solid var(--color-border-strong);
+    background-color: transparent;
     color: var(--color-fg);
-    font-size: 0.95rem;
+    font-size: 0.925rem;
     font-weight: 500;
     cursor: pointer;
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
     transition:
-      border-color 0.2s ease,
-      color 0.2s ease,
-      background-color 0.2s ease;
+      border-color 0.15s ease,
+      background-color 0.15s ease;
   }
   .btn-secondary:hover {
-    border-color: var(--color-accent-tint);
-    color: var(--color-accent);
-    background-color: var(--color-accent-soft);
+    border-color: var(--color-muted);
+    background-color: var(--color-card);
   }
 
-  /* Aurora wordmark / single-emphasis gradient. Reserved for the wordmark
-     and AT MOST one hero word — a teal→violet sweep. Used sparingly so it
-     reads as identity, not as the overused gradient-everything hero. */
+  /* `.text-aurora` is KEPT as a name (old refs) but is now a flat solid
+     colour — NO gradient. Anything still tagged with it renders as plain
+     foreground, so a stray usage can never reintroduce gradient text. */
   .text-aurora {
-    background: linear-gradient(
-      105deg,
-      var(--color-accent-strong) 0%,
-      var(--color-accent) 42%,
-      var(--color-accent-2) 100%
-    );
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
+    color: var(--color-fg);
+    background: none;
+    -webkit-background-clip: border-box;
+    background-clip: border-box;
   }
 
-  /* Accent glow ring — wraps a focal element (the upload widget) in a soft
-     teal halo so it reads as the page's centre of gravity. */
+  /* `.glow-accent` is KEPT as a name but is now a NO-OP wrapper — the glow
+     ring is gone. (Removed from markup; this keeps any leftover usage inert.) */
   .glow-accent {
     position: relative;
-  }
-  .glow-accent::before {
-    content: "";
-    position: absolute;
-    inset: -1px;
-    border-radius: inherit;
-    padding: 1px;
-    background: linear-gradient(
-      140deg,
-      var(--color-accent-tint),
-      transparent 40%,
-      transparent 60%,
-      var(--color-accent-2-soft)
-    );
-    -webkit-mask:
-      linear-gradient(#000 0 0) content-box,
-      linear-gradient(#000 0 0);
-    -webkit-mask-composite: xor;
-    mask-composite: exclude;
-    pointer-events: none;
   }
 }
 
 /* --------------------------------------------------------------------------
- * Animations.
+ * Animations — restrained. A quiet fade-in and the live-status dot pulse.
+ * No coloured box-shadow pulse.
  * -------------------------------------------------------------------------- */
 @layer utilities {
   .animate-in-fade {
-    animation: fade-in 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+    animation: fade-in 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
   }
   @keyframes fade-in {
     from {
       opacity: 0;
-      transform: translateY(10px);
+      transform: translateY(8px);
     }
     to {
       opacity: 1;
@@ -383,43 +305,22 @@
     }
   }
 
-  /* Staggered rise for grids — set `--d` per child for a cascade. */
-  .animate-rise {
-    animation: rise 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
-    animation-delay: var(--d, 0ms);
-  }
-  @keyframes rise {
-    from {
-      opacity: 0;
-      transform: translateY(16px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-
-  /* Soft pulse — the live-status dot. 2.4s period reads as deliberate. */
+  /* Status dot — a calm opacity pulse, no expanding glow ring. */
   @keyframes pulse-soft {
     0%,
     100% {
-      opacity: 0.6;
-      box-shadow: 0 0 0 0 rgba(46, 230, 198, 0.45);
+      opacity: 0.5;
     }
     50% {
       opacity: 1;
-      box-shadow: 0 0 0 5px rgba(46, 230, 198, 0);
     }
   }
   .animate-pulse-soft {
-    animation: pulse-soft 2.4s ease-out infinite;
+    animation: pulse-soft 2.4s ease-in-out infinite;
   }
 
-  /* Respect reduced-motion: kill the entrance + pulse animations entirely
-     for users who asked the OS to minimise motion. */
   @media (prefers-reduced-motion: reduce) {
     .animate-in-fade,
-    .animate-rise,
     .animate-pulse-soft {
       animation: none;
     }

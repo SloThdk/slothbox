@@ -41,19 +41,18 @@ function Hero() {
             </span>
           </span>
 
-          {/* Hero headline. Three lines: a light opener, the aurora-gradient
-              emphasis line (the ONE place gradient text is allowed — it's
-              the brand signature, not decoration), and a muted closer. The
-              visual weight comes from size + the single accent sweep. */}
-          <h1 className="text-[3rem] leading-[1.01] font-light tracking-[-0.03em] text-[var(--color-fg)] sm:text-[3.9rem] md:text-[4.6rem] lg:text-[5rem]">
+          {/* Hero headline. Solid white, tight tracking — the reference-set
+              look. Hierarchy comes from weight + a muted closing line, never
+              from gradient or colour effects. */}
+          <h1 className="text-[2.85rem] leading-[1.04] font-medium tracking-[-0.03em] text-[var(--color-fg)] sm:text-[3.6rem] md:text-[4.25rem] lg:text-[4.6rem]">
             {t("hero.headline.l1")}
             <br />
-            <span className="text-aurora font-semibold">{t("hero.headline.l2")}</span>
+            {t("hero.headline.l2")}
             <br />
             <span className="text-[var(--color-muted)]">{t("hero.headline.l3")}</span>
           </h1>
 
-          <p className="max-w-[44ch] text-[1.1rem] leading-[1.65] font-light text-[var(--color-fg-2)]">
+          <p className="max-w-[46ch] text-[1.05rem] leading-[1.6] font-normal text-[var(--color-fg-2)]">
             {t("hero.copy.before")}{" "}
             <code className="rounded-md border border-[var(--color-accent-tint)] bg-[var(--color-accent-soft)] px-1.5 py-0.5 font-mono text-[0.85em] text-[var(--color-accent)]">
               #
@@ -81,11 +80,9 @@ function Hero() {
           </div>
         </div>
 
-        {/* Right column — upload widget, the page's centre of gravity. The
-            glow-accent ring wraps it in a soft teal halo so the eye lands
-            here first. */}
+        {/* Right column — upload widget, a solid bordered card (no glow). */}
         <div className="animate-in-fade flex w-full justify-center lg:justify-end">
-          <div className="glow-accent w-full max-w-[540px] rounded-[24px]">
+          <div className="w-full max-w-[500px]">
             <UploadDrop />
           </div>
         </div>

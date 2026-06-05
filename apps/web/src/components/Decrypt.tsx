@@ -200,7 +200,7 @@ export function Decrypt({ shortId, descriptor, decryptionKey }: DecryptProps) {
     <div className="flex flex-col gap-6">
       {/* File card — pre-decryption shows only payload size + expiry. */}
       <div className="flex items-center gap-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-card)] p-4 sm:p-5">
-        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-[var(--color-accent)] to-[var(--color-accent-2)] text-[#04221b]">
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg border border-[var(--color-border)] bg-[var(--color-accent-soft)] text-[var(--color-accent)]">
           <FileLock2 className="h-6 w-6" aria-hidden />
         </div>
         <div className="min-w-0 flex-1">
