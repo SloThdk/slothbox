@@ -159,14 +159,30 @@ public static class UploadEndpoint
         }
 
         // Per-share chunk-size enforcement: every chunk except the last must be
-        // exactly chunkSize; the last chunk can be smaller (final tail of the file).
+        // a full chunk; the last chunk can be smaller (final tail of the file).
+        //
+        // share.ChunkSize is the PLAINTEXT slice size the sender declared at
+        // create time. The bytes actually uploaded are the XChaCha20-Poly1305
+        // CIPHERTEXT = plaintext + a fixed 16-byte AEAD tag (opts.AeadTagBytes).
+        // So a full chunk on the wire is ChunkSize + AeadTagBytes, and the final
+        // chunk is its (smaller) plaintext tail plus the same tag.
+        //
+        // Comparing the ciphertext length against the bare plaintext ChunkSize
+        // rejected EVERY multi-chunk upload on chunk 0 with chunk_size_mismatch:
+        // the tag pushed a full chunk 16 bytes over the expected value. Files
+        // larger than one chunk (~5 MiB) always 400'd; single-chunk files
+        // slipped through only because chunk 0 is also the last chunk and the
+        // looser `>` check tolerated the tag. Surfaced 2026-06-05 (reported as
+        // "ingest returned HTTP 400 with multiple tabs open" — the real trigger
+        // was file size, not tabs).
+        var expectedFullCiphertext = share.ChunkSize + opts.AeadTagBytes;
         var isLastChunk = chunkIndex == share.ChunkCount - 1;
-        if (!isLastChunk && contentLength != share.ChunkSize)
+        if (!isLastChunk && contentLength != expectedFullCiphertext)
         {
             ChunksUploaded.WithLabels("size_mismatch").Inc();
             return Results.BadRequest(new { error = "chunk_size_mismatch" });
         }
-        if (isLastChunk && contentLength > share.ChunkSize)
+        if (isLastChunk && contentLength > expectedFullCiphertext)
         {
             ChunksUploaded.WithLabels("size_mismatch_last").Inc();
             return Results.BadRequest(new { error = "last_chunk_too_large" });
