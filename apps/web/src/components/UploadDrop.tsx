@@ -212,19 +212,33 @@ export function UploadDrop() {
         setState({ kind: "done", result, file });
         toast.success(t("upload.toast.success"));
       } catch (err) {
-        // Errors thrown by the upload module are surfaced directly so the
-        // user sees the actionable cause (e.g. "share token expired",
-        // "network error"). These are technical strings keyed off the
-        // upload pipeline; we don't translate them per-locale here
-        // because they're effectively diagnostic copy that needs to
-        // match docs / threads. A future i18n pass can lift them into
-        // the translations table once the error surface stabilises.
-        const message = err instanceof Error ? err.message : "upload failed";
+        const raw = (err instanceof Error ? err.message : "").toLowerCase();
         // The user clicking "cancel" routes through here too — render
         // that as a neutral idle state, not an error.
-        if (message === "upload cancelled") {
+        if (raw === "upload cancelled") {
           setState({ kind: "idle" });
           return;
+        }
+        // Map the upload pipeline's technical strings ("ingest returned
+        // HTTP 400", "could not reach the ingest service", "gateway
+        // returned HTTP …") onto friendly, localized copy. A sender must
+        // never see a raw status code or an internal service name — those
+        // are diagnostics, not user messages.
+        let message: string;
+        if (raw.includes("too large")) {
+          message = t("upload.toast.tooLarge", { max: formatBytes(MAX_FILE_SIZE_BYTES) });
+        } else if (raw.includes("empty")) {
+          message = t("upload.toast.empty");
+        } else if (
+          raw.includes("could not reach") ||
+          raw.includes("network") ||
+          raw.includes("offline")
+        ) {
+          message = t("upload.error.network");
+        } else if (raw.includes("http") || raw.includes("ingest") || raw.includes("gateway")) {
+          message = t("upload.error.server");
+        } else {
+          message = t("upload.error.generic");
         }
         setState({ kind: "error", message });
         toast.error(message);

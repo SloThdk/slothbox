@@ -21,45 +21,52 @@ import { LanguageToggle } from "@/components/LanguageToggle";
 
 /**
  * SlothBox wordmark. Inline SVG so we don't ship an extra HTTP request on
- * first paint. Visual: a 9×9 box rendered in the brand sky-blue accent
- * with a single keyhole cut from its centre. The shape encodes "the box"
- * directly — no animal, no decoration. The keyhole is also a stylised
- * lowercase "s" if you squint, doubling as a monogram.
+ * first paint. Visual: an isometric cube ("the box") rendered in the brand
+ * aurora-teal — top face lit, side faces stepping into shadow. It mirrors
+ * the frosted 3D-glass cube used as the app icon, so the in-product chrome
+ * and the browser-tab / home-screen icon read as ONE brand. No animal, no
+ * decoration — the cube IS the mark.
  *
- * Single brand mark across four surfaces: this Wordmark, the favicon
- * at `app/icon.tsx`, the apple-touch-icon at `app/apple-icon.tsx`, and
- * the OG image at `app/opengraph-image.tsx`. When the glyph changes
- * here, change it in the other three too — the coords are deliberately
- * identical so the in-product chrome and the browser-tab chrome read as
- * the same brand.
+ * Single brand mark across four surfaces: this Wordmark, the favicon at
+ * `app/icon.tsx`, the apple-touch-icon at `app/apple-icon.tsx`, and the OG
+ * image at `app/opengraph-image.tsx`. When the glyph changes here, change
+ * it in the other three too — the coords are deliberately identical.
  */
+export function CubeMark({ size = 22 }: { size?: number }) {
+  return (
+    <svg viewBox="0 0 32 32" width={size} height={size} aria-hidden>
+      {/* Isometric cube: three visible faces. Top face carries the bright
+          accent fill (lit from above), the left face a soft tint, the
+          right face stays dark — real directional light, not a flat icon. */}
+      {/* Top face (rhombus) — brightest. */}
+      <path d="M16 3.5 L27 10 L16 16.5 L5 10 Z" fill="var(--color-accent)" />
+      {/* Left face. */}
+      <path d="M5 10 L16 16.5 L16 29 L5 22.5 Z" fill="var(--color-accent-deep)" />
+      {/* Right face — darkest, in shadow. */}
+      <path d="M27 10 L16 16.5 L16 29 L27 22.5 Z" fill="var(--color-on-accent)" />
+      {/* Edge highlight along the top to make the glass read crisp. */}
+      <path
+        d="M16 3.5 L27 10 L16 16.5 L5 10 Z"
+        fill="none"
+        stroke="var(--color-accent-strong)"
+        strokeWidth={0.75}
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 function Wordmark() {
   return (
     <span className="flex items-center gap-2.5">
       <span
-        className="glass inline-flex h-9 w-9 items-center justify-center rounded-lg"
+        className="glass inline-flex h-10 w-10 items-center justify-center rounded-xl"
         aria-hidden
       >
-        <svg viewBox="0 0 32 32" width={20} height={20}>
-          {/* Box outline — square with rounded corners. */}
-          <rect
-            x={6}
-            y={6}
-            width={20}
-            height={20}
-            rx={3.5}
-            stroke="var(--color-accent)"
-            strokeWidth={1.6}
-            fill="none"
-          />
-          {/* Keyhole — circle + descending notch, centred. The icon reads
-              first as "secured box", second as a small letterform. */}
-          <circle cx={16} cy={14.5} r={2} fill="var(--color-accent)" />
-          <rect x={15} y={14.5} width={2} height={5} fill="var(--color-accent)" />
-        </svg>
+        <CubeMark size={22} />
       </span>
-      <span className="text-[1.15rem] leading-none font-medium tracking-tight text-[var(--color-fg)]">
-        SlothBox
+      <span className="text-[1.2rem] leading-none font-semibold tracking-tight text-[var(--color-fg)]">
+        Sloth<span className="text-aurora">Box</span>
       </span>
     </span>
   );

@@ -769,6 +769,22 @@ export const TRANSLATIONS = {
     en: "file is too large (max {max})",
     da: "filen er for stor (maks. {max})",
   },
+  // Friendly upload-failure copy. The crypto/transport layer throws
+  // technical strings ("ingest returned HTTP 400", "could not reach the
+  // ingest service", …); UploadDrop maps them onto these so a sender
+  // never sees a raw status code or service name.
+  "upload.error.network": {
+    en: "Couldn't reach the server. Check your connection and try again.",
+    da: "Kunne ikke nå serveren. Tjek din forbindelse, og prøv igen.",
+  },
+  "upload.error.server": {
+    en: "The upload was rejected by the server. Please try again.",
+    da: "Uploadet blev afvist af serveren. Prøv venligst igen.",
+  },
+  "upload.error.generic": {
+    en: "Something went wrong during the upload. Please try again.",
+    da: "Noget gik galt under uploadet. Prøv venligst igen.",
+  },
   "upload.preparing": {
     en: "{size} · preparing…",
     da: "{size} · forbereder…",

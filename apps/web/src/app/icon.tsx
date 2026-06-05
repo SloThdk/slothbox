@@ -58,20 +58,11 @@ export default function Icon() {
       }}
     >
       <svg width="192" height="192" viewBox="0 0 32 32">
-        {/* Box outline — same coords as Header Wordmark + apple-icon + OG. */}
-        <rect
-          x="6"
-          y="6"
-          width="20"
-          height="20"
-          rx="3.5"
-          stroke="#5b9eff"
-          strokeWidth="2"
-          fill="none"
-        />
-        {/* Keyhole — circle + descending notch. */}
-        <circle cx="16" cy="14.5" r="2" fill="#5b9eff" />
-        <rect x="15" y="14.5" width="2" height="5" fill="#5b9eff" />
+        {/* Isometric cube — same coords as Header CubeMark + apple-icon + OG.
+            Top face lit teal, left face deep teal, right face in shadow. */}
+        <path d="M16 3.5 L27 10 L16 16.5 L5 10 Z" fill="#2ee6c6" />
+        <path d="M5 10 L16 16.5 L16 29 L5 22.5 Z" fill="#0fb89c" />
+        <path d="M27 10 L16 16.5 L16 29 L27 22.5 Z" fill="#118a78" />
       </svg>
     </div>,
     { ...size }

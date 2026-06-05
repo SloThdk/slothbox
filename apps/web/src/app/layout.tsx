@@ -35,9 +35,10 @@ const inter = Inter({
   subsets: ["latin"],
   variable: "--font-inter",
   display: "swap",
-  // Load multiple weights — visionOS uses light to medium across the board.
-  // 300 for body, 500 for UI, 600 for display. No bold (700+) anywhere.
-  weight: ["300", "400", "500", "600"],
+  // Load multiple weights — light for body, medium for UI, semibold/bold
+  // for display. 700 is reserved for the hero headline emphasis so the
+  // landing reads as a confident product, not a wireframe.
+  weight: ["300", "400", "500", "600", "700"],
 });
 
 const jetbrains = JetBrains_Mono({
@@ -85,7 +86,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: [{ media: "(prefers-color-scheme: dark)", color: "#0a0d14" }],
+  themeColor: [{ media: "(prefers-color-scheme: dark)", color: "#060910" }],
   width: "device-width",
   initialScale: 1,
 };
