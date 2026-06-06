@@ -22,7 +22,7 @@ export default function AppleIcon() {
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        background: "#060910",
+        background: "#070b16",
         // iOS rounds the corners itself — no border-radius needed here.
       }}
     >
@@ -38,10 +38,14 @@ export default function AppleIcon() {
           stroke="rgba(255,255,255,0.10)"
           strokeWidth="1"
         />
-        {/* Isometric cube — same coords as Header CubeMark + favicon + OG. */}
-        <path d="M16 3.5 L27 10 L16 16.5 L5 10 Z" fill="#2ee6c6" />
-        <path d="M5 10 L16 16.5 L16 29 L5 22.5 Z" fill="#0fb89c" />
-        <path d="M27 10 L16 16.5 L16 29 L27 22.5 Z" fill="#118a78" />
+        {/* Isometric cube — same coords + canonical BLUE palette as Header
+            CubeMark + favicon + OG, with the near-white front keyhole. */}
+        <path d="M16 3.5 L27 10 L16 16.5 L5 10 Z" fill="#5b9dff" />
+        <path d="M5 10 L16 16.5 L16 29 L5 22.5 Z" fill="#3b82f6" />
+        <path d="M27 10 L16 16.5 L16 29 L27 22.5 Z" fill="#1e4fc4" />
+        {/* Keyhole — the box is locked. */}
+        <circle cx="16" cy="20" r="2.4" fill="#eaf2ff" />
+        <path d="M15.05 20.4 L16.95 20.4 L17.5 25.2 L14.5 25.2 Z" fill="#eaf2ff" />
       </svg>
     </div>,
     { ...size }

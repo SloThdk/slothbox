@@ -34,8 +34,8 @@ export default function manifest(): MetadataRoute.Manifest {
       "End-to-end encrypted file transfer with tamper-evident delivery receipts. The server cannot decrypt anything.",
     start_url: "/",
     display: "standalone",
-    background_color: "#0a0d14",
-    theme_color: "#0a0d14",
+    background_color: "#0c1220",
+    theme_color: "#0c1220",
     orientation: "any",
     // The site's `/icon` (32x32 PNG) and `/apple-icon` (180x180 PNG)
     // routes already feed the document head <link rel="icon"> and

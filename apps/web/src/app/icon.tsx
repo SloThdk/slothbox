@@ -36,8 +36,8 @@
 //   home-screen surface from a single source.
 //
 // Same box-with-keyhole glyph as apple-icon.tsx, opengraph-image.tsx,
-// and Header.tsx Wordmark. Single source of truth — coords are
-// identical (x=6 y=6 w=20 h=20 in a 0 0 32 32 viewBox) so the brand
+// and Header.tsx Wordmark. Single source of truth — the three cube-face
+// paths + the keyhole are identical (0 0 32 32 viewBox) so the brand
 // mark reads consistent across all four surfaces.
 
 import { ImageResponse } from "next/og";
@@ -58,11 +58,15 @@ export default function Icon() {
       }}
     >
       <svg width="192" height="192" viewBox="0 0 32 32">
-        {/* Isometric cube — same coords as Header CubeMark + apple-icon + OG.
-            Top face lit teal, left face deep teal, right face in shadow. */}
-        <path d="M16 3.5 L27 10 L16 16.5 L5 10 Z" fill="#2ee6c6" />
-        <path d="M5 10 L16 16.5 L16 29 L5 22.5 Z" fill="#0fb89c" />
-        <path d="M27 10 L16 16.5 L16 29 L27 22.5 Z" fill="#118a78" />
+        {/* Isometric cube — same coords + canonical BLUE palette as Header
+            CubeMark + apple-icon + OG. Top lit, left mid, right in shadow,
+            with a near-white keyhole on the front: the box is locked. */}
+        <path d="M16 3.5 L27 10 L16 16.5 L5 10 Z" fill="#5b9dff" />
+        <path d="M5 10 L16 16.5 L16 29 L5 22.5 Z" fill="#3b82f6" />
+        <path d="M27 10 L16 16.5 L16 29 L27 22.5 Z" fill="#1e4fc4" />
+        {/* Keyhole — round bow over a tapered blade, near-white. */}
+        <circle cx="16" cy="20" r="2.4" fill="#eaf2ff" />
+        <path d="M15.05 20.4 L16.95 20.4 L17.5 25.2 L14.5 25.2 Z" fill="#eaf2ff" />
       </svg>
     </div>,
     { ...size }
