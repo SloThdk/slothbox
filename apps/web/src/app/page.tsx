@@ -9,7 +9,7 @@
 // Design language: visionOS-inspired dark glass. Layout is intentionally
 // asymmetric (left-aligned hero, right-floated widget) and uses negative
 // space generously. Typography is Inter at multiple weights — no serif,
-// no italic mid-sentence, no gradient text. Accent (#5b9eff sky-blue)
+// no italic mid-sentence, no gradient text. Accent (#4189ff azure-blue)
 // is used SPARINGLY: one CTA, one focal element. Iconography is custom
 // inline SVG at 1.2pt stroke weight, not Lucide stock.
 
@@ -87,7 +87,7 @@ function Hero() {
         </div>
 
         {/* Right column — upload widget as a product showpiece: a single-hue
-            teal spotlight behind it (product lighting, not the rejected
+            blue spotlight behind it (product lighting, not the rejected
             multi-colour aurora) + the elevated, depth-layered card on top. */}
         <div className="animate-in-fade relative flex w-full justify-center lg:justify-end">
           <div

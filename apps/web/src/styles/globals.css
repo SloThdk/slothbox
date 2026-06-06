@@ -8,11 +8,12 @@
  *   The reference set is Linear / Vercel / Stripe — products that read as
  *   custom-built. The shared traits, and the rules this file enforces:
  *
- *     1. NEUTRAL near-black canvas. No colour tint, no aurora glow, no
- *        radial brand-bloom. Flat.
- *     2. ONE accent (teal), used at ~2% coverage — a status dot, a focus
- *        ring, the logo cube, a link hover. NEVER on headlines, NEVER as a
- *        gradient, NEVER as a glow.
+ *     1. DEEP NAVY-BLACK canvas — a subtle blue tint carries the "blue
+ *        theme" without a bright wash. No aurora glow, no radial
+ *        brand-bloom. Flat.
+ *     2. ONE accent (azure blue), used at ~2% coverage — a status dot, a
+ *        focus ring, the logo cube, a link hover. NEVER on headlines,
+ *        NEVER as a gradient, NEVER as a glow.
  *     3. Primary CTA is a SOLID near-white pill with near-black ink — the
  *        Linear/Vercel move. No coloured glow under it.
  *     4. Depth comes from crisp 1px borders + very subtle neutral shadows
@@ -33,15 +34,16 @@
  * Theme tokens.
  * -------------------------------------------------------------------------- */
 @theme {
-  /* Canvas — neutral near-black, no blue/teal tint (Linear ships #08090a). */
-  --color-bg: #08090b;
-  --color-bg-2: #0d0e11;
+  /* Canvas — deep navy-black. A subtle blue tint (vs the prior neutral
+     #08090b) carries the blue theme while staying premium-dark, not washed. */
+  --color-bg: #070b16;
+  --color-bg-2: #0c1220;
 
   /* Solid surfaces. Most cards are these now — NOT translucent glass. The
      step up from the canvas is small and deliberate; a 1px border does the
      real separating work. */
-  --color-card: #101114;
-  --color-card-elevated: #16181c;
+  --color-card: #11151f;
+  --color-card-elevated: #161c28;
 
   /* Foreground — clean off-white + a calm grey ramp (Linear-style). */
   --color-fg: #f4f5f6;
@@ -60,21 +62,21 @@
   --color-glass-fill: rgba(255, 255, 255, 0.02);
   --color-glass-fill-elevated: rgba(255, 255, 255, 0.03);
 
-  /* ── Accent — teal, used SPARINGLY (status dot, focus ring, logo, link
-     hover). Deepened from the prior neon so it reads as a brand colour, not
-     a highlighter. `--color-on-accent` is the ink for the rare solid-accent
-     fill. */
-  --color-accent: #2bc4ad;
-  --color-accent-strong: #4bd6c1;
-  --color-accent-deep: #169683;
-  --color-on-accent: #05130f;
-  --color-accent-soft: rgba(43, 196, 173, 0.1);
-  --color-accent-tint: rgba(43, 196, 173, 0.22);
+  /* ── Accent — azure blue, used SPARINGLY (status dot, focus ring, logo,
+     link hover). A confident, slightly-electric blue that reads as a brand
+     colour on the dark navy canvas — not a flat bootstrap blue.
+     `--color-on-accent` is the ink for the rare solid-accent fill. */
+  --color-accent: #4189ff;
+  --color-accent-strong: #6ba3ff;
+  --color-accent-deep: #2563eb;
+  --color-on-accent: #05112e;
+  --color-accent-soft: rgba(65, 137, 255, 0.1);
+  --color-accent-tint: rgba(65, 137, 255, 0.22);
 
   /* Primary-button surface — near-white solid (the Linear/Vercel CTA). */
   --color-solid: #f4f5f6;
   --color-solid-hover: #e2e4e7;
-  --color-on-solid: #08090b;
+  --color-on-solid: #070b16;
 
   /* Danger / success — flat, used only on the relevant warnings. */
   --color-danger: #ff6b75;
@@ -212,29 +214,31 @@
       var(--shadow-lg);
   }
 
-  /* Confined single-hue product spotlight — a soft teal glow placed BEHIND
+  /* Confined single-hue product spotlight — a soft blue glow placed BEHIND
      a focal element (the hero upload card). Single hue, low opacity: reads
      as ambient product lighting, NOT the multi-colour aurora that got
      rejected. Always absolutely positioned + behind content. */
   .hero-spot {
     position: absolute;
     border-radius: 9999px;
-    background: radial-gradient(closest-side, rgba(43, 196, 173, 0.18), transparent 78%);
+    background: radial-gradient(closest-side, rgba(65, 137, 255, 0.2), transparent 78%);
     filter: blur(36px);
     pointer-events: none;
     z-index: 0;
   }
 
-  /* Floating nav bar — a rounded, bordered, slightly translucent pill that
-     sits off the top edge (the Raycast/Vercel detail that reads premium). */
-  .nav-floating {
-    background-color: color-mix(in srgb, var(--color-bg-2) 72%, transparent);
-    border: 1px solid var(--color-border);
-    border-radius: 9999px;
-    backdrop-filter: blur(16px) saturate(140%);
-    -webkit-backdrop-filter: blur(16px) saturate(140%);
+  /* Full-width site header bar — spans the entire top edge (replacing the
+     prior floating pill), taller and more present so the brand mark reads
+     immediately. Translucent dark-navy with a blur and a crisp bottom
+     hairline; bold without resorting to a glow. A 1px accent line under the
+     border gives a quiet blue signature that ties into the theme. */
+  .site-header-bar {
+    background-color: color-mix(in srgb, var(--color-bg) 80%, transparent);
+    border-bottom: 1px solid var(--color-border-strong);
+    backdrop-filter: blur(18px) saturate(140%);
+    -webkit-backdrop-filter: blur(18px) saturate(140%);
     box-shadow:
-      inset 0 1px 0 0 rgba(255, 255, 255, 0.05),
+      inset 0 -1px 0 0 var(--color-accent-soft),
       var(--shadow-md);
   }
 

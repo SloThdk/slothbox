@@ -35,7 +35,7 @@ export default async function OgImage() {
         // brand-colour bloom. Matches --color-bg in globals.css so the
         // social-preview and the live site read as the same product.
         background:
-          "radial-gradient(1200px 600px at 70% -15%, rgba(255,255,255,0.035), transparent 60%), #08090b",
+          "radial-gradient(1200px 600px at 70% -15%, rgba(255,255,255,0.035), transparent 60%), #070b16",
         fontFamily: "Inter, system-ui, sans-serif",
       }}
     >
@@ -61,10 +61,14 @@ export default async function OgImage() {
             stroke="rgba(255,255,255,0.12)"
             strokeWidth="1"
           />
-          {/* Isometric cube — same coords as Header CubeMark + favicon. */}
-          <path d="M16 4.5 L26 10 L16 15.5 L6 10 Z" fill="#2bc4ad" />
-          <path d="M6 10 L16 15.5 L16 27 L6 21.5 Z" fill="#169683" />
-          <path d="M26 10 L16 15.5 L16 27 L26 21.5 Z" fill="#0f5e52" />
+          {/* Isometric cube — same coords + canonical BLUE palette as Header
+              CubeMark + favicon, with the near-white front keyhole. */}
+          <path d="M16 4.5 L26 10 L16 15.5 L6 10 Z" fill="#5b9dff" />
+          <path d="M6 10 L16 15.5 L16 27 L6 21.5 Z" fill="#3b82f6" />
+          <path d="M26 10 L16 15.5 L16 27 L26 21.5 Z" fill="#1e4fc4" />
+          {/* Keyhole — the box is locked. */}
+          <circle cx="16" cy="19.5" r="2.3" fill="#eaf2ff" />
+          <path d="M15.1 19.9 L16.9 19.9 L17.4 24.4 L14.6 24.4 Z" fill="#eaf2ff" />
         </svg>
         <div
           style={{
@@ -97,7 +101,7 @@ export default async function OgImage() {
           gap: "40px",
           marginTop: "64px",
           fontSize: "24px",
-          color: "#2bc4ad",
+          color: "#4189ff",
           fontFamily: "JetBrains Mono, ui-monospace, monospace",
         }}
       >
