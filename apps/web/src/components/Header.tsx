@@ -72,16 +72,17 @@ export function CubeMark({ size = 28, className }: { size?: number; className?: 
 
 function Wordmark() {
   return (
-    <span className="flex items-center gap-2.5 sm:gap-3">
+    <span className="flex items-center gap-2.5 sm:gap-3.5">
       <span
-        className="glass inline-flex h-10 w-10 items-center justify-center rounded-xl sm:h-12 sm:w-12 sm:rounded-2xl"
+        className="glass inline-flex h-11 w-11 items-center justify-center rounded-xl sm:h-14 sm:w-14 sm:rounded-2xl"
         aria-hidden
       >
-        {/* Cube grows from 24px on mobile to 32px at sm+ — bigger, more
-            present, while the tile stays sane on a 320 px viewport. */}
-        <CubeMark className="h-6 w-6 sm:h-8 sm:w-8" />
+        {/* Cube is the brand hero — 28px on mobile, 40px at sm+. Bigger and
+            more present so the mark reads custom, while the tile stays sane
+            on a 320 px viewport. */}
+        <CubeMark className="h-7 w-7 sm:h-10 sm:w-10" />
       </span>
-      <span className="text-[1.2rem] leading-none font-bold tracking-tight text-[var(--color-fg)] sm:text-[1.55rem]">
+      <span className="text-[1.25rem] leading-none font-bold tracking-tight text-[var(--color-fg)] sm:text-[1.65rem]">
         SlothBox
       </span>
     </span>
@@ -93,7 +94,7 @@ export function Header() {
 
   return (
     <header className="site-header-bar sticky top-0 z-50 w-full">
-      <div className="mx-auto flex h-16 w-full max-w-[var(--container-2xl)] items-center justify-between px-4 sm:h-[4.75rem] sm:px-8">
+      <div className="mx-auto flex h-16 w-full max-w-[var(--container-2xl)] items-center justify-between px-4 sm:h-20 sm:px-8">
         <Link
           href="/"
           className="flex items-center gap-2 transition-opacity hover:opacity-90"

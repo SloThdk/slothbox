@@ -753,6 +753,34 @@ export const TRANSLATIONS = {
     en: "Password must be at least {min} characters",
     da: "Adgangskoden skal være mindst {min} tegn",
   },
+  "upload.password.generate": {
+    en: "Generate",
+    da: "Generér",
+  },
+  "upload.password.show": {
+    en: "Show password",
+    da: "Vis adgangskode",
+  },
+  "upload.password.hide": {
+    en: "Hide password",
+    da: "Skjul adgangskode",
+  },
+  "upload.password.strength.weak": {
+    en: "Weak",
+    da: "Svag",
+  },
+  "upload.password.strength.fair": {
+    en: "Fair",
+    da: "OK",
+  },
+  "upload.password.strength.strong": {
+    en: "Strong",
+    da: "Stærk",
+  },
+  "upload.password.generated": {
+    en: "Strong password generated. Copy it somewhere safe — it cannot be recovered.",
+    da: "Stærk adgangskode genereret. Gem den et sikkert sted — den kan ikke gendannes.",
+  },
   "upload.trust": {
     en: "Encryption happens in your browser. The key never leaves this tab.",
     da: "Krypteringen sker i din browser. Nøglen forlader aldrig denne fane.",
