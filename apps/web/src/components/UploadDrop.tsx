@@ -11,7 +11,7 @@
 "use client";
 
 import * as React from "react";
-import { Lock, RefreshCw, X } from "lucide-react";
+import { Eye, EyeOff, Lock, RefreshCw, Wand2, X } from "lucide-react";
 import { toast } from "sonner";
 
 // Custom inline SVG — a vault box with a separated key floating above it.
@@ -106,6 +106,39 @@ type UploadState =
  */
 const PASSWORD_MIN_LENGTH = 4;
 
+/**
+ * Lightweight client-side password strength score (0–3) — NOT a security
+ * control (Argon2id does the real hardening), purely sender UX guidance.
+ * 0 = empty, 1 = weak, 2 = fair, 3 = strong. Heuristic only: length tiers +
+ * character-class variety. Deliberately no zxcvbn dependency.
+ */
+function scorePassword(pw: string): 0 | 1 | 2 | 3 {
+  if (!pw) return 0;
+  let score = 0;
+  if (pw.length >= 8) score += 1;
+  if (pw.length >= 14) score += 1;
+  const classes = [/[a-z]/, /[A-Z]/, /[0-9]/, /[^A-Za-z0-9]/].filter((re) => re.test(pw)).length;
+  if (classes >= 3) score += 1;
+  return Math.min(score, 3) as 0 | 1 | 2 | 3;
+}
+
+/**
+ * Generate a cryptographically-strong password via the Web Crypto CSPRNG.
+ * 20 chars over a ~64-symbol alphabet (ambiguous glyphs O/0/I/l/1 removed for
+ * read-aloud fidelity) ≈ 120 bits of entropy. Modulo bias at this alphabet
+ * size is cryptographically negligible for single-use share material.
+ */
+function generatePassword(length = 20): string {
+  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%^&*-_=+";
+  const bytes = new Uint32Array(length);
+  crypto.getRandomValues(bytes);
+  let out = "";
+  for (let i = 0; i < length; i += 1) {
+    out += alphabet[bytes[i]! % alphabet.length];
+  }
+  return out;
+}
+
 export function UploadDrop() {
   const { t } = useLanguage();
   const [state, setState] = React.useState<UploadState>({ kind: "idle" });
@@ -120,6 +153,10 @@ export function UploadDrop() {
    */
   const [passwordProtected, setPasswordProtected] = React.useState<boolean>(false);
   const [password, setPassword] = React.useState<string>("");
+  // Reveal toggle for the password field. The per-share password is
+  // out-of-band material the sender must copy elsewhere, so showing it is
+  // a legitimate common case (unlike a login field).
+  const [showPassword, setShowPassword] = React.useState<boolean>(false);
   const [isDragOver, setIsDragOver] = React.useState<boolean>(false);
   /**
    * Single-file input (multi-select enabled — when N > 1 the upload
@@ -277,6 +314,26 @@ export function UploadDrop() {
     [resolveUploadFile, startUpload]
   );
 
+  /**
+   * Paste-to-encrypt. When the focused dropzone receives a paste that
+   * carries a file (a copied file, or a screenshot/image on the clipboard),
+   * treat it exactly like a drop. Plain-text pastes carry no `files` and
+   * fall through untouched — dedicated text-note mode is a separate feature.
+   */
+  const onPaste = React.useCallback(
+    async (e: React.ClipboardEvent<HTMLDivElement>) => {
+      if (state.kind === "uploading") return;
+      const files = Array.from(e.clipboardData?.files ?? []);
+      if (files.length === 0) return;
+      e.preventDefault();
+      const resolved = await resolveUploadFile(files);
+      if (resolved) {
+        void startUpload(resolved);
+      }
+    },
+    [state.kind, resolveUploadFile, startUpload]
+  );
+
   const reset = React.useCallback(() => {
     setState({ kind: "idle" });
   }, []);
@@ -321,6 +378,7 @@ export function UploadDrop() {
           }}
           onDragLeave={() => setIsDragOver(false)}
           onDrop={state.kind === "uploading" ? undefined : onDrop}
+          onPaste={state.kind === "uploading" ? undefined : onPaste}
           onClick={(e) => {
             if (state.kind === "uploading") return;
             // Ignore clicks that land on an interactive child (e.g. the
@@ -528,22 +586,63 @@ export function UploadDrop() {
               />
             </div>
             {passwordProtected ? (
-              <Input
-                id="password"
-                type="password"
-                autoComplete="new-password"
-                // Password manager opt-out — the sender's per-share
-                // password is single-use out-of-band material, not a
-                // site credential worth offering to save.
-                data-1p-ignore="true"
-                data-lpignore="true"
-                spellCheck={false}
-                placeholder={t("upload.password.placeholder")}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                disabled={state.kind === "uploading"}
-                aria-describedby="password-help"
-              />
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center gap-2">
+                  <div className="relative flex-1">
+                    <Input
+                      id="password"
+                      type={showPassword ? "text" : "password"}
+                      autoComplete="new-password"
+                      // Password manager opt-out — the sender's per-share
+                      // password is single-use out-of-band material, not a
+                      // site credential worth offering to save.
+                      data-1p-ignore="true"
+                      data-lpignore="true"
+                      spellCheck={false}
+                      placeholder={t("upload.password.placeholder")}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      disabled={state.kind === "uploading"}
+                      aria-describedby="password-help"
+                      className="pr-10 font-mono"
+                    />
+                    {/* Reveal toggle, sat inside the field. */}
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((s) => !s)}
+                      disabled={state.kind === "uploading"}
+                      aria-label={
+                        showPassword ? t("upload.password.hide") : t("upload.password.show")
+                      }
+                      className="absolute top-1/2 right-2 inline-flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-md text-[var(--color-muted)] transition-colors hover:text-[var(--color-fg)]"
+                    >
+                      {showPassword ? (
+                        <EyeOff className="h-4 w-4" aria-hidden />
+                      ) : (
+                        <Eye className="h-4 w-4" aria-hidden />
+                      )}
+                    </button>
+                  </div>
+                  {/* One-click strong generator — fills + reveals the field
+                      so the sender can copy it, then toasts a save reminder. */}
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() => {
+                      setPassword(generatePassword());
+                      setShowPassword(true);
+                      toast.success(t("upload.password.generated"));
+                    }}
+                    disabled={state.kind === "uploading"}
+                    className="h-10 shrink-0 gap-1.5 px-3"
+                  >
+                    <Wand2 className="h-3.5 w-3.5" aria-hidden />
+                    {t("upload.password.generate")}
+                  </Button>
+                </div>
+                {/* Strength meter — sender UX only, never a gate. */}
+                {password.length > 0 ? <PasswordStrength score={scorePassword(password)} /> : null}
+              </div>
             ) : null}
             <p
               id="password-help"
@@ -560,6 +659,42 @@ export function UploadDrop() {
           <span>{t("upload.trust")}</span>
         </div>
       </div>
+    </div>
+  );
+}
+
+// ---- Password strength meter --------------------------------------------
+
+/**
+ * Three-segment strength bar + label. Driven by scorePassword(); 1 = weak
+ * (danger), 2 = fair (amber), 3 = strong (success). Sender UX guidance only.
+ */
+function PasswordStrength({ score }: { score: 0 | 1 | 2 | 3 }) {
+  const { t } = useLanguage();
+  const meta = [
+    null,
+    { key: "upload.password.strength.weak" as TranslationKey, color: "var(--color-danger)" },
+    { key: "upload.password.strength.fair" as TranslationKey, color: "#f5b14c" },
+    { key: "upload.password.strength.strong" as TranslationKey, color: "var(--color-success)" },
+  ][score];
+  return (
+    <div className="flex items-center gap-2" aria-live="polite">
+      <div className="flex flex-1 gap-1">
+        {[1, 2, 3].map((seg) => (
+          <span
+            key={seg}
+            className="h-1 flex-1 rounded-full transition-colors"
+            style={{
+              backgroundColor: meta && score >= seg ? meta.color : "var(--color-border-strong)",
+            }}
+          />
+        ))}
+      </div>
+      {meta ? (
+        <span className="text-[0.7rem] font-medium" style={{ color: meta.color }}>
+          {t(meta.key)}
+        </span>
+      ) : null}
     </div>
   );
 }
