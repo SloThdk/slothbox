@@ -122,21 +122,41 @@ function scorePassword(pw: string): 0 | 1 | 2 | 3 {
   return Math.min(score, 3) as 0 | 1 | 2 | 3;
 }
 
+/** Uniform random index in [0, n) from the Web Crypto CSPRNG. */
+function randIndex(n: number): number {
+  const b = new Uint32Array(1);
+  crypto.getRandomValues(b);
+  return b[0]! % n;
+}
+
 /**
  * Generate a cryptographically-strong password via the Web Crypto CSPRNG.
- * 20 chars over a ~64-symbol alphabet (ambiguous glyphs O/0/I/l/1 removed for
- * read-aloud fidelity) ≈ 120 bits of entropy. Modulo bias at this alphabet
- * size is cryptographically negligible for single-use share material.
+ * ~64-symbol alphabet (ambiguous glyphs O/0/I/l/1 removed for read-aloud
+ * fidelity); 20 chars ≈ 120 bits of entropy. We GUARANTEE at least one char
+ * from each class (upper / lower / digit / symbol) and then Fisher–Yates
+ * shuffle — so the result is both unguessable AND always reads "Strong" on
+ * the meter. A plain uniform draw would occasionally omit a class (~8% no
+ * digit, ~3% no symbol over 20 chars) and contradict the "Strong password
+ * generated" toast. Modulo bias at this alphabet size is negligible.
+ * `length` must be >= 4 (one slot per class); the only caller uses 20.
  */
 function generatePassword(length = 20): string {
-  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%^&*-_=+";
-  const bytes = new Uint32Array(length);
-  crypto.getRandomValues(bytes);
-  let out = "";
-  for (let i = 0; i < length; i += 1) {
-    out += alphabet[bytes[i]! % alphabet.length];
+  const groups = [
+    "ABCDEFGHJKLMNPQRSTUVWXYZ", // upper (no I/O)
+    "abcdefghijkmnpqrstuvwxyz", // lower (no l/o)
+    "23456789", // digit (no 0/1)
+    "!@#$%^&*-_=+", // symbol
+  ];
+  const all = groups.join("");
+  // One guaranteed char per class, then fill the rest from the full alphabet.
+  const chars = groups.map((g) => g[randIndex(g.length)]!);
+  while (chars.length < length) chars.push(all[randIndex(all.length)]!);
+  // Fisher–Yates shuffle so the guaranteed chars aren't positionally fixed.
+  for (let i = chars.length - 1; i > 0; i -= 1) {
+    const j = randIndex(i + 1);
+    [chars[i], chars[j]] = [chars[j]!, chars[i]!];
   }
-  return out;
+  return chars.join("");
 }
 
 export function UploadDrop() {
@@ -580,7 +600,10 @@ export function UploadDrop() {
                 checked={passwordProtected}
                 onCheckedChange={(next) => {
                   setPasswordProtected(next);
-                  if (!next) setPassword("");
+                  if (!next) {
+                    setPassword("");
+                    setShowPassword(false);
+                  }
                 }}
                 disabled={state.kind === "uploading"}
               />
