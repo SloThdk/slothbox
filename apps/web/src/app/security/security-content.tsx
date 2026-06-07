@@ -55,30 +55,34 @@ export function SecurityContent() {
   const { t } = useLanguage();
 
   return (
-    <article className="mx-auto w-full max-w-[var(--container-lg)] px-4 py-12 sm:px-6 sm:py-16">
-      <header className="mb-10 max-w-2xl">
-        <p className="text-xs font-semibold tracking-wider text-[var(--color-accent)] uppercase">
+    <article className="mx-auto w-full max-w-[var(--container-xl)] px-4 py-16 sm:px-6 sm:py-20">
+      <header className="mb-12 max-w-3xl sm:mb-16">
+        <p className="text-xs font-semibold tracking-[0.18em] text-[var(--color-accent)] uppercase sm:text-sm">
           {t("security.eyebrow")}
         </p>
-        <h1 className="font-display mt-2 text-4xl font-semibold tracking-tight text-[var(--color-fg)] sm:text-5xl">
+        <h1 className="font-display mt-3 text-5xl font-bold tracking-tight text-[var(--color-fg)] sm:text-6xl">
           {t("security.heading")}
         </h1>
-        <p className="mt-3 text-base leading-relaxed text-[var(--color-muted)]">
+        <p className="mt-5 text-lg leading-relaxed text-[var(--color-fg-2)] sm:text-xl">
           {t("security.lede")}
         </p>
       </header>
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+      {/* Larger, more present cards — the security story is the product's
+          whole pitch, so these read as substantial feature blocks (roomy
+          padding, bigger icon tiles + headings, higher-contrast body) rather
+          than compact list items. */}
+      <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
         {SECTIONS.map((section) => (
           <Card key={section.titleKey} className="surface-hover">
-            <CardContent className="flex flex-col gap-3 p-6">
-              <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-[color-mix(in_srgb,var(--color-accent)_15%,transparent)] text-[var(--color-accent)]">
-                <section.icon className="h-5 w-5" aria-hidden />
+            <CardContent className="flex flex-col gap-4 p-8 sm:gap-5 sm:p-10">
+              <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[color-mix(in_srgb,var(--color-accent)_15%,transparent)] text-[var(--color-accent)]">
+                <section.icon className="h-7 w-7" aria-hidden strokeWidth={1.75} />
               </span>
-              <h2 className="font-display text-xl font-semibold text-[var(--color-fg)]">
+              <h2 className="font-display text-2xl font-semibold text-[var(--color-fg)] sm:text-[1.75rem]">
                 {t(section.titleKey)}
               </h2>
-              <p className="text-sm leading-relaxed text-[var(--color-muted)]">
+              <p className="text-base leading-relaxed text-[var(--color-fg-2)] sm:text-[1.05rem]">
                 {t(section.bodyKey)}
               </p>
             </CardContent>
@@ -86,11 +90,11 @@ export function SecurityContent() {
         ))}
       </div>
 
-      <section className="mt-12 rounded-xl border border-[var(--color-border)] bg-[var(--color-card)] p-6 sm:p-8">
-        <h2 className="font-display text-2xl font-semibold text-[var(--color-fg)]">
+      <section className="mt-14 rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] p-8 sm:p-10">
+        <h2 className="font-display text-2xl font-semibold text-[var(--color-fg)] sm:text-3xl">
           {t("security.disclose.heading")}
         </h2>
-        <p className="mt-2 text-sm leading-relaxed text-[var(--color-muted)]">
+        <p className="mt-3 text-base leading-relaxed text-[var(--color-fg-2)]">
           {t("security.disclose.body.lead")}{" "}
           {/* Two-route disclosure: direct email OR the philipsloth.com
               contact form. Both reach the same inbox; presenting both
