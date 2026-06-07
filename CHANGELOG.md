@@ -17,6 +17,52 @@ the project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Stripe billing for free vs pro tiers
 - Grafana dashboards published
 
+## [0.2.15] — 2026-06-07
+
+Visual rebrand to a blue identity, plus account-less sender-side features
+and the bilingual receiver flow. No crypto or trust-boundary changes — the
+v0.2 URL-leak-hardening guarantees are unchanged.
+
+### Added
+
+- **Password generator + strength meter + reveal toggle** on the per-share
+  password field. One-click CSPRNG password (~120-bit, read-aloud-safe
+  alphabet, guaranteed one character per class so it always scores
+  "Strong"), a three-segment strength bar, and a show/hide eye — the
+  per-share password is out-of-band material the sender copies elsewhere,
+  so revealing it is the common case, not a credential leak. New
+  `upload.password.*` i18n keys (en + da).
+- **Paste-to-encrypt** — pasting a copied file or a screenshot into the
+  drop zone now encrypts and uploads it like a drop.
+- **Bilingual receiver page** (`/s/[id]`) + Decrypt UI — every
+  visitor-facing string flows through `useLanguage()`.
+- **Localized `/my-shares`** device-local sender dashboard (en + da).
+
+### Changed
+
+- **Blue brand identity** — accent ramp moved from teal to azure
+  (`#4189ff` family); canvas shifted to a deep navy (`#070b16`); the logo
+  cube was recoloured blue with a near-white keyhole ("the box is locked"),
+  applied identically across the header mark, favicon, apple-touch icon and
+  OG card. PWA manifest + `themeColor` aligned to the navy canvas.
+- **Full-width header** replacing the floating pill — taller, bolder,
+  larger brand cube. The /security trust cards scaled up to substantial
+  feature panels.
+- **`APP_VERSION` corrected to track the real release.** It was stale at
+  `0.2.6`, so the footer and `/api/healthz` had reported the wrong version
+  since the v0.2.7 line.
+
+### Fixed
+
+- **Ingest chunk-size validation** now accounts for the AEAD tag, so a
+  share's final chunk is no longer falsely rejected.
+- **Single-use chunk tokens** scoped to burn-after-read shares only —
+  non-burn shares no longer consume the token on first fetch.
+- **Folder picker** no longer opens two OS dialogs from a single click;
+  the accepted-formats note was added to the drop-zone copy.
+- **`start.bat`** checks `apps/web/node_modules` (not just the root) and
+  escapes parentheses in the docker-compose error message.
+
 ## [0.2.14] — 2026-05-21
 
 SEO pass — schema.org JSON-LD structured data on every page and two
