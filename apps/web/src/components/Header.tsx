@@ -94,7 +94,10 @@ export function Header() {
 
   return (
     <header className="site-header-bar sticky top-0 z-50 w-full">
-      <div className="mx-auto flex h-16 w-full max-w-[var(--container-2xl)] items-center justify-between px-4 sm:h-20 sm:px-8">
+      {/* px-2.5 below 360px: the Danish nav ("Sikkerhed") + brand + flag
+          toggle overflowed a 320px viewport by ~7px with the 16px page
+          padding. ≥360px keeps the original px-4 so nothing else shifts. */}
+      <div className="mx-auto flex h-16 w-full max-w-[var(--container-2xl)] items-center justify-between px-2.5 min-[360px]:px-4 sm:h-20 sm:px-8">
         <Link
           href="/"
           className="flex items-center gap-2 transition-opacity hover:opacity-90"
@@ -110,13 +113,13 @@ export function Header() {
         <nav className="flex items-center gap-0.5 sm:gap-3">
           <Link
             href="/about"
-            className="rounded-full px-2 py-2 text-[0.8rem] font-medium text-[var(--color-muted)] transition-colors hover:bg-[var(--color-glass-fill)] hover:text-[var(--color-fg)] sm:px-4 sm:text-[0.95rem]"
+            className="rounded-full px-1.5 py-2 text-[0.8rem] font-medium text-[var(--color-muted)] transition-colors hover:bg-[var(--color-glass-fill)] hover:text-[var(--color-fg)] min-[360px]:px-2 sm:px-4 sm:text-[0.95rem]"
           >
             {t("nav.about")}
           </Link>
           <Link
             href="/security"
-            className="rounded-full px-2 py-2 text-[0.8rem] font-medium text-[var(--color-muted)] transition-colors hover:bg-[var(--color-glass-fill)] hover:text-[var(--color-fg)] sm:px-4 sm:text-[0.95rem]"
+            className="rounded-full px-1.5 py-2 text-[0.8rem] font-medium text-[var(--color-muted)] transition-colors hover:bg-[var(--color-glass-fill)] hover:text-[var(--color-fg)] min-[360px]:px-2 sm:px-4 sm:text-[0.95rem]"
           >
             {t("nav.security")}
           </Link>

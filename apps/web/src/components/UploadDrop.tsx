@@ -632,7 +632,10 @@ export function UploadDrop() {
                       aria-describedby="password-help"
                       className="pr-10 font-mono"
                     />
-                    {/* Reveal toggle, sat inside the field. */}
+                    {/* Reveal toggle, sat inside the field. The icon mirrors
+                        the CURRENT state (open eye = password visible,
+                        crossed eye = hidden) — not the action. The aria-label
+                        stays action-based ("show"/"hide") for screen readers. */}
                     <button
                       type="button"
                       onClick={() => setShowPassword((s) => !s)}
@@ -643,9 +646,9 @@ export function UploadDrop() {
                       className="absolute top-1/2 right-2 inline-flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-md text-[var(--color-muted)] transition-colors hover:text-[var(--color-fg)]"
                     >
                       {showPassword ? (
-                        <EyeOff className="h-4 w-4" aria-hidden />
-                      ) : (
                         <Eye className="h-4 w-4" aria-hidden />
+                      ) : (
+                        <EyeOff className="h-4 w-4" aria-hidden />
                       )}
                     </button>
                   </div>
