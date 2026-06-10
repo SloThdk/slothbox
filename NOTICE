@@ -9,7 +9,7 @@ SECURITY DISCLAIMER
 SlothBox is provided as a portfolio reference build. The cryptographic
 primitives used (libsodium, age) are audited upstream, but the SlothBox
 integration of those primitives has not been independently reviewed or
-pen-tested as of v0.1.0-alpha.
+pen-tested as of v0.2.15.
 
 DO NOT use SlothBox to transmit information whose disclosure could result
 in loss of life, liberty, or significant financial harm UNTIL:

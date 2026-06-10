@@ -67,7 +67,10 @@ docker compose up -d postgres minio valkey nats prometheus grafana loki promtail
 # Wait for Postgres to be healthy (a few seconds)
 docker compose exec postgres pg_isready -U slothbox
 
-# Run migrations
+# Apply migrations via the runner. The runner (packages/db/scripts/migrate.mjs)
+# is the single source of truth — it applies db/migrations/*.sql in order and
+# tracks what's applied in the _migrations table. Postgres no longer auto-mounts
+# the migrations as initdb scripts, so this works cleanly on a fresh database.
 pnpm db:migrate
 ```
 
@@ -162,10 +165,10 @@ docker volume rm slothbox_pg_data slothbox_minio_data slothbox_valkey_data sloth
 The first run builds the Next.js production image — takes 2-5 min. Subsequent runs reuse layers.
 
 **Port conflicts**
-Default ports: 3021 (web), 3022 (gateway), 3023 (ingest), 3024 (receipt), 5433 (postgres), 9000/9001 (minio), 6379 (valkey), 4222 (nats), 3030 (grafana), 9090 (prometheus), 8080 (caddy). Change in `.env` if needed.
+Caddy publishes 80/443 (HTTP/HTTPS) on the host; everything reachable from a browser goes through it. The hot-reload dev servers (run outside Docker) listen on 3021 (web), 3022 (gateway), 3023 (ingest), 3024 (receipt). Only a few compose services publish a host port, and all of those bind loopback only: 127.0.0.1:5433 (postgres), 127.0.0.1:9000/9001 (minio API + console), 127.0.0.1:3030 (grafana). Valkey, NATS, and Prometheus stay on the internal docker network and are not reachable from the host. Change a published port in `.env` if it conflicts.
 
 **Postgres "database does not exist"**
-Wait a few more seconds — Postgres init scripts run on first boot. Or check `docker compose logs postgres`.
+Wait a few more seconds — Postgres needs to finish creating `POSTGRES_DB` on first boot before it accepts connections. Then run `pnpm db:migrate` to apply the schema. Or check `docker compose logs postgres`.
 
 **"libsodium-wrappers is not initialised"**
 The `initCrypto()` function returned a rejected promise. Check browser console for the underlying error. Most often: the WASM module didn't load (CSP blocking, network issue).

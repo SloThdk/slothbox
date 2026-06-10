@@ -20,8 +20,6 @@ sender-revoke tokens, single-use chunk tokens, folder / multi-file upload,
 in-browser preview, burn-after-read, expiry windows, PWA, age-encrypted
 operator backups.
 
-This session (account-less, frontend-only, no backend round-trip needed):
-
 - **Password generator + strength meter + reveal toggle** — one-click CSPRNG
   password (≈120 bits), a three-segment strength bar, and a show/hide eye on
   the field (the per-share password is out-of-band material, so revealing it

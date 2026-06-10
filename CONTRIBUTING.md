@@ -40,7 +40,6 @@ Frontend on <http://localhost:3021>, gateway on <http://localhost:3022/healthz>.
 - [ ] `pnpm typecheck` passes
 - [ ] `pnpm test` passes (including any new tests you add)
 - [ ] `gitleaks detect --no-git --redact` is clean
-- [ ] Commits are signed (`git commit -S`) — required by branch protection
 - [ ] PR title follows [Conventional Commits](https://www.conventionalcommits.org)
       (e.g. `feat(ingest): add chunked upload streaming`)
 
@@ -66,8 +65,9 @@ is held to a higher bar.
    (browser), `libsodium-net` (.NET), and `age` (asymmetric). PRs that
    introduce new ciphers, KDFs, MACs, or signature schemes will be
    **closed by the maintainer** during review unless the PR description
-   references an audited reference implementation. CODEOWNERS routes any
-   change under `packages/crypto-core/` to maintainer review.
+   references an audited reference implementation. CODEOWNERS designates the
+   maintainer (`@SloThdk`) as owner of `packages/crypto-core/`, so any change
+   there requests the maintainer as reviewer.
 
 2. **No "rolling your own".** If your PR contains a function that does
    key-stretching, signing, encrypting, or random-number generation that

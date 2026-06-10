@@ -7,15 +7,103 @@ the project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-### Planned for v0.5.0
+### Planned for v0.5.0 (account-less — see docs/FEATURES.md)
 
-- Lucia v3 / better-auth + Argon2id + magic-link primary
-- Account dashboard with server-side share history (complements the
-  v0.2 device-local `/my-shares` page)
-- RFC 3161 timestamp receipt issuance
+- RFC 3161 timestamped delivery receipts (issuable + verifiable anonymously)
+- Server-enforced max-downloads ledger (N-views limit, generalising burn-after-read)
+- Text / "secret note" mode — share a password or message, not just a file
 - Hash-chain audit log extension
-- Stripe billing for free vs pro tiers
 - Grafana dashboards published
+
+Accounts, auth, a logged-in dashboard, Stripe billing, and MitID are **out of
+scope** — SlothBox stays account-less by design (docs/FEATURES.md).
+
+## [0.2.16] — 2026-06-10
+
+Truth-and-correctness pass: a full audit of the codebase against its own
+documentation. Several docs described controls the code didn't actually enforce,
+and three real bugs hid behind otherwise-solid code. Everything below makes the
+shipped behaviour and the documentation agree.
+
+### Security
+
+- **Whole-file integrity on download (silent-truncation fix).** The sender now
+  seals the plaintext BLAKE2b hash + chunk count inside the AEAD-encrypted
+  metadata blob; the receiver recomputes the hash after reassembly and rejects a
+  mismatch. Per-chunk AEAD authenticated each chunk and its index but bound
+  nothing about the total, so a malicious server could drop trailing chunks and
+  the receiver would save a silently truncated file with no error. The hash is
+  sealed, not returned by the gateway, so it never enables hash-ratcheting of
+  shortIds.
+- **Reaper now destroys shares that hit their download cap.** A share flipped to
+  `state='expired'` by `increment_download` matched no reaper branch, so its
+  ciphertext blobs were never deleted — orphaned forever, contradicting
+  `docs/DELETION.md`. Added the `expired` candidate branch plus migration 0008,
+  which widens `shares_dest_reason_chk` to allow
+  `destroyed_reason='max_downloads'` (the reaper previously hit a CHECK violation
+  that poisoned the whole sweep).
+- **Atomic ingest rate limiter.** `ValkeyRateLimiter` ran four separate Redis
+  commands with a check-then-act race between the count and the add; it now runs
+  the whole evict → count → conditional-add as one Lua script, closing the window
+  the header comment had always claimed was closed.
+- **Dependency advisories cleared.** Bumped `hono` to ≥4.12.21 and pinned
+  `shell-quote` to ≥1.8.4 via pnpm overrides — `pnpm audit --prod` is clean.
+- **Secret-hygiene gap closed.** `.gitignore` now matches every `.env*` variant
+  (the old enumerated list missed ad-hoc backups like `.env.before-sync-*`, one
+  `git add .` from staging dev credentials); the stale backup file was removed.
+
+### Fixed
+
+- **Advertised file-size cap lowered from 4 GiB to 1 GiB.** The browser pipeline
+  buffers the whole file in memory, so the 4 GiB cap would OOM the tab on typical
+  machines and hard-fail on mobile — it was undeliverable. 1 GiB is what the
+  in-memory path actually survives; streaming for larger files is future work.
+  Aligned across the web app, gateway, archive packer, Docker, and `.env`.
+- **Un-uploadable chunkSize prevented.** The gateway capped `chunkSize` at the
+  full ingest body limit, but a chunk's wire size is `chunkSize + 16` (the AEAD
+  tag), so a share could be created whose full chunks could never be PUT. The cap
+  is now `MAX_CHUNK_SIZE_BYTES − 16` — the same plaintext-vs-ciphertext accounting
+  d65379f fixed inside ingest, applied at create time.
+- **Receiver error messages are specific again.** The Decrypt UI collapsed every
+  download failure into one generic line; it now maps each `DownloadErrorCode` to
+  a distinct, actionable message (truncation/tamper, already-used, not-found,
+  bad-key, transport, malformed) in both languages.
+- **Fresh-database bootstrap.** Removed the postgres `initdb` auto-mount that
+  double-applied non-idempotent migrations; the migration runner is now the
+  single tracked path, so a fresh box (and the documented `pnpm db:migrate` dev
+  flow) bootstraps cleanly. Migrations 0005 and 0008 made idempotent.
+- **Local secret gate usable again.** `verify:secrets` was permanently red after
+  any build because it scanned gitignored `.next/` artifacts (1688 false
+  positives); the gitleaks allowlist now excludes build output and the local
+  runtime `.env`.
+
+### Changed
+
+- **Documentation matched to reality.** Corrected `SECURITY.md` (branch
+  protection now lists what is actually enforced; single-use chunk tokens scoped
+  to burn-after-read shares, not "always-on"), `README.md` (host port list, 5
+  workflows not 4, arm64-only GHCR build, no BullMQ, Grafana via SSH tunnel not a
+  public `/grafana`, roadmap aligned to account-less, CODEOWNERS framing),
+  `docs/DELETION.md` (max-downloads destruction now accurate; "publicly
+  verifiable" scoped to v1.0 — the chain is in-database today), `MILESTONES.md`,
+  this changelog, and `docs/FEATURES.md`.
+- **CODEOWNERS / FUNDING fixed.** The `@philipsloth` handle doesn't exist on
+  GitHub (404); corrected to `@SloThdk`, the real account.
+- **CI honesty.** CodeQL is enabled (the repo is public, so it's free) instead of
+  carrying a false "while private" justification; the Go test job gates on the new
+  reaper tests instead of `continue-on-error`; the misleading "SHA-locked" Trivy
+  comment and the dead `services/qa` test-stub pointer were corrected.
+
+### Removed
+
+- Dead code: the unused `OptimizedImage` component (ported from another repo and
+  never wired up) and three unused `lib/utils` helpers, including the `publicEnv`
+  footgun the config file explicitly warned against re-introducing.
+
+### Tests
+
+- Reaper `classifyReason` + reapable-state coverage (Go); whole-file hash and
+  truncation-detection cases for `hashChunks` (crypto-core).
 
 ## [0.2.15] — 2026-06-07
 

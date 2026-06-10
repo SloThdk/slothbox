@@ -57,25 +57,28 @@ The phased plan from scaffold to externally-reviewed v1.0.
 
 ---
 
-## v0.5.0 — "Accounts and Receipts"
+## v0.5.0 — "Provable Receipts"
 
-**Goal:** Accounts let you see history. Receipts make delivery provable.
+**Goal:** Make delivery provable and download caps server-enforced — all of it account-less.
 
 | Area          | Scope                                                                     |
 | ------------- | ------------------------------------------------------------------------- |
-| Auth          | Lucia v3 + Argon2id, magic-link primary, optional password                |
-| Dashboard     | Share history, manual revoke, per-share stats                             |
 | Receipts      | RFC 3161 timestamped receipt over file hash on download                   |
+| Max-downloads | Server-enforced max-downloads ledger (N-views, then reaped)               |
+| Text mode     | Text / "secret note" mode encrypted through the existing pipeline         |
 | Audit chain   | Append-only log with hash-chain integrity                                 |
 | Docs          | RECEIPTS.md, full RUNBOOK.md, deployment guide                            |
 | Observability | Grafana dashboards for upload throughput, share lifetime, receipt latency |
-| Stripe        | Free vs Pro tiers (paid = bigger files, longer expiry, audit export)      |
 
 **Exit criteria:**
 
-- Sign up, upload, download → receipt appears in dashboard
+- Upload, download → receipt issued and verifiable anonymously (no login)
+- Max-downloads cap flips the share to expired and the reaper destroys it
 - Receipt verifiable via the standalone CLI (skeleton from v0.1)
-- Stripe webhook lands a paid plan correctly
+
+Accounts, auth (Lucia / magic-link), a logged-in dashboard, and Stripe billing
+are **not** part of this milestone — see "Explicitly out of scope" in
+`docs/FEATURES.md`.
 
 ---
 
@@ -101,16 +104,14 @@ The phased plan from scaffold to externally-reviewed v1.0.
 
 ---
 
-## v1.1.0 — "P2P and Verified Senders"
+## v1.1.0 — "P2P and Time-locks"
 
-**Goal:** Last-mile features — peer-to-peer paths, verified-sender identity, deferred unlock semantics.
+**Goal:** Last-mile features — peer-to-peer paths and deferred unlock semantics.
 
 | Area               | Scope                                                                                      |
 | ------------------ | ------------------------------------------------------------------------------------------ |
 | WebRTC P2P         | Browser-to-browser file transfer when both endpoints online (server only relays signaling) |
-| MitID OIDC         | Danish digital ID for verified-sender identity attached to receipts                        |
 | Time-locked shares | Files unlock at a specific future date or after a heartbeat lapse                          |
-| Audit export       | CSV / JSON export of share history with multi-year retention semantics                     |
 
 ---
 

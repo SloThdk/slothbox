@@ -4,7 +4,7 @@ Thanks to everyone whose work makes SlothBox possible.
 
 ## Maintainers
 
-- **Philip Sloth** ([@philipsloth](https://philipsloth.com)) — project lead
+- **Philip Sloth** ([@SloThdk](https://github.com/SloThdk), [philipsloth.com](https://philipsloth.com)) — project lead
 
 ## Contributors
 

@@ -10,14 +10,14 @@
 [![Security](https://github.com/SloThdk/slothbox/actions/workflows/security.yml/badge.svg)](https://github.com/SloThdk/slothbox/actions/workflows/security.yml)
 [![Deploy](https://github.com/SloThdk/slothbox/actions/workflows/deploy.yml/badge.svg)](https://github.com/SloThdk/slothbox/actions/workflows/deploy.yml)
 [![Crypto: libsodium (E2E) + age (backups)](https://img.shields.io/badge/crypto-libsodium%20E2E%20%2B%20age%20backups-brightgreen)](docs/CRYPTO.md)
-[![Status: v0.2.15](https://img.shields.io/badge/status-v0.2.15-blue)](MILESTONES.md)
+[![Status: v0.2.16](https://img.shields.io/badge/status-v0.2.16-blue)](MILESTONES.md)
 [![EU-hosted](https://img.shields.io/badge/region-EU--only-blue)](#why-eu-hosted)
 
 > [!NOTE]
-> **v0.2.15 — current release. Read this before sending real data.**
+> **v0.2.16 — current release. Read this before sending real data.**
 >
 > The v0.2 line closed the two URL-leak risks the v0.1 warning block
-> called out. As of v0.2.15 the shipped guarantees are:
+> called out. As of v0.2.16 the shipped guarantees are:
 >
 > - **Per-share password protection** (sender-opt-in) adds a second
 >   factor on top of the URL fragment via Argon2id + BLAKE2b-keyed,
@@ -29,11 +29,16 @@
 >   sender's `localStorage`. A third party who scraped the URL from a
 >   chat log cannot revoke the share. See [`SECURITY.md`](SECURITY.md)
 >   §"Sender-revoke token".
-> - **Single-use chunk tokens** (always-on for new uploads) close the
->   parallel-readers race acknowledged in the v0.1 warning. Each chunk
->   can only be served once; a wiretap and a legitimate recipient who
->   both have the URL will each get a different subset of chunks and
->   neither can AEAD-decrypt the reassembled file. See migration
+> - **Per-chunk bearer tokens** (always-on for new uploads) require a
+>   token derived from the URL fragment on every chunk fetch, so each
+>   request proves URL-fragment knowledge. For **burn-after-read**
+>   shares the token is also single-use — a second fetch of the same
+>   chunk returns `410 Gone`, which closes the parallel-readers race
+>   acknowledged in the v0.1 warning: a wiretap and a legitimate
+>   recipient who both have the URL will each get a different subset of
+>   chunks and neither can AEAD-decrypt the reassembled file. Non-burn
+>   shares stay re-downloadable within their TTL / download cap by
+>   design. See migration
 >   [`db/migrations/0007_single_use_chunk_tokens.sql`](db/migrations/0007_single_use_chunk_tokens.sql).
 >
 > The `Crypto` badge above names both primitives in active use:
@@ -50,7 +55,7 @@
 > derivation, revoke-token commitment scheme, RLS hardening — has only
 > been internally reviewed. Independent cryptographer review and a
 > third-party application pen test are hard gates for **v1.0** before
-> any "production-grade" or "high-stakes secrets" framing. v0.2.15 is
+> any "production-grade" or "high-stakes secrets" framing. v0.2.16 is
 > appropriate for working file transfer, portfolio review, and
 > personal experimentation. Full threat model and non-goals:
 > [`SECURITY.md`](SECURITY.md).
@@ -270,7 +275,7 @@ Open **<https://slothbox.philipsloth.com>**. EU-only data path, no signup, no sc
 
 - Docker Desktop 25+ (or Docker Engine + Compose v2 on Linux). The stack uses Compose v2 syntax — `docker-compose` v1 won't parse it.
 - ~6 GB free disk for image layers and Postgres / MinIO volumes.
-- Ports `80`, `3021-3024`, `5432`, `6379`, `4222`, `9000-9001`, `3000`, `3100`, `9090` available on `localhost`. Caddy binds 80; everything else is `localhost`-only.
+- Ports `80`, `443`, `127.0.0.1:5433`, `127.0.0.1:9000-9001`, `127.0.0.1:3030` available. Caddy publishes `80`/`443` (+`443/udp`); Postgres, MinIO, and Grafana bind to `127.0.0.1` only; every other service is internal-network only and not published to the host.
 - (Optional, only for hot-reload dev mode) Node 20.10+ and pnpm 9.12.3 — pinned in `packageManager` so `corepack enable` followed by `pnpm install` picks the right version automatically.
 
 **Bring it up**
@@ -398,7 +403,7 @@ it. Nothing on this list is decorative.
   for every chunk.
 - **Why this stack:** this is the only path that has to scale with file size,
   not request count. Kestrel + `PipeReader` reads from the socket without
-  intermediate buffering, so a 4 GB upload uses ~16 MB of resident memory
+  intermediate buffering, so a 1 GiB upload uses ~16 MB of resident memory
   regardless of network speed. Node streams in v20 still over-buffer
   aggressively for HTTP request bodies — under load that means GC pressure and
   tail latency the upload path can't afford.
@@ -457,9 +462,8 @@ it. Nothing on this list is decorative.
 
 #### Valkey
 
-- **Role:** the rate-limit + session-cache layer. Every `/api/shares` POST and
-  `/chunk/*` PUT runs through a Valkey-backed rate limiter; v0.5 will use it
-  for short-lived auth sessions too.
+- **Role:** the rate-limit + cache layer (via ioredis). Every `/api/shares`
+  POST and `/chunk/*` PUT runs through a Valkey-backed rate limiter.
 - **Why this stack:** the project needs a Redis-compatible cache it can run in
   production without a creeping licensing problem. Redis Inc. changed its
   licence in mid-2024 to a non-OSI-approved dual model; Valkey is the Linux
@@ -483,7 +487,7 @@ it. Nothing on this list is decorative.
   CHECK constraints on every shape-critical column mean a compromised
   application server cannot rewrite history without breaking verification.
   RLS policies are wired (`db/migrations/0003_rls_hardening.sql`) but
-  **not yet enforced as of v0.2.15** — see "Trust model" below for the
+  **not yet enforced as of v0.2.16** — see "Trust model" below for the
   honest framing.
 - **Trust model — current state:** the api-gateway connects to Postgres
   as the `slothbox` role (the table owner), for whom Postgres bypasses
@@ -492,10 +496,9 @@ it. Nothing on this list is decorative.
   from the application's `WHERE short_id = $1` clauses on every read —
   RLS is there as defence-in-depth groundwork that activates the moment
   the gateway switches to a non-owner role and starts setting the GUC
-  per-request. Provider-separation triggers on `auth.identities` (v0.5)
-  prevent silent account-takeover via a second OAuth provider.
+  per-request.
 - **Why this stack:** Postgres is the only database where the security
-  model can belong in the schema once auth lands. Self-hosting (rather
+  model can belong in the schema. Self-hosting (rather
   than managed Supabase) keeps the ops story honest: restore drills,
   full snapshots, and rebuild-from-compose are all in scope without a
   vendor in the loop.
@@ -529,9 +532,11 @@ it. Nothing on this list is decorative.
 #### Prometheus · Grafana · Loki · Promtail
 
 - **Role:** Prometheus scrapes every service's `/metrics` every 15 s; Grafana
-  shows a 9-panel dashboard at `/grafana` (request rate, 5xx, p95/p99 latency,
-  container memory, CPU, log feed); Loki + Promtail tail container stdout into
-  a structured log store with LogQL queries.
+  is provisioned in-cluster (request rate, 5xx, p95/p99 latency, container
+  memory, CPU, log feed), reachable via an SSH tunnel to the operator VM —
+  it binds loopback only (`127.0.0.1:3030`) and is not exposed on the public
+  domain; Loki + Promtail tail container stdout into a structured log store
+  with LogQL queries.
 - **Why this stack:** the de-facto OSS observability stack — every operator
   touching this repo already knows it. PromQL alerting is wired in
   (`infra/prometheus/alerts.yml`, 11 rules), Loki's structured-log queries
@@ -544,13 +549,13 @@ it. Nothing on this list is decorative.
 
 ### CI/CD
 
-#### GitHub Actions (4 workflows)
+#### GitHub Actions (5 workflows)
 
 - **Role:** CI matrix (Node × .NET × Go); Security workflow (Gitleaks, npm
   audit, .NET vulnerable-package scan, govulncheck, CodeQL, Trivy); Deploy
-  workflow (multi-arch GHCR build + SSH-deploy to the production VM, gated
+  workflow (arm64 GHCR build + SSH-deploy to the production VM, gated
   behind `vars.AUTO_DEPLOY` so forks don't trigger production rollouts);
-  Dependabot.
+  Release workflow; disk-cleanup workflow; plus Dependabot.
 - **Why this stack:** GitHub Actions is co-located with the source — every
   other CI provider means shipping the source to a second vendor for the same
   job. The free tier covers everything this repo needs, and the hosted runners
@@ -590,9 +595,10 @@ it. Nothing on this list is decorative.
 - **Why a single VM (not multi-region, not Kubernetes):** for a portfolio
   reference at this scope, a single VM in one EU DC is the right shape — multi-region adds
   cost without solving any current problem, and the EU-only data path is a
-  product feature, not a limitation. Multi-arch Docker Buildx makes the
-  `linux/arm64` build a one-line change in the workflow, so contributors on
-  AMD64 dev boxes still get usable images via the same matrix. The migration
+  product feature, not a limitation. The GHCR build targets `linux/arm64`
+  only — the prod VM is ARM and rebuilds locally; contributors on AMD64 dev
+  boxes build amd64 images via `docker compose` against the same Dockerfiles.
+  The migration
   path off a single VM is straightforward when scale ever justifies it: split
   state out to managed Postgres + S3-compatible storage, scale the four
   stateless services horizontally behind Caddy with sticky sessions on the
@@ -616,21 +622,21 @@ The full machine-readable list is below. Use this when scanning the repo;
 read the prose above when you want to know why each line is there.
 
 - **Frontend** — Next.js 15 · TypeScript · Tailwind v4 · Radix UI · libsodium-wrappers · age (v1.0+)
-- **API gateway** — Node 20 · Hono · Zod · WebSocket · Drizzle ORM · Lucia auth (v0.5+)
+- **API gateway** — Node 20 · Hono · Zod · WebSocket · Drizzle ORM
 - **Ingest service** — C# / .NET 8 · ASP.NET Core minimal API · Kestrel · ImageSharp · MinIO SDK
 - **Receipt service** — C# / .NET 8 · Bouncy Castle · RFC 3161 client · self-hosted Merkle log
 - **Reaper daemon** — Go 1.24 · pgx · single static binary · distroless container
 - **Verifier CLI** — Go 1.24 · single static binary per platform (brew/scoop/apt, v1.0+)
 - **Database** — Postgres 16 (self-hosted) · nightly `pg_dump` to a local Docker volume with 28-day rotation
 - **Object storage** — MinIO (self-hosted, S3-compatible)
-- **Cache + queue** — Valkey (BSD-licensed Redis fork) · BullMQ
+- **Cache** — Valkey (BSD-licensed Redis fork, via ioredis)
 - **Pub/sub** — NATS
 - **Reverse proxy** — Caddy 2.8 (auto-HTTPS, HTTP/3, per-route body caps)
 - **Real-time** — WebSocket (control plane) · WebRTC DataChannels (P2P file path, v1.1)
 - **Cryptography** — libsodium-wrappers (browser) · libsodium-net (C#) · age (asymmetric, v1.0+)
 - **Observability** — Grafana · Prometheus · Loki · Promtail
 - **Host** — Hetzner Cloud CAX-series ARM VM (Falkenstein FSN1, Germany) with managed firewall · runs the entire `docker-compose.prod.yml` stack on a single host
-- **CI/CD** — GitHub Actions (CI/Security/Deploy/Dependabot) · GHCR multi-arch (amd64+arm64) · SSH deploy with `vars.AUTO_DEPLOY` gate
+- **CI/CD** — GitHub Actions (CI/Security/Deploy/Release/disk-cleanup + Dependabot) · GHCR arm64 (linux/arm64) · SSH deploy with `vars.AUTO_DEPLOY` gate
 - **TLS** — Caddy 2.8 with Let's Encrypt · HTTP/3 · automatic renewal · per-request CSP nonce middleware
 
 ---
@@ -641,7 +647,7 @@ read the prose above when you want to know why each line is there.
 | ----------------------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **v0.1.0-alpha**        | ✅ shipped | Drag-drop encrypted upload · symmetric key in URL · burn-after-read · expiry · MinIO storage · WebSocket progress · full GitHub repo polish · security gating                                                                                                                                                         |
 | **v0.2 line (→0.2.10)** | ✅ shipped | URL-leak hardening: per-share password (Argon2id + BLAKE2b) · sender-revoke tokens · single-use chunk tokens · folder uploads · in-browser preview · PWA · age-encrypted operator backups (sidecar) · CSP-nonce + HSTS-preload edge · 11-rule Prometheus alerting · cross-platform dev tooling · npm dependency sweep |
-| **v0.5.0**              | 🔜 next    | Lucia / better-auth + dashboard · server-side share history · RFC 3161 timestamp receipts · audit chain extension · Stripe billing                                                                                                                                                                                    |
+| **v0.5.0**              | 🔜 next    | RFC 3161 timestamp receipts · server-enforced max-downloads ledger · text / secret-note mode · audit chain extension. Account-less by design — accounts, auth, billing, and MitID are out of scope (see [`docs/FEATURES.md`](docs/FEATURES.md)).                                                                      |
 | **v1.0.0**              | planned    | Per-recipient `age` sealed-boxes · verifiable deletion proofs · standalone verifier CLI · external cryptographer review · third-party application pen test                                                                                                                                                            |
 | **v1.1.0**              | planned    | WebRTC P2P file transfer · MitID OIDC integration · time-locked shares                                                                                                                                                                                                                                                |
 
@@ -675,8 +681,10 @@ in [`docs/RUNBOOK.md`](docs/RUNBOOK.md).
   and uses **only audited primitives**. PRs that introduce new primitives
   or alter existing ones are closed during maintainer review unless the
   description references an audited reference implementation. CODEOWNERS
-  routes any change under `packages/crypto-core/` through that review.
-  See `CONTRIBUTING.md`.
+  designates the maintainer as owner of `packages/crypto-core/`, so any
+  change there requests their review (this is a single-maintainer repo —
+  required PR review is not enabled, so CODEOWNERS surfaces ownership
+  rather than hard-blocking merges). See `CONTRIBUTING.md`.
 
 ---
 

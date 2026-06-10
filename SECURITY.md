@@ -28,22 +28,26 @@ SlothBox is appropriate for portfolio review and personal experimentation only.*
 The `shortId` is no longer the only access secret. v0.2 closes the two
 URL-leak risks that the v0.1 SECURITY.md called out:
 
-| Action                                            | v0.1 ("shortId is enough") | v0.2                                                              |
-| ------------------------------------------------- | -------------------------- | ----------------------------------------------------------------- |
-| Download ciphertext (`GET /chunk/...`)            | Anyone with URL            | Requires per-chunk single-use token derived from URL fragment     |
-| Decrypt the file                                  | URL fragment alone         | URL fragment **AND** sender-set password (if `passwordProtected`) |
-| Destroy the share (`POST /destroy`)               | Anyone with URL            | Requires 32-byte sender revoke token (localStorage-only)          |
-| Overwrite chunks during upload (`PUT /chunk/...`) | Anyone with URL            | Anyone with URL (gated by share state — uploadable only)          |
+| Action                                            | v0.1 ("shortId is enough") | v0.2                                                                                             |
+| ------------------------------------------------- | -------------------------- | ------------------------------------------------------------------------------------------------ |
+| Download ciphertext (`GET /chunk/...`)            | Anyone with URL            | Requires a per-chunk token derived from URL fragment (single-use only on burn-after-read shares) |
+| Decrypt the file                                  | URL fragment alone         | URL fragment **AND** sender-set password (if `passwordProtected`)                                |
+| Destroy the share (`POST /destroy`)               | Anyone with URL            | Requires 32-byte sender revoke token (localStorage-only)                                         |
+| Overwrite chunks during upload (`PUT /chunk/...`) | Anyone with URL            | Anyone with URL (gated by share state — uploadable only)                                         |
 
 ### What v0.2 closes
 
-- **Single-use chunk tokens** (always-on for new uploads). Each chunk's
+- **Per-chunk download tokens** (always-on for new uploads). Each chunk's
   download requires a bearer token derived deterministically from the URL
   fragment + shortId + chunkIndex. The server stores only the SHA-256
-  commitment; the raw token lives in the recipient's browser at GET time.
-  Once a chunk is served, `served_at` is stamped and any second request
-  returns 410 Gone — a parallel-reader race ends with both parties holding
-  incomplete chunk sets, and neither can AEAD-decrypt the reassembled file.
+  commitment; the raw token lives in the recipient's browser at GET time —
+  so every chunk fetch has to prove knowledge of the URL fragment. The
+  **single-use** part is scoped to **burn-after-read** shares: on a burn
+  share, once a chunk is served `served_at` is stamped and any second
+  request returns 410 Gone, so a parallel-reader race ends with both
+  parties holding incomplete chunk sets and neither can AEAD-decrypt the
+  reassembled file. Non-burn shares are intentionally re-downloadable —
+  chunks can be served again within the share's TTL / download cap.
 - **Per-share password protection** (sender-opt-in). When set, the AEAD
   key is `BLAKE2b-keyed(Argon2id(password, salt, ops, mem), url_fragment_key)`.
   Both the URL and the password are required to decrypt — neither alone
@@ -98,15 +102,17 @@ endpoint can no longer keep the share alive. The burn fires from the
 server's view of "bytes left successfully", not from the client's
 voluntary self-report.
 
-**Parallel-readers race (closed in v0.2):** two simultaneous readers — a
-legitimate recipient AND a wiretap on transit who both have the URL —
-used to be able to both complete their downloads if their chunk fetches
-interleaved. Migration 0007 closes that race with single-use chunk
-tokens: each chunk can only be served once. The first request per chunk
-wins; the second arrival receives 410 Gone. Both parties end up with
-incomplete chunk sets, neither can AEAD-decrypt the reassembled file —
-the defender's content stays undelivered to BOTH (the sender re-uploads
-and re-shares). See
+**Parallel-readers race (closed in v0.2 for burn-after-read shares):** two
+simultaneous readers — a legitimate recipient AND a wiretap on transit who
+both have the URL — used to be able to both complete their downloads if
+their chunk fetches interleaved. Migration 0007 closes that race **on
+burn-after-read shares** with single-use chunk tokens: on a burn share each
+chunk can only be served once. The first request per chunk wins; the second
+arrival receives 410 Gone. Both parties end up with incomplete chunk sets,
+neither can AEAD-decrypt the reassembled file — the defender's content stays
+undelivered to BOTH (the sender re-uploads and re-shares). Non-burn shares
+do not single-use their chunks: re-download within the TTL / download cap is
+intentional, so this race is only closed for burn-after-read shares. See
 [`db/migrations/0007_single_use_chunk_tokens.sql`](../db/migrations/0007_single_use_chunk_tokens.sql)
 for the construction.
 
@@ -234,10 +240,19 @@ We follow these practices for the deployed service:
 
 - **Secrets via environment variables only** — never committed, never logged
 - **Pre-commit `gitleaks` hook** plus GitHub secret scanning + push protection
-- **CI runs `npm audit`, `dotnet list package --vulnerable`, `govulncheck`,
-  `trivy fs`, `gitleaks detect`** on every push; high/critical findings block merge
-- **Branch protection** on `master`: required signed commits, required PR review,
-  required status checks, no force push, no direct push
+- **CI security scans** on every push. Jobs that block the workflow on a
+  finding: `gitleaks` secret scan, `pnpm audit --audit-level=high --prod`,
+  `dotnet list package --vulnerable`, and CodeQL static analysis (the repo
+  is public, so CodeQL runs free). Report-only jobs that upload SARIF to the
+  Security tab but do not block: `govulncheck` (Go stdlib advisories outside
+  our control to patch ahead of the toolchain) and `trivy image` (container
+  image scan).
+- **Branch protection** on `master`: required status checks (CI + Security),
+  linear history, no force push, no branch deletion. This is a
+  single-maintainer repo, so changes land via direct push after the local
+  pre-commit gates (`gitleaks`, lint, typecheck) and must pass the required
+  CI status checks before `master` is releasable. Required signed commits,
+  required PR review, and enforce-admins are not enabled.
 - **Dependency updates** via Dependabot for security updates (daily) and
   patch/minor updates (weekly). Major updates manually reviewed.
 - **Container image scanning** — `trivy image` on every Docker build in CI
@@ -313,4 +328,4 @@ TBD
 
 ---
 
-_Last updated: v0.2.15 — covers the v0.2 line through v0.2.15. Substantive security additions over the line: per-share password (Argon2id + BLAKE2b-keyed combiner, v0.2.0), sender-revoke tokens (v0.2.0), single-use chunk tokens (v0.2.0), brand-mark + audit-fix release (v0.2.2), CLS perf + a11y pass (v0.2.3), defence-in-depth hardening (v0.2.4 — TRUST_FORWARDED_FOR env-gate Finding #5, shortId regex constraints Finding #6, CSP report-uri + /api/csp-report endpoint, origin guard middleware, password byte-length cap, .well-known/security.txt, expanded Permissions-Policy, broader pino logger redaction), dependency vulnerability sweep (v0.2.5 — pgx/x-crypto/x-net + Go 1.25 + .NET 8.0.20), SW cache eviction + auto-versioning (v0.2.6/v0.2.9), favicon path-flip + transparent canvas (v0.2.7/v0.2.8), cross-platform dev tooling with credential-doctor (v0.2.9), npm dependency sweep (v0.2.10 — ws GHSA-58qx-3vcg-4xpx, vite path-traversal advisory, brace-expansion GHSA-jxxr-4gwj-5jf2), Transparency page Danish translation + v0.2 line-anchor phrasing across the web app (v0.2.11), Danish grammar pass + /how anonymity paragraph + v0.1 anchor cleanup in SECURITY.md (v0.2.12), ShareLink post-upload UI bilingual (v0.2.13), schema.org JSON-LD structured data + sitemap expansion (v0.2.14). v0.2.15 was a visual/UX release (blue rebrand, account-less password-field UX, bilingual receiver flow) with no security-relevant changes. External cryptographer review + third-party application pen test remain hard gates for v1.0._
+_Last updated: v0.2.16 — covers the v0.2 line through v0.2.16. Substantive security additions over the line: per-share password (Argon2id + BLAKE2b-keyed combiner, v0.2.0), sender-revoke tokens (v0.2.0), single-use chunk tokens (v0.2.0), brand-mark + audit-fix release (v0.2.2), CLS perf + a11y pass (v0.2.3), defence-in-depth hardening (v0.2.4 — TRUST_FORWARDED_FOR env-gate Finding #5, shortId regex constraints Finding #6, CSP report-uri + /api/csp-report endpoint, origin guard middleware, password byte-length cap, .well-known/security.txt, expanded Permissions-Policy, broader pino logger redaction), dependency vulnerability sweep (v0.2.5 — pgx/x-crypto/x-net + Go 1.25 + .NET 8.0.20), SW cache eviction + auto-versioning (v0.2.6/v0.2.9), favicon path-flip + transparent canvas (v0.2.7/v0.2.8), cross-platform dev tooling with credential-doctor (v0.2.9), npm dependency sweep (v0.2.10 — ws GHSA-58qx-3vcg-4xpx, vite path-traversal advisory, brace-expansion GHSA-jxxr-4gwj-5jf2), Transparency page Danish translation + v0.2 line-anchor phrasing across the web app (v0.2.11), Danish grammar pass + /how anonymity paragraph + v0.1 anchor cleanup in SECURITY.md (v0.2.12), ShareLink post-upload UI bilingual (v0.2.13), schema.org JSON-LD structured data + sitemap expansion (v0.2.14). v0.2.15 was a visual/UX release (blue rebrand, account-less password-field UX, bilingual receiver flow) with no security-relevant changes. v0.2.16 is a truth-and-correctness pass: whole-file integrity check on download (closes a silent server-side truncation gap), the reaper now destroys download-cap-reached shares, an atomic Lua-based ingest rate limiter, dependency-advisory clears (hono/shell-quote), and a documentation sweep that brought this file and the README into line with what the code actually enforces (branch protection, single-use chunk-token scope, CI gating). External cryptographer review + third-party application pen test remain hard gates for v1.0._
