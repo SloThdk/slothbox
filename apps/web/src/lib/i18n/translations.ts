@@ -476,16 +476,16 @@ export const TRANSLATIONS = {
     da: "URL-lækage-hærdning — det der er live i dag",
   },
   "how.roadmap.v02.body": {
-    en: "Browser-side XChaCha20-Poly1305 encryption, EU-hosted MinIO storage, server-driven burn-after-read, hash-linked Postgres audit chain. Per-share password (Argon2id + BLAKE2b combiner), sender-revoke tokens, and single-use chunk tokens close the URL-leak races called out in the v0.1 warning. Pre-v1.0 — the SlothBox integration code is not yet independently audited.",
-    da: "Browser-side XChaCha20-Poly1305 kryptering, EU-hostet MinIO-lagring, server-styret burn-after-read, hash-bundet Postgres audit-kæde. Per-share password (Argon2id + BLAKE2b combiner), sender-revoke tokens og single-use chunk-tokens lukker URL-lækage-races nævnt i v0.1-warningen. Pre-v1.0 — SlothBox-integrationskoden er endnu ikke uafhængigt auditeret.",
+    en: "Browser-side XChaCha20-Poly1305 encryption, EU-hosted MinIO storage, server-driven burn-after-read, hash-linked Postgres audit chain. Per-share password (Argon2id + BLAKE2b combiner), sender-revoke tokens, and per-chunk download tokens (single-use on burn-after-read shares) close the URL-leak races called out in the v0.1 warning. Pre-v1.0 — the SlothBox integration code is not yet independently audited.",
+    da: "Browser-side XChaCha20-Poly1305 kryptering, EU-hostet MinIO-lagring, server-styret burn-after-read, hash-bundet Postgres audit-kæde. Per-share password (Argon2id + BLAKE2b combiner), sender-revoke tokens og per-chunk download-tokens (single-use på burn-after-read delinger) lukker URL-lækage-races nævnt i v0.1-warningen. Pre-v1.0 — SlothBox-integrationskoden er endnu ikke uafhængigt auditeret.",
   },
   "how.roadmap.v05.label": {
-    en: "Accounts and signed receipts",
-    da: "Konti og signerede kvitteringer",
+    en: "Signed receipts",
+    da: "Signerede kvitteringer",
   },
   "how.roadmap.v05.body": {
-    en: "Lucia auth + magic-link, server-side share history dashboard, RFC 3161 timestamped delivery receipts, WAL-G continuous Postgres archiving with offsite replication, Stripe billing for free vs pro tiers.",
-    da: "Lucia auth + magic-link, server-side share-historik dashboard, RFC 3161-tidsstemplede leveringsbeviser, WAL-G kontinuerlig Postgres-arkivering med offsite-replikering, Stripe-fakturering for free vs pro.",
+    en: "RFC 3161 timestamped delivery receipts, a server-enforced max-downloads ledger, text / secret-note mode, and WAL-G continuous Postgres archiving with offsite replication. Account-less by design — auth, dashboards, and billing are out of scope.",
+    da: "RFC 3161-tidsstemplede leveringsbeviser, en server-håndhævet max-downloads-grænse, tekst-/secret-note-mode og WAL-G kontinuerlig Postgres-arkivering med offsite-replikering. Kontoløs by design — auth, dashboards og fakturering er out of scope.",
   },
   "how.roadmap.v10.label": {
     en: "Production-grade",

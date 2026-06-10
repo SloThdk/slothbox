@@ -30,8 +30,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "SlothBox",
     short_name: "SlothBox",
-    description:
-      "End-to-end encrypted file transfer with tamper-evident delivery receipts. The server cannot decrypt anything.",
+    description: "End-to-end encrypted file transfer. The server cannot decrypt anything.",
     start_url: "/",
     display: "standalone",
     background_color: "#0c1220",

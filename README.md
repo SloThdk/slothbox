@@ -1,6 +1,6 @@
 # SlothBox
 
-> **End-to-end encrypted file transfer with tamper-evident delivery receipts. The server cannot decrypt anything — and the full source code is open so anyone can audit that claim.**
+> **End-to-end encrypted file transfer. The server cannot decrypt anything — and the full source code is open so anyone can audit that claim. Tamper-evident RFC 3161 delivery receipts are the v0.5 flagship.**
 
 **Live: <https://slothbox.philipsloth.com>**
 
@@ -125,8 +125,8 @@ lives in the part of the URL after `#` — which **browsers never send to any
 server**, by design (RFC 3986 §3.5). The server therefore stores a locked file
 and has no way to know what's inside.
 
-That's the whole product. Everything else (delivery receipts, deletion proofs,
-P2P fallback, MitID for verified senders) is built on top.
+That's the whole product. Everything else on the roadmap (RFC 3161 delivery
+receipts, verifiable deletion proofs, P2P transfer) layers on top of it.
 
 ---
 
