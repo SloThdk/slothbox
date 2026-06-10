@@ -54,6 +54,30 @@ paths = [
     '''(^|/)package-lock\.json$''',
     '''(^|/)go\.sum$''',
     '''.*\.tsbuildinfo$''',
+    # Build output / installed deps. `verify:secrets` runs `gitleaks detect
+    # --no-git`, which walks the filesystem including gitignored dirs. Minified
+    # bundles and webpack cache packs in .next/ trip the entropy + custom rules
+    # by the thousand (1688 false positives), so the gate could never pass on a
+    # machine where `pnpm build` had run. These are gitignored build artifacts,
+    # never source — allowlisting the paths keeps the local secret gate usable.
+    # CI scans a clean git checkout where these dirs don't exist, so coverage of
+    # actual tracked source is unaffected.
+    '''(^|/)\.next/''',
+    '''(^|/)node_modules/''',
+    # The local runtime .env holds docker-compose dev credentials. It's
+    # gitignored and never committed; the `--no-git` filesystem scan walks it
+    # anyway, but CI runs gitleaks in git mode on a clean checkout where .env
+    # doesn't exist — so committable source stays fully covered. Allowlisting
+    # the runtime env file keeps the local gate from flagging the dev secrets it
+    # is supposed to hold. (.env.example uses CHANGE_ME placeholders, already
+    # covered by the regex allowlist below.)
+    '''(^|/)\.env$''',
+    '''(^|/)dist/''',
+    '''(^|/)out/''',
+    '''(^|/)build/''',
+    '''(^|/)target/''',
+    '''(^|/)bin/''',
+    '''(^|/)obj/''',
     # i18n translation files. The dot-namespaced keys
     # (`guarantees.item1.body`, `footer.col.legal`, …) trip the default
     # generic-api-key rule on Shannon entropy. They are compile-time

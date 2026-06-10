@@ -91,7 +91,12 @@ jobs:
       - name: Test
         working-directory: services/${{ matrix.service }}
         run: dotnet test --configuration Release --no-build --verbosity normal
-        continue-on-error: true # no tests yet in v0.1
+        # The two .NET services have no xunit test project yet; `dotnet test`
+        # against the app project reports "no test is available" and exits 0, so
+        # this step neither gates nor green-washes a real suite. A dedicated
+        # SlothBox.Ingest.Tests project (chunk-size arithmetic, base64url decode)
+        # is the next CI step — tracked, not pretended-present.
+        continue-on-error: true
 
   # ─── Go services ───────────────────────────────────────────
   go:
@@ -122,8 +127,11 @@ jobs:
 
       - name: Test
         working-directory: ${{ matrix.module }}
+        # Gating: the reaper carries unit tests (classifyReason + the
+        # reapable-state query guard). tools/verify is still a skeleton with no
+        # tests — `go test ./...` on a module with no _test.go files exits 0
+        # ("no test files"), so a single gating step is correct for both.
         run: go test -race -v ./...
-        continue-on-error: true # tests come in v0.5
 
   # ─── Format check ─────────────────────────────────────────
   format:

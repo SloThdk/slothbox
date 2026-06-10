@@ -1,6 +1,6 @@
 {
   "name": "@slothbox/web",
-  "version": "0.2.15",
+  "version": "0.2.16",
   "private": true,
   "description": "SlothBox web frontend — Next.js 15 App Router. End-to-end encrypted file transfer UI.",
   "license": "MIT",
@@ -13,7 +13,7 @@
     "typecheck": "tsc --noEmit",
     "build:sw": "node scripts/build-sw.mjs",
     "optimize:images": "node scripts/optimize-images.mjs",
-    "test": "echo 'web e2e tests live in services/qa; unit tests come in v0.5' && exit 0"
+    "test": "echo 'web has no automated tests yet; the crypto-core and api-gateway suites cover the security-critical logic the web app calls into' && exit 0"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",

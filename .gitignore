@@ -1,9 +1,12 @@
-# Secrets — NEVER COMMIT THESE
+# Secrets — NEVER COMMIT THESE.
+# Match the bare .env AND every .env.* variant (including ad-hoc backups like
+# .env.before-sync-*, which the old enumerated list missed — one `git add .`
+# from staging real secrets). Un-ignore only the committed example templates;
+# the leading-slash-free negation un-ignores .env.example in any directory
+# (root + apps/web).
 .env
-.env.local
-.env.*.local
-.env.production
-.env.development
+.env.*
+!.env.example
 *.pem
 *.key
 *.crt

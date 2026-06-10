@@ -4,25 +4,25 @@
 # All other files default to maintainer review for now (single-maintainer project).
 
 # Default: maintainer review
-*                                       @philipsloth
+*                                       @SloThdk
 
 # Cryptographic core — DO NOT bypass
-/packages/crypto-core/                  @philipsloth
-/apps/web/src/lib/upload.ts             @philipsloth
-/apps/web/src/lib/download.ts           @philipsloth
+/packages/crypto-core/                  @SloThdk
+/apps/web/src/lib/upload.ts             @SloThdk
+/apps/web/src/lib/download.ts           @SloThdk
 
 # Database schema and RLS policies
-/db/migrations/                         @philipsloth
-/packages/db/src/schema.ts              @philipsloth
+/db/migrations/                         @SloThdk
+/packages/db/src/schema.ts              @SloThdk
 
 # Security-critical configuration
-/.gitleaks.toml                         @philipsloth
-/.github/                               @philipsloth
-/SECURITY.md                            @philipsloth
-/docs/CRYPTO.md                         @philipsloth
-/docs/THREAT_MODEL.md                   @philipsloth
-/infra/caddy/                           @philipsloth
+/.gitleaks.toml                         @SloThdk
+/.github/                               @SloThdk
+/SECURITY.md                            @SloThdk
+/docs/CRYPTO.md                         @SloThdk
+/docs/THREAT_MODEL.md                   @SloThdk
+/infra/caddy/                           @SloThdk
 
 # Production infrastructure
-/docker-compose.prod.yml                @philipsloth
-/docs/RUNBOOK.md                        @philipsloth
+/docker-compose.prod.yml                @SloThdk
+/docs/RUNBOOK.md                        @SloThdk

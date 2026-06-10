@@ -109,16 +109,15 @@ jobs:
         continue-on-error: true
 
   # ─── Static analysis (CodeQL) ─────────────────────────────
-  # CodeQL needs Code Scanning enabled in repo Settings -> Security -> Code
-  # security. On private repos that's a paid GitHub Advanced Security
-  # feature; on public repos it's free. The job is left in place so that
-  # flipping the repo public auto-enables CodeQL with no further config,
-  # but marked continue-on-error so the workflow isn't blocked while the
-  # repo is private.
+  # The repo is PUBLIC, so CodeQL (GitHub code scanning) is free and gates on
+  # every push/PR. Findings are uploaded as code-scanning alerts on the Security
+  # tab — the analyze step does NOT fail the run on findings, only on a real
+  # error (init / autobuild / analyze), so this gate doesn't block merges on
+  # advisory alerts. The TS workspaces analyze with no build; autobuild compiles
+  # the C#/Go services (the same build the CI workflow already runs green).
   codeql:
     name: CodeQL ${{ matrix.language }}
     runs-on: ubuntu-24.04
-    continue-on-error: true
     strategy:
       fail-fast: false
       matrix:
@@ -127,20 +126,14 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-      # Step-level continue-on-error on every CodeQL step so the JOB
-      # ends with `success` rather than `failure` while the repo is
-      # private (Code Scanning is paid GHAS for private repos).
       - uses: github/codeql-action/init@v3
         with:
           languages: ${{ matrix.language }}
           queries: security-extended,security-and-quality
-        continue-on-error: true
       - uses: github/codeql-action/autobuild@v3
-        continue-on-error: true
       - uses: github/codeql-action/analyze@v3
         with:
           category: "/language:${{ matrix.language }}"
-        continue-on-error: true
 
   # ─── Container image scanning ─────────────────────────────
   trivy:
@@ -177,18 +170,20 @@ jobs:
         continue-on-error: true # some images may not build until services are fleshed out
 
       - name: Scan
-        # The Trivy action moved to the `v` prefix scheme some time ago;
-        # the previously pinned 0.28.0 was yanked from the Marketplace
-        # because of that rename. v0.36.0 is the current latest tag —
-        # pin to the SHA-locked tag rather than `master` for supply
-        # chain hygiene.
+        # Pinned to the version tag v0.36.0 — a mutable tag, NOT a commit SHA.
+        # Full SHA-pinning of every third-party action is tracked supply-chain
+        # hardening, not done yet; don't read this as SHA-locked.
+        # Trivy is report-only: it uploads SARIF to the Security tab
+        # (exit-code 0) rather than failing the build, because base-image CVEs
+        # are frequent and mostly out of our hands to patch ahead of the
+        # upstream image rebuild.
         uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: slothbox-${{ matrix.image }}:scan
           format: sarif
           output: trivy-${{ matrix.image }}.sarif
           severity: CRITICAL,HIGH
-          exit-code: "0" # report but don't fail v0.1
+          exit-code: "0" # report-only — SARIF to the Security tab
         continue-on-error: true
 
       - name: Upload SARIF
