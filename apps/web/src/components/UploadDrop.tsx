@@ -215,8 +215,10 @@ export function UploadDrop() {
         return files[0] ?? null;
       }
       // Multi-file / folder path. We don't display per-file progress
-      // here — the zipping is fast (typ. < 300 ms for the 4 GiB cap),
-      // and the existing chunk-progress bar covers the upload itself.
+      // here — zipSync at level 0 runs about a second per GiB (CRC32-
+      // bound, blocks the main thread; see archive.ts), which is
+      // tolerable at the 1 GiB cap, and the existing chunk-progress
+      // bar covers the upload itself.
       try {
         const archive = await packFiles(files);
         return new File([archive.blob], archive.fileName, { type: "application/zip" });

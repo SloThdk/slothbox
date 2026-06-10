@@ -70,7 +70,10 @@ ARG NEXT_PUBLIC_API_URL=https://slothbox.philipsloth.com
 ARG NEXT_PUBLIC_WS_URL=wss://slothbox.philipsloth.com
 ARG NEXT_PUBLIC_INGEST_URL=https://slothbox.philipsloth.com
 ARG NEXT_PUBLIC_PUBLIC_URL=https://slothbox.philipsloth.com
-ARG NEXT_PUBLIC_MAX_FILE_SIZE_MB=4096
+# 1 GiB — must stay in lock-step with apps/web/src/lib/config.ts and the
+# gateway's MAX_FILE_SIZE_BYTES. The browser pipeline buffers the whole
+# file in memory, so this is the largest cap the in-memory path survives.
+ARG NEXT_PUBLIC_MAX_FILE_SIZE_MB=1024
 # Build-time SHA stamp. Defaults to "dev" so a bare `docker build .`
 # without --build-arg produces an image that's identifiable as a local
 # build, never as a stale prod build masquerading as a fresh one.
