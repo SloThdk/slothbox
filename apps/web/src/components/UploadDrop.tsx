@@ -407,8 +407,9 @@ export function UploadDrop() {
             // "pick a folder" button). Without this guard the dropzone's
             // own click ALSO fires and opens the FILE picker on top of the
             // folder picker — two OS dialogs from one click. The button's
-            // stopPropagation should cover this, but the target check is the
-            // robust belt-and-braces fix across browsers/event timing.
+            // stopPropagation should cover this, but the target check still
+            // catches the cases where it doesn't (re-dispatched events,
+            // browsers that fire click before propagation settles).
             if ((e.target as HTMLElement).closest("button, a")) return;
             fileInputRef.current?.click();
           }}
