@@ -147,18 +147,21 @@ function TransparencyEnglish() {
           The logged fields:
         </p>
         <ul className="list-disc pl-6 text-sm leading-relaxed text-[var(--color-muted)]">
-          <li>Request method, path, status code, duration, request-id</li>
           <li>
-            Hashed sender IP (SHA-256 truncated, for rate-limiting only — never the raw IP) on
-            share-create
+            Gateway logs: request method, path, status code, duration, request-id — with auth
+            headers, crypto fields, and tokens redacted before serialisation
           </li>
           <li>
-            Coarse sender region (e.g. &quot;EU-DK&quot;) on share-create, for receipt metadata
+            Edge (Caddy) access logs, which include the client IP — retained 7 days, then deleted
+          </li>
+          <li>
+            Rate-limit counters keyed on IP live only in an in-memory store (Valkey) and expire
+            automatically (60 s to 24 h); no IP is written to the database
           </li>
           <li>Audit-chain events (share_created, share_destroyed, share_downloaded)</li>
         </ul>
         <p className="text-sm leading-relaxed text-[var(--color-muted)]">
-          Logs are retained 30 days (rolling), audit-chain entries forever (they&apos;re the
+          Logs are retained 7 days (rolling), audit-chain entries forever (they&apos;re the
           tamper-evidence anchor — see{" "}
           <a
             href="/security"
@@ -166,7 +169,8 @@ function TransparencyEnglish() {
           >
             /security
           </a>
-          ). Logs never contain plaintext content, decryption keys, passwords, or raw IPs.
+          ). Logs never contain plaintext content, decryption keys, or passwords — those never reach
+          the server in the first place.
         </p>
       </Section>
 
@@ -177,7 +181,11 @@ function TransparencyEnglish() {
             ["age (asymmetric, v1.0+)", "2022", "Audited upstream (NCC Group)"],
             ["SlothBox integration code", "—", "Not yet — external review is a v1.0 hard gate"],
             ["API gateway authn/z + rate limit", "—", "Not yet pen-tested"],
-            ["Postgres RLS policies", "—", "Not yet pen-tested"],
+            [
+              "Postgres RLS policies",
+              "—",
+              "Groundwork only — not yet enforced (scoping is application-layer)",
+            ],
           ]}
         />
         <p className="mt-3 text-xs leading-relaxed text-[var(--color-muted)]">
@@ -361,27 +369,30 @@ function TransparencyDanish() {
           De felter der logges:
         </p>
         <ul className="list-disc pl-6 text-sm leading-relaxed text-[var(--color-muted)]">
-          <li>Request-method, path, status code, varighed, request-id</li>
           <li>
-            Hashet afsender-IP (SHA-256, trunkeret, kun til rate-limiting — aldrig den rå IP) ved
-            share-create
+            Gateway-logs: request-method, path, status code, varighed, request-id — med
+            auth-headers, krypto-felter og tokens redigeret væk før serialisering
           </li>
           <li>
-            Grov afsender-region (fx &quot;EU-DK&quot;) ved share-create, til kvitterings-metadata
+            Edge-access-logs (Caddy), som indeholder klientens IP — gemmes 7 dage, derefter slettet
+          </li>
+          <li>
+            Rate-limit-tællere nøglet på IP lever kun i et in-memory-lager (Valkey) og udløber
+            automatisk (60 s til 24 t); ingen IP skrives til databasen
           </li>
           <li>Audit-chain-events (share_created, share_destroyed, share_downloaded)</li>
         </ul>
         <p className="text-sm leading-relaxed text-[var(--color-muted)]">
-          Logs gemmes 30 dage (rullende), audit-chain-poster for evigt (de er
-          tamper-evidence-ankeret — se{" "}
+          Logs gemmes 7 dage (rullende), audit-chain-poster for evigt (de er tamper-evidence-ankeret
+          — se{" "}
           <a
             href="/security"
             className="text-[var(--color-accent)] underline-offset-4 hover:underline"
           >
             /security
           </a>
-          ). Logs indeholder aldrig plaintext-indhold, dekrypteringsnøgler, passwords eller rå
-          IP&apos;er.
+          ). Logs indeholder aldrig plaintext-indhold, dekrypteringsnøgler eller passwords — de når
+          aldrig serveren til at begynde med.
         </p>
       </Section>
 
@@ -400,7 +411,11 @@ function TransparencyDanish() {
               "Endnu ikke — ekstern review er en hard gate for v1.0",
             ],
             ["API-gateway authn/z + rate limit", "—", "Endnu ikke pen-testet"],
-            ["Postgres RLS-policies", "—", "Endnu ikke pen-testet"],
+            [
+              "Postgres RLS-policies",
+              "—",
+              "Kun fundament — endnu ikke håndhævet (afgrænsning sker i applikationslaget)",
+            ],
           ]}
         />
         <p className="mt-3 text-xs leading-relaxed text-[var(--color-muted)]">

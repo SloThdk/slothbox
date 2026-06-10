@@ -42,6 +42,14 @@ slothbox.philipsloth.com {
 	# firewall rule "HTTP (Caddy ACME)" allows this. Without it, cert
 	# renewal silently fails 60 days in and the site goes dark on day 90.
 
+	# TLS 1.3 only. Caddy's default minimum is 1.2; SECURITY.md states
+	# 1.3-only, so this block makes the doc true rather than softening
+	# the doc. No client loss in practice: the app needs a browser modern
+	# enough for WASM libsodium, and every such browser speaks TLS 1.3.
+	tls {
+		protocols tls1.3
+	}
+
 	# ── Liveness ─────────────────────────────────────────────────
 	handle /healthz {
 		respond "ok" 200

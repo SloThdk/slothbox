@@ -77,7 +77,7 @@ that passes CI auto-rolls forward via `.github/workflows/deploy.yml`:
 | Workflow status        | [Actions](https://github.com/SloThdk/slothbox/actions) — CI / Security / Deploy badges above                   |
 | Architecture document  | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — 14-service Docker Compose breakdown                           |
 | Security threat model  | [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md)                                                                 |
-| Production hardening   | [`docker-compose.prod.yml`](docker-compose.prod.yml) — read-only fs, `cap_drop: ALL`, RLS, etc.                |
+| Production hardening   | [`docker-compose.prod.yml`](docker-compose.prod.yml) — read-only fs, `cap_drop: ALL`, cgroup limits            |
 | Postgres backup policy | `pg-backup` sidecar dumps nightly at 02:30 UTC, gzipped, 28-day retention on a named volume                    |
 | Observability          | Grafana provisioned in-cluster (reachable via SSH tunnel to the operator VM, not exposed on the public domain) |
 | Alert rules            | [`infra/prometheus/alerts.yml`](infra/prometheus/alerts.yml) — 11 rules, severity-tagged                       |
@@ -217,7 +217,7 @@ Docker Compose file, one host:
 ║   └─────────────┘    └────┬──────────┘  └────┬───────────┘           ║
 ║                           │                  │                       ║
 ║                      ┌────▼──────────────────▼──────┐                ║
-║                      │      Postgres 16 (RLS)       │                ║
+║                      │   Postgres 16 (audit chain)  │                ║
 ║                      │      MinIO (S3-compat)       │                ║
 ║                      │      Valkey (cache+queue)    │                ║
 ║                      │      NATS (pub/sub)          │                ║
@@ -227,9 +227,9 @@ Docker Compose file, one host:
 ║   │                       │                         │                ║
 ║ ┌─▼───────────┐  ┌────────▼─────────┐   ┌───────────▼─────────┐      ║
 ║ │   Reaper    │  │  Receipt Service │   │   Observability     │      ║
-║ │   Go daemon │  │  .NET 8 + RFC    │   │   Grafana / Prom /  │      ║
-║ │   expiry +  │  │  3161 + Merkle   │   │   Loki / Promtail   │      ║
-║ │   gc + chain│  │  audit log       │   │                     │      ║
+║ │   Go daemon │  │  .NET 8 skeleton │   │   Grafana / Prom /  │      ║
+║ │   expiry +  │  │  RFC 3161 +      │   │   Loki / Promtail   │      ║
+║ │   gc + chain│  │  Merkle in v0.5  │   │                     │      ║
 ║ └─────────────┘  └──────────────────┘   └─────────────────────┘      ║
 ║                                                                      ║
 ╚══════════════════════════════════════════════════════════════════════╝
@@ -250,14 +250,14 @@ The polyglot choice is deliberate. Different services hit different
 bottlenecks — each service is matched to the runtime that solves its actual
 problem rather than picking one language and forcing it everywhere:
 
-| Service                    | Language                   | Reasoning                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
-| -------------------------- | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Frontend + API gateway** | TypeScript (Next 15, Hono) | Zod schemas are shared across the boundary, so a shape change in the API forces a frontend type error at compile time — that bug class is eliminated. Next.js 15 ships a Server Components model that streams HTML over a strict CSP without bolting on a separate template engine.                                                                                                                                                                                                                                                                                      |
-| **Ingest service**         | C# (ASP.NET Core 8)        | The perf-critical path — multi-GB chunked uploads with real backpressure. Kestrel + `PipeReader` provides zero-copy reads from socket to disk; Node's stream API buffers eagerly and starves the GC at scale. .NET 8 also has the cleanest minimal-API surface (no controllers, no boilerplate) so the ingest code stays as small as a Hono handler.                                                                                                                                                                                                                     |
-| **Receipt service**        | C# (ASP.NET Core 8)        | RFC 3161 timestamp clients need Bouncy Castle. The Java / .NET BC fork is the only mature, audited implementation; rebuilding ASN.1 + CMS in TypeScript would be a multi-month project with no security justification. Sharing Kestrel + DTO conventions with the ingest service keeps the operational surface small.                                                                                                                                                                                                                                                    |
-| **Reaper daemon**          | Go 1.24                    | Cron-style workers don't need 80 MB of Node. Go produces a single static binary, ~8 MB RAM footprint, no runtime dependency on the host VM. The reaper sweeps every 60 seconds — at that frequency, the GC + cold-start savings vs Node are real, and Go's `pgx` is the fastest Postgres client benchmarked for this workload.                                                                                                                                                                                                                                           |
-| **Verifier CLI**           | Go 1.24                    | Recipients must be able to audit a receipt offline, on Windows / macOS / Linux, without installing Node or .NET. Go cross-compiles to a single static binary per platform — `brew install slothbox-verify` or `scoop install slothbox-verify` and the tool is ready. No "first install Node 20" friction; no `node_modules` exposing the audit tool's supply chain to whatever happens to be installed locally.                                                                                                                                                          |
-| **Database**               | SQL (Postgres 16)          | Trust guarantees that live in application code can be bypassed by the next bug. Trust guarantees enforced by the database can't. Row-level security, the audit chain's hash linkage, and provider-separation triggers all live in Postgres — same discipline used in [SlothCV](https://slothcv.pages.dev). v0.5 will partition `audit_chain` by month so retention sweeps are an `ALTER TABLE DETACH` instead of a `DELETE`; the v0.2 line keeps the chain as a single growing table because at portfolio-build scale the partitioning isn't earning its complexity yet. |
+| Service                    | Language                   | Reasoning                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| -------------------------- | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Frontend + API gateway** | TypeScript (Next 15, Hono) | Zod schemas are shared across the boundary, so a shape change in the API forces a frontend type error at compile time — that bug class is eliminated. Next.js 15 ships a Server Components model that streams HTML over a strict CSP without bolting on a separate template engine.                                                                                                                                                                                                                                                                                                                                                         |
+| **Ingest service**         | C# (ASP.NET Core 8)        | The perf-critical path — chunked uploads with real backpressure at near-constant memory. Kestrel + `PipeReader` provides zero-copy reads from socket to disk; Node's stream API buffers eagerly and starves the GC at scale. .NET 8 also has the cleanest minimal-API surface (no controllers, no boilerplate) so the ingest code stays as small as a Hono handler.                                                                                                                                                                                                                                                                         |
+| **Receipt service**        | C# (ASP.NET Core 8)        | RFC 3161 timestamp clients need Bouncy Castle. The Java / .NET BC fork is the only mature, audited implementation; rebuilding ASN.1 + CMS in TypeScript would be a multi-month project with no security justification. Sharing Kestrel + DTO conventions with the ingest service keeps the operational surface small.                                                                                                                                                                                                                                                                                                                       |
+| **Reaper daemon**          | Go 1.24                    | Cron-style workers don't need 80 MB of Node. Go produces a single static binary, ~8 MB RAM footprint, no runtime dependency on the host VM. The reaper sweeps every 60 seconds — at that frequency, the GC + cold-start savings vs Node are real, and Go's `pgx` is the fastest Postgres client benchmarked for this workload.                                                                                                                                                                                                                                                                                                              |
+| **Verifier CLI**           | Go 1.24                    | Recipients must be able to audit a receipt offline, on Windows / macOS / Linux, without installing Node or .NET. Go cross-compiles to a single static binary per platform — `brew install slothbox-verify` or `scoop install slothbox-verify` and the tool is ready. No "first install Node 20" friction; no `node_modules` exposing the audit tool's supply chain to whatever happens to be installed locally.                                                                                                                                                                                                                             |
+| **Database**               | SQL (Postgres 16)          | Trust guarantees that live in application code can be bypassed by the next bug; guarantees enforced by the database can't. The audit chain's hash linkage and its SECURITY DEFINER append function live in Postgres, with RLS wired as groundwork (see "Trust model" above for the honest enforcement status) — same discipline used in [SlothCV](https://slothcv.pages.dev). v0.5 will partition `audit_chain` by month so retention sweeps are an `ALTER TABLE DETACH` instead of a `DELETE`; the v0.2 line keeps the chain as a single growing table because at portfolio-build scale the partitioning isn't earning its complexity yet. |
 
 ---
 
@@ -453,7 +453,7 @@ it. Nothing on this list is decorative.
 - **Why this stack:** the build needs a message bus, but Kafka is a server farm
   per topic and RabbitMQ is a Java VM the operator shouldn't have to run. NATS
   runs in 12 MB of RAM, ships zero-config, and the Go + Node clients are
-  production-deployed at real scale (Cloudflare and Mastodon both run NATS internally).
+  mature, widely deployed libraries maintained by the NATS project itself.
 - **Alternatives rejected:** Redis pub/sub (Valkey already runs the cache
   layer, but coupling pub/sub to the cache makes failure modes worse — the bus
   has to keep working when Valkey is being upgraded); Kafka / Redpanda
@@ -612,7 +612,7 @@ it. Nothing on this list is decorative.
   at higher scale); Vultr Frankfurt / DigitalOcean Frankfurt (US-incorporated
   parents — same Schrems II problem); Cloudflare Workers (can't run the .NET
   ingest service, has no persistent disk for Postgres + MinIO, body-size cap
-  defeats the multi-GB chunk path); a Kubernetes cluster (overkill for a
+  defeats the chunked-upload path); a Kubernetes cluster (overkill for a
   single-host deployment — Compose covers this comfortably until the cluster
   needs more than one host, at which point the rewrite is mostly mechanical).
 
@@ -624,7 +624,7 @@ read the prose above when you want to know why each line is there.
 - **Frontend** — Next.js 15 · TypeScript · Tailwind v4 · Radix UI · libsodium-wrappers · age (v1.0+)
 - **API gateway** — Node 20 · Hono · Zod · WebSocket · Drizzle ORM
 - **Ingest service** — C# / .NET 8 · ASP.NET Core minimal API · Kestrel · ImageSharp · MinIO SDK
-- **Receipt service** — C# / .NET 8 · Bouncy Castle · RFC 3161 client · self-hosted Merkle log
+- **Receipt service** — C# / .NET 8 · Bouncy Castle · RFC 3161 client + self-hosted Merkle log (v0.5 — skeleton today, endpoints return 501)
 - **Reaper daemon** — Go 1.24 · pgx · single static binary · distroless container
 - **Verifier CLI** — Go 1.24 · single static binary per platform (brew/scoop/apt, v1.0+)
 - **Database** — Postgres 16 (self-hosted) · nightly `pg_dump` to a local Docker volume with 28-day rotation
@@ -649,7 +649,7 @@ read the prose above when you want to know why each line is there.
 | **v0.2 line (→0.2.10)** | ✅ shipped | URL-leak hardening: per-share password (Argon2id + BLAKE2b) · sender-revoke tokens · single-use chunk tokens · folder uploads · in-browser preview · PWA · age-encrypted operator backups (sidecar) · CSP-nonce + HSTS-preload edge · 11-rule Prometheus alerting · cross-platform dev tooling · npm dependency sweep |
 | **v0.5.0**              | 🔜 next    | RFC 3161 timestamp receipts · server-enforced max-downloads ledger · text / secret-note mode · audit chain extension. Account-less by design — accounts, auth, billing, and MitID are out of scope (see [`docs/FEATURES.md`](docs/FEATURES.md)).                                                                      |
 | **v1.0.0**              | planned    | Per-recipient `age` sealed-boxes · verifiable deletion proofs · standalone verifier CLI · external cryptographer review · third-party application pen test                                                                                                                                                            |
-| **v1.1.0**              | planned    | WebRTC P2P file transfer · MitID OIDC integration · time-locked shares                                                                                                                                                                                                                                                |
+| **v1.1.0**              | planned    | WebRTC P2P file transfer · time-locked shares                                                                                                                                                                                                                                                                         |
 
 Detailed scope per release in [`MILESTONES.md`](MILESTONES.md).
 

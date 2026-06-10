@@ -151,7 +151,12 @@ export function ShareLink({
   }, [expiresAt]);
 
   const expiresLabel = expiresHuman ?? t("share.expires.fallback");
-  const readyBody = t("share.ready.body").replace("{time}", expiresLabel);
+  // "Once" is only true for burn-after-read shares — default shares are
+  // re-downloadable until expiry, so the copy branches on the toggle.
+  const readyBody = t(burnAfterRead ? "share.ready.bodyBurn" : "share.ready.body").replace(
+    "{time}",
+    expiresLabel
+  );
 
   return (
     <div className="flex flex-col gap-5">

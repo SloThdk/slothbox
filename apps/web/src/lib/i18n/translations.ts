@@ -140,8 +140,8 @@ export const TRANSLATIONS = {
     da: "Rapportér ulovligt indhold eller misbrug.",
   },
   "abuse.lede": {
-    en: "If you have received a SlothBox share link that contains illegal content (CSAM, terrorist content, IP-infringing material, fraud, malware, anything else covered by EU or Danish law) or are otherwise being harmed by abuse of this service, please report it. The operator can destroy the share without ever decrypting its contents — the destroy operation invalidates the encryption key reference in the audit chain, which renders the ciphertext mathematically unrecoverable.",
-    da: "Hvis du har modtaget et SlothBox-delingslink, der indeholder ulovligt indhold (CSAM, terror-indhold, krænkelser af immaterielle rettigheder, svindel, malware eller andet omfattet af EU- eller dansk lovgivning), eller du på anden måde er ramt af misbrug af denne tjeneste, så rapportér det. Operatøren kan destruere delingen uden at dekryptere indholdet — destroy-operationen invaliderer nøglereferencen i audit-kæden, hvilket gør ciphertexten matematisk uigenoprettelig.",
+    en: "If you have received a SlothBox share link that contains illegal content (CSAM, terrorist content, IP-infringing material, fraud, malware, anything else covered by EU or Danish law) or are otherwise being harmed by abuse of this service, please report it. The operator can destroy the share without ever decrypting its contents — the destruction flips the share to a terminal state, the cleanup daemon deletes the ciphertext from storage, and the event is recorded in the audit chain. The decryption key only ever existed in the share link, so the operator never had it.",
+    da: "Hvis du har modtaget et SlothBox-delingslink, der indeholder ulovligt indhold (CSAM, terror-indhold, krænkelser af immaterielle rettigheder, svindel, malware eller andet omfattet af EU- eller dansk lovgivning), eller du på anden måde er ramt af misbrug af denne tjeneste, så rapportér det. Operatøren kan destruere delingen uden at dekryptere indholdet — destruktionen flytter delingen til en terminal tilstand, oprydningsdæmonen sletter ciphertexten fra lageret, og hændelsen registreres i audit-kæden. Dekrypteringsnøglen har kun nogensinde eksisteret i delingslinket, så operatøren har aldrig haft den.",
   },
   "abuse.howTo.heading": {
     en: "How to report",
@@ -180,8 +180,8 @@ export const TRANSLATIONS = {
     da: "Retsgrundlag",
   },
   "abuse.legal.body": {
-    en: "This page is the SlothBox notice mechanism under the EU Digital Services Act (Regulation 2022/2065, Article 16). Reports are processed under Danish law; the operator is established in Denmark. The operator does not have access to the plaintext content of any share, so abuse triage relies on the reporting party's description plus the metadata associated with the shortId (creation timestamp, expiry, sender IP-fragment hash, chunk count, total ciphertext size).",
-    da: "Denne side er SlothBox' notice-mekanisme under EU's Digital Services Act (forordning 2022/2065, artikel 16). Rapporter behandles efter dansk ret; operatøren er etableret i Danmark. Operatøren har ikke adgang til klarteksten af nogen deling, så vurdering af misbrug bygger på rapportørens beskrivelse plus metadata tilknyttet shortId'et (oprettelses-tidsstempel, udløb, hash-fragment af afsenderens IP, antal bidder, samlet ciphertext-størrelse).",
+    en: "This page is the SlothBox notice mechanism under the EU Digital Services Act (Regulation 2022/2065, Article 16). Reports are processed under Danish law; the operator is established in Denmark. The operator does not have access to the plaintext content of any share, so abuse triage relies on the reporting party's description plus the metadata associated with the shortId (creation timestamp, expiry, chunk count, total ciphertext size).",
+    da: "Denne side er SlothBox' notice-mekanisme under EU's Digital Services Act (forordning 2022/2065, artikel 16). Rapporter behandles efter dansk ret; operatøren er etableret i Danmark. Operatøren har ikke adgang til klarteksten af nogen deling, så vurdering af misbrug bygger på rapportørens beskrivelse plus metadata tilknyttet shortId'et (oprettelses-tidsstempel, udløb, antal bidder, samlet ciphertext-størrelse).",
   },
   "hero.headline.l1": {
     en: "Send any file.",
@@ -406,8 +406,8 @@ export const TRANSLATIONS = {
     da: "Modtagerens identitet",
   },
   "how.neverSee.item3.body": {
-    en: "No signup, no account, no email collected for downloads. Anyone who receives the URL can decrypt; there is no way to map a download to a person. That is deliberate — identity-based access controls land with accounts in v0.5 and per-recipient encryption in v1.0; the v0.2 line trades them for true anonymity.",
-    da: "Ingen tilmelding, ingen konto, ingen email indsamlet for downloads. Enhver der modtager URL'en kan dekryptere; der er ingen mulighed for at koble en download til en person. Det er bevidst — identitetsbaseret adgang lander med konti i v0.5 og per-modtager-kryptering i v1.0; v0.2-linjen bytter det mod ægte anonymitet.",
+    en: "No signup, no account, no email collected for downloads. Anyone who receives the URL can decrypt; there is no way to map a download to a person. That is deliberate — SlothBox is account-less by design, and stays that way. Per-recipient encryption (v1.0) will let a sender lock a share to a specific recipient's key without anyone creating an account.",
+    da: "Ingen tilmelding, ingen konto, ingen email indsamlet for downloads. Enhver der modtager URL'en kan dekryptere; der er ingen mulighed for at koble en download til en person. Det er bevidst — SlothBox er kontoløs by design, og forbliver det. Per-modtager-kryptering (v1.0) vil lade en afsender låse en deling til en bestemt modtagers nøgle, uden at nogen opretter en konto.",
   },
 
   // -- "What we DO see" cards (honesty) --
@@ -424,12 +424,12 @@ export const TRANSLATIONS = {
     da: "Bagsiden af forrige sektion. Det her er de ting, vores servere faktisk indsamler — minimalt, scoped og dokumenteret, så en sikkerhedsbevidst læser kan afgøre, om byttehandlen passer til deres trusselsmodel.",
   },
   "how.doSee.item1.title": {
-    en: "Sender IP fragment (hashed)",
-    da: "Afsender IP-fragment (hashet)",
+    en: "IP addresses, for rate-limiting only",
+    da: "IP-adresser, kun til rate-limiting",
   },
   "how.doSee.item1.body": {
-    en: "Used purely for rate-limiting (10 share creates per minute, 100 per day, per IP). Stored as a SHA-256 hash, never as the raw IP. Discarded after 24 hours. The recipient's IP is not stored at all.",
-    da: "Bruges udelukkende til rate-limiting (10 deling-oprettelser pr. minut, 100 pr. dag, pr. IP). Gemmes som SHA-256-hash, aldrig som rå IP. Slettes efter 24 timer. Modtagerens IP gemmes slet ikke.",
+    en: "Used purely for rate-limiting (10 share creates per minute, 100 per day, per IP). The IP lives in a short-lived in-memory counter (Valkey) that expires automatically — up to 24 hours for the daily limit, 60 seconds for download limits. No IP is ever written to the database.",
+    da: "Bruges udelukkende til rate-limiting (10 deling-oprettelser pr. minut, 100 pr. dag, pr. IP). IP'en lever i en kortlivet in-memory-tæller (Valkey), der udløber automatisk — op til 24 timer for dagsgrænsen, 60 sekunder for download-grænser. Ingen IP skrives nogensinde til databasen.",
   },
   "how.doSee.item2.title": {
     en: "Operational metadata",
@@ -510,8 +510,8 @@ export const TRANSLATIONS = {
     da: "Bygget til at blive inspiceret",
   },
   "ctaBlock.heading": {
-    en: "Send a file. Prove it arrived.",
-    da: "Send en fil. Bevis at den ankom.",
+    en: "Send a file the server can't read.",
+    da: "Send en fil serveren ikke kan læse.",
   },
   "ctaBlock.body": {
     en: "Tamper-evident delivery receipts arrive in v0.5: an RFC 3161 timestamp signed over the file hash, anchored in a public Merkle chain. The full source is open — read it before trusting it.",
@@ -610,8 +610,8 @@ export const TRANSLATIONS = {
     da: "Hvad du afgiver",
   },
   "about.tradeoffs.body": {
-    en: "Every architectural decision trades something. SlothBox runs on one ARM virtual machine in Falkenstein, Germany — not a global edge network — so a four-gigabyte download from a Tokyo client takes longer than the same file from WeTransfer. Files have an expiry; there is no permanent shareable link. The recipient needs the complete URL including the part after “#”, which means a chat client that strips fragments breaks the share. And the v0.2 line has not been independently audited yet — the underlying primitives (libsodium, age) have, but the SlothBox glue around them is gated on external cryptographer review before any “production-grade” wording lands. Until v1.0, treat this as the working file-transfer tool it is: stable, hardened against URL-leak races, open source — but with the audit-pending caveat surfaced everywhere it matters.",
-    da: "Hvert arkitekturvalg er en byttehandel. SlothBox kører på én ARM-virtuel maskine i Falkenstein, Tyskland — ikke et globalt edge-netværk — så en fire-gigabyte-download til en kunde i Tokyo tager længere tid end samme fil fra WeTransfer. Filer udløber; der findes ikke noget permanent delingslink. Modtageren har brug for hele URL'en inklusive delen efter “#”, så en chatklient der fjerner fragmenter bryder delingen. Og v0.2-linjen er endnu ikke uafhængigt auditeret — de underliggende primitiver (libsodium, age) er, men SlothBox-integrationen omkring dem er gate'et på ekstern kryptografgennemgang før nogen “production-grade”-formulering rammer pladen. Indtil v1.0 er dette det fil-overførselsværktøj det er: stabilt, hærdet mod URL-lækage-races, open source — men med audit-pending-forbeholdet synligt der hvor det betyder noget.",
+    en: "Every architectural decision trades something. SlothBox runs on one ARM virtual machine in Falkenstein, Germany — not a global edge network — so a one-gigabyte download from a Tokyo client takes longer than the same file from WeTransfer. Files have an expiry; there is no permanent shareable link. The recipient needs the complete URL including the part after “#”, which means a chat client that strips fragments breaks the share. And the v0.2 line has not been independently audited yet — the underlying primitives (libsodium, age) have, but the SlothBox glue around them is gated on external cryptographer review before any “production-grade” wording lands. Until v1.0, treat this as the working file-transfer tool it is: stable, hardened against URL-leak races, open source — but with the audit-pending caveat surfaced everywhere it matters.",
+    da: "Hvert arkitekturvalg er en byttehandel. SlothBox kører på én ARM-virtuel maskine i Falkenstein, Tyskland — ikke et globalt edge-netværk — så en én-gigabyte-download til en kunde i Tokyo tager længere tid end samme fil fra WeTransfer. Filer udløber; der findes ikke noget permanent delingslink. Modtageren har brug for hele URL'en inklusive delen efter “#”, så en chatklient der fjerner fragmenter bryder delingen. Og v0.2-linjen er endnu ikke uafhængigt auditeret — de underliggende primitiver (libsodium, age) er, men SlothBox-integrationen omkring dem er gate'et på ekstern kryptografgennemgang før nogen “production-grade”-formulering rammer pladen. Indtil v1.0 er dette det fil-overførselsværktøj det er: stabilt, hærdet mod URL-lækage-races, open source — men med audit-pending-forbeholdet synligt der hvor det betyder noget.",
   },
 
   // ─── Security page ────────────────────────────────────────────
@@ -632,8 +632,8 @@ export const TRANSLATIONS = {
     da: "Kryptografi",
   },
   "security.crypto.body": {
-    en: "XChaCha20-Poly1305 IETF for symmetric AEAD. BLAKE2b-256 for key fingerprints. Argon2id for password-protected shares (v0.5+). All primitives are direct calls into libsodium — no custom logic, no hand-rolled MAC, no key stretching outside vetted defaults.",
-    da: "XChaCha20-Poly1305 IETF til symmetrisk AEAD. BLAKE2b-256 til nøglefingeraftryk. Argon2id til adgangskode-beskyttede delinger (v0.5+). Alle primitiver er direkte kald til libsodium — ingen specialbygget logik, ingen håndrullet MAC, ingen nøglestrækning ud over auditerede defaults.",
+    en: "XChaCha20-Poly1305 IETF for symmetric AEAD. BLAKE2b-256 for key fingerprints and whole-file integrity. Argon2id for password-protected shares. All primitives are direct calls into libsodium — no custom logic, no hand-rolled MAC, no key stretching outside vetted defaults.",
+    da: "XChaCha20-Poly1305 IETF til symmetrisk AEAD. BLAKE2b-256 til nøglefingeraftryk og helfils-integritet. Argon2id til adgangskode-beskyttede delinger. Alle primitiver er direkte kald til libsodium — ingen specialbygget logik, ingen håndrullet MAC, ingen nøglestrækning ud over auditerede defaults.",
   },
   "security.threat.title": {
     en: "Threat model",
@@ -672,8 +672,8 @@ export const TRANSLATIONS = {
     da: "eller brug kontaktformularen på",
   },
   "security.disclose.body.tail": {
-    en: ". v0.1 has no bug bounty; v1.0 will, scope-limited.",
-    da: ". v0.1 har ingen bug bounty; v1.0 får én, scopebegrænset.",
+    en: ". The v0.2 line has no bug bounty; v1.0 will, scope-limited.",
+    da: ". v0.2-linjen har ingen bug bounty; v1.0 får én, scopebegrænset.",
   },
 
   // ─── UploadDrop ───────────────────────────────────────────────
@@ -984,8 +984,8 @@ export const TRANSLATIONS = {
     da: "Wormhole.app",
   },
   "whyNot.row4.body": {
-    en: "End-to-end encrypted. No signed delivery proof. No EU-only data path.",
-    da: "End-to-end-krypteret. Intet signeret leveringsbevis. Ingen kun-EU-datapath.",
+    en: "End-to-end encrypted. No EU-only data path. No tamper-evident audit trail.",
+    da: "End-to-end-krypteret. Ingen kun-EU-datapath. Intet manipulationssporbart audit-spor.",
   },
   "whyNot.row5.product": {
     en: "Proton Drive",
@@ -1033,8 +1033,8 @@ export const TRANSLATIONS = {
     da: "Aftaler og NDA'er til en kunde",
   },
   "useCases.item1.body": {
-    en: "An email attachment lives in both inboxes forever. WeTransfer keeps a copy on US infrastructure for seven days. SlothBox burns the share the moment the recipient finishes downloading — the encrypted blob is gone, and because the decryption key never reached the server, even a future backup restore returns ciphertext.",
-    da: "En email-vedhæftning ligger for evigt i begge indbakker. WeTransfer beholder en kopi på amerikansk infrastruktur i syv dage. SlothBox brænder delingen i samme øjeblik, modtageren har downloadet — den krypterede fil er væk, og fordi dekrypteringsnøglen aldrig nåede serveren, vil selv en fremtidig backup-restaurering kun give ciphertext tilbage.",
+    en: "An email attachment lives in both inboxes forever. WeTransfer keeps a copy on US infrastructure for seven days. Turn on burn-after-read and SlothBox destroys the share the moment the recipient finishes downloading — the encrypted blob is gone, and because the decryption key never reached the server, even a future backup restore returns ciphertext.",
+    da: "En email-vedhæftning ligger for evigt i begge indbakker. WeTransfer beholder en kopi på amerikansk infrastruktur i syv dage. Slå burn-after-read til, og SlothBox destruerer delingen i samme øjeblik, modtageren har downloadet — den krypterede fil er væk, og fordi dekrypteringsnøglen aldrig nåede serveren, vil selv en fremtidig backup-restaurering kun give ciphertext tilbage.",
   },
   "useCases.item2.title": {
     en: "Files where confidentiality outweighs convenience",
@@ -1049,8 +1049,8 @@ export const TRANSLATIONS = {
     da: "Kildekode eller build-artefakter med hemmeligheder",
   },
   "useCases.item3.body": {
-    en: "API keys for a one-time client setup. Infrastructure config. Pre-release builds you don't want a Slack history to retain. No DM kept forever, no GitHub gist that's accidentally public. One link, one download, gone.",
-    da: "API-nøgler til en engangs-kundeopsætning. Infrastruktur-config. Pre-release-builds, du ikke vil have liggende i en Slack-historik. Ingen DM, der bliver liggende for evigt, ingen GitHub-gist, der ved et uheld er offentlig. Ét link, én download, væk.",
+    en: "API keys for a one-time client setup. Infrastructure config. Pre-release builds you don't want a Slack history to retain. No DM kept forever, no GitHub gist that's accidentally public. With burn-after-read on: one link, one download, gone.",
+    da: "API-nøgler til en engangs-kundeopsætning. Infrastruktur-config. Pre-release-builds, du ikke vil have liggende i en Slack-historik. Ingen DM, der bliver liggende for evigt, ingen GitHub-gist, der ved et uheld er offentlig. Med burn-after-read slået til: ét link, én download, væk.",
   },
   "useCases.item4.title": {
     en: "One-shot drops where the sender stays anonymous",
@@ -1109,8 +1109,8 @@ export const TRANSLATIONS = {
     da: "Ingen CDN. Én EU-virtuel maskine.",
   },
   "tradeoffs.item4.body": {
-    en: "A four-gigabyte file downloads from one server in Falkenstein, Germany. WeTransfer downloads from two hundred edge points of presence. If your recipient is on a 200 ms link from Tokyo, they will feel it. The trade is bandwidth for jurisdiction — pick what matters more for the file in your hand.",
-    da: "En fire-gigabyte fil downloades fra én server i Falkenstein, Tyskland. WeTransfer downloader fra to hundrede edge-punkter. Hvis din modtager sidder på et 200 ms-link fra Tokyo, mærker de det. Byttet er båndbredde mod jurisdiktion — vælg, hvad der vejer tungest for filen, du har i hånden.",
+    en: "A one-gigabyte file downloads from one server in Falkenstein, Germany. WeTransfer downloads from two hundred edge points of presence. If your recipient is on a 200 ms link from Tokyo, they will feel it. The trade is bandwidth for jurisdiction — pick what matters more for the file in your hand.",
+    da: "En én-gigabyte fil downloades fra én server i Falkenstein, Tyskland. WeTransfer downloader fra to hundrede edge-punkter. Hvis din modtager sidder på et 200 ms-link fra Tokyo, mærker de det. Byttet er båndbredde mod jurisdiktion — vælg, hvad der vejer tungest for filen, du har i hånden.",
   },
 
   // ─── Share link / post-upload UI (ShareLink.tsx) ──────────────
@@ -1119,8 +1119,14 @@ export const TRANSLATIONS = {
     da: "Krypteret. Klar til at sende.",
   },
   "share.ready.body": {
-    en: "Anyone with the full link below can download and decrypt this file once. Expires in {time}.",
-    da: "Alle med det fulde link nedenfor kan downloade og dekryptere denne fil én gang. Udløber om {time}.",
+    en: "Anyone with the full link below can download and decrypt this file until it expires in {time}.",
+    da: "Alle med det fulde link nedenfor kan downloade og dekryptere denne fil, indtil den udløber om {time}.",
+  },
+  // Burn-after-read variant — single-use enforcement only applies to burn
+  // shares, so the "once" wording must be gated on the toggle.
+  "share.ready.bodyBurn": {
+    en: "Anyone with the full link below can download and decrypt this file once — it burns on delivery. Expires in {time} if never opened.",
+    da: "Alle med det fulde link nedenfor kan downloade og dekryptere denne fil én gang — den destrueres ved levering. Udløber om {time}, hvis den aldrig åbnes.",
   },
   "share.expires.fallback": {
     en: "shortly",
