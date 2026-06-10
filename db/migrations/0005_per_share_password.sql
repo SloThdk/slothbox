@@ -82,6 +82,11 @@ ALTER TABLE shares
 -- compose to "exactly one of these branches is satisfied".
 -- ----------------------------------------------------------------------------
 
+-- DROP-then-ADD on both constraints so this migration is idempotent. The
+-- runner tracks applied migrations and won't re-run this on an existing DB,
+-- but a manual re-run or a DR restore that replays the file must not die on
+-- "constraint already exists".
+ALTER TABLE shares DROP CONSTRAINT IF EXISTS shares_password_unset_chk;
 ALTER TABLE shares
     ADD CONSTRAINT shares_password_unset_chk CHECK (
         password_protected = false
@@ -99,6 +104,7 @@ ALTER TABLE shares
 ALTER TABLE shares
     DROP CONSTRAINT shares_password_unset_chk;
 
+ALTER TABLE shares DROP CONSTRAINT IF EXISTS shares_password_fields_consistent;
 ALTER TABLE shares
     ADD CONSTRAINT shares_password_fields_consistent CHECK (
         (

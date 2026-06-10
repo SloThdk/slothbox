@@ -35,7 +35,10 @@ export const shareState = [
 ] as const;
 export type ShareState = (typeof shareState)[number];
 
-export const destroyedReason = ["burn", "expiry", "manual", "abuse"] as const;
+// Mirrors the shares_dest_reason_chk CHECK constraint. "max_downloads" was
+// added in migration 0008 — the reaper writes it when a share is destroyed
+// because its download cap was reached (state='expired').
+export const destroyedReason = ["burn", "expiry", "manual", "abuse", "max_downloads"] as const;
 export type DestroyedReason = (typeof destroyedReason)[number];
 
 export const shares = pgTable(

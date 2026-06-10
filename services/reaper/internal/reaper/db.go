@@ -137,7 +137,7 @@ type destroyContext struct {
 
 // selectReapableSQL is the candidate query. Notes:
 //
-//   - Two reapable conditions, mutually exclusive at the row level:
+//   - Three reapable conditions, joined by OR so the boolean stays clean:
 //       (a) the share is still nominally LIVE (state in ready/uploading/pending)
 //           but its TTL has lapsed or download cap is hit.
 //       (b) the share has already been flipped to DESTROYED (by the gateway's
@@ -145,10 +145,17 @@ type destroyContext struct {
 //           earlier reaper sweep that committed the row update but failed to
 //           clear all blobs) AND there are still share_chunks rows waiting
 //           on cleanup.
+//       (c) the share was flipped to EXPIRED by `increment_download` when its
+//           max_downloads cap was reached (db/migrations/0001_init.sql). That
+//           path sets state='expired' but NOT destroyed_at (only burn sets
+//           that), so this branch must NOT require destroyed_at — it only
+//           needs leftover chunks. Without branch (c) a cap-reached share
+//           matched neither (a) (state is no longer ready/uploading/pending)
+//           nor (b) (state isn't 'destroyed'), so its ciphertext blobs were
+//           never deleted — orphaned forever, contradicting docs/DELETION.md.
 //     Putting `state='destroyed'` in the same outer IN list as the live
-//     statuses (which earlier code did) is wrong because the second OR
-//     clause never matches — the AND is unreachable. Two top-level branches
-//     joined by OR makes the boolean clean.
+//     statuses (which earlier code did) is wrong because the OR clause never
+//     matches — the AND is unreachable. Separate top-level branches fix it.
 //   - We re-query inside the per-share transaction with `FOR UPDATE SKIP
 //     LOCKED` so two reaper instances (e.g. during a rolling deploy)
 //     never fight over the same row. A daemon today only runs one replica,
@@ -168,6 +175,10 @@ SELECT id::text, short_id
     OR (
          state = 'destroyed'
          AND destroyed_at IS NOT NULL
+         AND EXISTS (SELECT 1 FROM share_chunks c WHERE c.share_id = s.id)
+       )
+    OR (
+         state = 'expired'
          AND EXISTS (SELECT 1 FROM share_chunks c WHERE c.share_id = s.id)
        )
  ORDER BY destroyed_at NULLS LAST, expires_at ASC
@@ -400,6 +411,11 @@ func classifyReason(
 	if burnAfterRead && state == "destroyed" && destroyedAt != nil {
 		return "burn"
 	}
+	// Cap-reached shares arrive here as state='expired' (set by
+	// increment_download). "max_downloads" is an accepted destroyed_reason as
+	// of migration 0008 — before that, this branch produced a CHECK violation
+	// and poisoned the sweep, which is one half of why expired shares were
+	// never reaped (the other half was the candidate query; see branch (c)).
 	if maxDownloads != nil && downloadCount != nil && *downloadCount >= *maxDownloads {
 		return "max_downloads"
 	}
