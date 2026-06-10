@@ -21,10 +21,12 @@
 //   `await file.arrayBuffer()`) already buffers the entire plaintext
 //   into memory. Streaming the zip into the chunk encryptor wouldn't
 //   reduce the peak memory footprint because the encryptor itself
-//   reads the whole buffer. v0.5 introduces TransformStream-based
-//   chunk encryption (per the existing TODO in download.ts:152), at
-//   which point switching to streaming zip (`fflate.Zip`) is a
-//   one-line change here.
+//   reads the whole buffer. This in-memory pipeline is the reason the
+//   per-share cap is 1 GiB (see lib/config.ts) — peak usage here is
+//   input bytes + zip output + the Blob copy, i.e. ~2-3x the archive
+//   size. Lifting the cap needs streaming chunk encryption
+//   (TransformStream-based, future work), at which point switching to
+//   streaming zip (`fflate.Zip`) is a one-line change here.
 //
 // Sender flow:
 //   1. UploadDrop detects file count > 1 (or directory pick)
@@ -57,10 +59,11 @@ import { zipSync, type Zippable } from "fflate";
  * eventual `uploadFile()` call won't get rejected after the work of
  * zipping.
  *
- * Default 4 GiB; if the sender's files sum bigger they get a clear
- * error here instead of an opaque rejection from the gateway.
+ * Default 1 GiB (matches the per-share cap in lib/config.ts); if the
+ * sender's files sum bigger they get a clear error here instead of an
+ * opaque rejection from the gateway.
  */
-const MAX_ARCHIVE_BYTES = 4 * 1024 * 1024 * 1024;
+const MAX_ARCHIVE_BYTES = 1024 * 1024 * 1024;
 
 /**
  * Disallowed characters in a packed entry's path. Reject anything
@@ -150,10 +153,12 @@ export async function packFiles(files: ReadonlyArray<File>): Promise<ArchiveResu
     entries[path] = bytes;
   }
 
-  // fflate's zipSync is synchronous and fast — for the ~4 GiB cap we
-  // measure ~150-300 ms on a 2022 laptop. The async `zip` API exists
-  // but adds Promise / callback overhead for no parallelism win
-  // (zip is CPU-bound, not I/O-bound).
+  // fflate's zipSync is synchronous. At level 0 (store) the work is
+  // dominated by CRC32 over the input — on the order of a second per GiB
+  // on a 2022 laptop, and it blocks the main thread for that duration
+  // (a known cost of the in-memory path; a Web Worker is future work).
+  // The async `zip` API adds Promise / callback overhead for no
+  // parallelism win (zip is CPU-bound, not I/O-bound), so zipSync stays.
   //
   // `level: 0` (store, no compression) keeps the zip close to the
   // sum of input sizes — we don't try to compress because:

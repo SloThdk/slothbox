@@ -103,26 +103,32 @@ const ConfigSchema = z.object({
     .default(10 * 1024 * 1024),
   /**
    * Maximum total ciphertext storage per share (bytes). Mirrors the
-   * client-side 4 GB cap so the server is never the more-permissive
+   * client-side 1 GiB cap so the server is never the more-permissive
    * side of the contract.
    *
-   * Why this matters: without this, the previous Zod schema permitted
-   * `chunkCount.max(100_000) * chunkSize.max(10MB)` = 1 TB declared
-   * per share. Combined with the 100 shares/day/IP create cap, a
-   * single attacker IP could squat ~3 TB/day for the share's TTL —
-   * filling the host disk and OOM-killing Postgres.
+   * Why 1 GiB and not more: the browser pipeline (encrypt, optional zip,
+   * decrypt) buffers the WHOLE file in memory, so peak usage is 2-3x the
+   * file size. 1 GiB is the largest cap the in-memory path survives on a
+   * typical machine. Lifting it needs streaming chunk crypto (future work);
+   * until then the advertised cap matches what actually completes.
+   *
+   * Why this matters for abuse: without this, the previous Zod schema
+   * permitted `chunkCount.max(100_000) * chunkSize.max(10MB)` = 1 TB
+   * declared per share. Combined with the 100 shares/day/IP create cap, a
+   * single attacker IP could squat terabytes for the share's TTL — filling
+   * the host disk and OOM-killing Postgres.
    *
    * The cap applies to BOTH the plaintext `fileSize` AND the ciphertext
    * `chunkCount * chunkSize` product. AEAD overhead per chunk is
    * 40 bytes (24-byte XChaCha20 nonce + 16-byte Poly1305 tag), which
-   * is well under 0.1% of a 4 GB upload at any sane chunk size — so
+   * is well under 0.1% of a 1 GiB upload at any sane chunk size — so
    * a single ceiling for both is honest.
    */
   MAX_FILE_SIZE_BYTES: z.coerce
     .number()
     .int()
     .positive()
-    .default(4 * 1024 * 1024 * 1024), // 4 GB
+    .default(1024 * 1024 * 1024), // 1 GiB
   /**
    * Per-IP WebSocket connection cap. Anonymous WS connections to the
    * progress stream are otherwise free to open in unbounded numbers,

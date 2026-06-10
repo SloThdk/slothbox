@@ -51,6 +51,14 @@ const generateShortId = customAlphabet(SHORT_ID_ALPHABET, SHORT_ID_LENGTH);
 
 /** 32 bytes = 256-bit BLAKE2b hash, base64url-encoded → 43 chars. */
 const FILE_HASH_BYTES = 32;
+/**
+ * XChaCha20-Poly1305 tag appended to every chunk's ciphertext. A full chunk on
+ * the wire is `chunkSize + AEAD_TAG_BYTES`; the gateway must cap the declared
+ * plaintext chunkSize so that sum never exceeds the ingest service's per-body
+ * limit (MAX_CHUNK_SIZE_BYTES). Same plaintext-vs-ciphertext accounting as the
+ * d65379f ingest fix, applied at the create-time boundary.
+ */
+const AEAD_TAG_BYTES = 16;
 /** 24 bytes = XChaCha20-Poly1305 nonce, base64url-encoded → 32 chars. */
 const NONCE_META_BYTES = 24;
 /** 16 bytes = libsodium `crypto_pwhash_SALTBYTES` for password-protected shares. */
@@ -218,14 +226,14 @@ function buildUploadUrl(shortId: string, chunkIndex: number): string {
  * 1 TB (100,000 × 10 MB). Combined with the 100/day/IP create rate
  * limit, a script could squat ~3 TB/day per IP until expiry. The
  * cross-field cap keeps both the plaintext `fileSize` and the
- * ciphertext storage ceiling at `config.MAX_FILE_SIZE_BYTES` (4 GB
+ * ciphertext storage ceiling at `config.MAX_FILE_SIZE_BYTES` (1 GiB
  * by default), matching the client-side cap.
  */
 const CreateShareSchema = z
   .object({
     /**
      * Plaintext file size in bytes. Capped at MAX_FILE_SIZE_BYTES
-     * (4 GB default) so a malicious client can't declare a
+     * (1 GiB default) so a malicious client can't declare a
      * pathological size and force pre-allocation costs downstream.
      */
     fileSize: z
@@ -251,11 +259,22 @@ const CreateShareSchema = z
         `nonceMeta must decode to exactly ${NONCE_META_BYTES} bytes`
       ),
     chunkCount: z.number().int().positive().max(100_000),
+    // chunkSize is the PLAINTEXT slice size. On the wire each chunk is
+    // chunkSize + AEAD_TAG_BYTES; the ingest service rejects any PUT body
+    // larger than MAX_CHUNK_SIZE_BYTES (and Kestrel caps the body at the same
+    // value). So the largest plaintext chunk that can actually upload is
+    // MAX_CHUNK_SIZE_BYTES - AEAD_TAG_BYTES. Capping at the bare
+    // MAX_CHUNK_SIZE_BYTES would let a share be created whose full chunks can
+    // never be PUT — the same plaintext-vs-ciphertext confusion d65379f fixed
+    // inside ingest, one layer up at create time.
     chunkSize: z
       .number()
       .int()
       .positive()
-      .max(config.MAX_CHUNK_SIZE_BYTES, "chunkSize exceeds MAX_CHUNK_SIZE_BYTES"),
+      .max(
+        config.MAX_CHUNK_SIZE_BYTES - AEAD_TAG_BYTES,
+        "chunkSize exceeds the uploadable maximum (MAX_CHUNK_SIZE_BYTES minus the 16-byte AEAD tag)"
+      ),
     expiresAt: z
       .string()
       .datetime({ offset: true })
@@ -341,14 +360,14 @@ const CreateShareSchema = z
    *
    *   chunkCount * chunkSize  must be ≤ MAX_FILE_SIZE_BYTES
    *
-   * Worked examples after the fix (4 GB default cap):
-   *   - chunkSize 10 MB → max chunkCount ≈ 410   (vs 100,000 before)
-   *   - chunkSize 1 MB  → max chunkCount ≈ 4,096
-   *   - chunkSize 64 KB → max chunkCount ≈ 65,536 (still under the
+   * Worked examples after the fix (1 GiB default cap):
+   *   - chunkSize 10 MB → max chunkCount ≈ 103   (vs 100,000 before)
+   *   - chunkSize 1 MB  → max chunkCount ≈ 1,024
+   *   - chunkSize 64 KB → max chunkCount ≈ 16,384 (still under the
    *                                                 100k bound)
    *
    * AEAD overhead per chunk is ~40 bytes (24-byte XChaCha20 nonce +
-   * 16-byte Poly1305 tag) — well under 0.1% on a 4 GB share at any
+   * 16-byte Poly1305 tag) — well under 0.1% on a 1 GiB share at any
    * sane chunk size, so we don't bother with a separate ciphertext-
    * overhead allowance.
    *

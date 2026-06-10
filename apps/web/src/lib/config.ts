@@ -24,8 +24,15 @@ export const WS_URL = process.env.NEXT_PUBLIC_WS_URL || "ws://localhost";
 export const INGEST_URL = process.env.NEXT_PUBLIC_INGEST_URL || "http://localhost";
 export const PUBLIC_URL = process.env.NEXT_PUBLIC_PUBLIC_URL || "http://localhost";
 
+// Default 1024 MB (1 GiB). The encrypt / archive / decrypt pipelines all
+// buffer the whole file in browser memory (peak ~2-3x the file size), so
+// 1 GiB is the largest cap the in-memory path reliably survives on a typical
+// machine. Raising it needs streaming chunk crypto (future work) — until then
+// the advertised number is one that actually completes rather than OOMing the
+// tab. Overridable via NEXT_PUBLIC_MAX_FILE_SIZE_MB; the gateway enforces its
+// own MAX_FILE_SIZE_BYTES so the server is never the more-permissive side.
 export const MAX_FILE_SIZE_MB = Number.parseInt(
-  process.env.NEXT_PUBLIC_MAX_FILE_SIZE_MB || "4096",
+  process.env.NEXT_PUBLIC_MAX_FILE_SIZE_MB || "1024",
   10
 );
 export const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
@@ -44,4 +51,4 @@ export const CHUNK_SIZE_BYTES = 5 * 1024 * 1024;
 export const APP_NAME = "SlothBox";
 export const APP_TAGLINE =
   "Send any file. The server cannot read it. The full source code is open and auditable.";
-export const APP_VERSION = "0.2.15";
+export const APP_VERSION = "0.2.16";

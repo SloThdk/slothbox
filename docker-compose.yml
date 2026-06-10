@@ -55,7 +55,7 @@ services:
         NEXT_PUBLIC_WS_URL: ${NEXT_PUBLIC_WS_URL:-ws://localhost}
         NEXT_PUBLIC_INGEST_URL: ${NEXT_PUBLIC_INGEST_URL:-http://localhost}
         NEXT_PUBLIC_PUBLIC_URL: ${NEXT_PUBLIC_PUBLIC_URL:-http://localhost}
-        NEXT_PUBLIC_MAX_FILE_SIZE_MB: ${NEXT_PUBLIC_MAX_FILE_SIZE_MB:-4096}
+        NEXT_PUBLIC_MAX_FILE_SIZE_MB: ${NEXT_PUBLIC_MAX_FILE_SIZE_MB:-1024}
         # Inject the current commit SHA so layout.tsx can stamp it on
         # every rendered page. The deploy workflow's smoke test then
         # grep's for the short SHA in the live HTML — if the SHA in the
@@ -77,7 +77,7 @@ services:
       - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
       - NEXT_PUBLIC_WS_URL=${NEXT_PUBLIC_WS_URL}
       - NEXT_PUBLIC_INGEST_URL=${NEXT_PUBLIC_INGEST_URL}
-      - NEXT_PUBLIC_MAX_FILE_SIZE_MB=${NEXT_PUBLIC_MAX_FILE_SIZE_MB:-4096}
+      - NEXT_PUBLIC_MAX_FILE_SIZE_MB=${NEXT_PUBLIC_MAX_FILE_SIZE_MB:-1024}
     networks:
       - internal
     healthcheck:
@@ -245,7 +245,15 @@ services:
       - PGDATA=/var/lib/postgresql/data/pgdata
     volumes:
       - pg_data:/var/lib/postgresql/data
-      - ./db/migrations:/docker-entrypoint-initdb.d:ro
+      # NOTE: db/migrations is deliberately NOT mounted into
+      # /docker-entrypoint-initdb.d. initdb only runs on a FRESH data dir and
+      # applies every .sql once without recording it in the runner's
+      # `_migrations` table — which then collided with the idempotent runner
+      # (e.g. 0005's ADD CONSTRAINT firing twice) and broke fresh-box bootstrap
+      # and the documented `pnpm db:migrate` dev flow. The migration runner
+      # (packages/db/scripts/migrate.mjs) is now the single, tracked path:
+      #   docker compose up -d postgres && pnpm db:migrate
+      # The deploy workflow runs the same runner before bringing the app up.
     ports:
       # Bind to loopback only — never reachable from the LAN. Prod compose
       # removes this binding entirely (see docker-compose.prod.yml).
