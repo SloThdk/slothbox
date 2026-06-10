@@ -129,6 +129,31 @@ export async function hashBytes(input: Uint8Array): Promise<Uint8Array> {
 }
 
 /**
+ * Stream-hash an ordered sequence of byte chunks with BLAKE2b-256. The result
+ * is identical to `hashBytes(concat(chunks))` but no second full-size buffer is
+ * allocated — the chunks are fed through libsodium's incremental
+ * `crypto_generichash_init/update/final` one at a time.
+ *
+ * The receiver uses this to recompute the whole-file content hash from the
+ * already-decrypted chunks (which it must hold to assemble the Blob anyway) and
+ * compare it against the authenticated hash carried inside the encrypted
+ * metadata blob. Per-chunk AEAD + AAD authenticate each chunk and its index,
+ * but nothing binds the TOTAL count — so a server that drops trailing chunks
+ * produces a reassembly that decrypts cleanly yet is silently truncated. The
+ * whole-file hash is what closes that gap. Not for authentication on its own
+ * (it isn't keyed); its integrity comes from being sealed in the AEAD metadata.
+ */
+export async function hashChunks(chunks: ReadonlyArray<Uint8Array>): Promise<Uint8Array> {
+  await ensureReady();
+  // null key = unkeyed BLAKE2b, same construction as hashBytes above.
+  const state = sodium.crypto_generichash_init(null, 32);
+  for (const chunk of chunks) {
+    sodium.crypto_generichash_update(state, chunk);
+  }
+  return sodium.crypto_generichash_final(state, 32);
+}
+
+/**
  * Domain-separation label baked into `deriveChunkToken`'s input. Same
  * convention as `AEAD_KDF_LABEL` in derivation.ts — encodes the
  * protocol family + a version tag so a future construction change

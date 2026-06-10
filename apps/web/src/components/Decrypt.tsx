@@ -26,6 +26,7 @@ import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import {
   DownloadError,
+  type DownloadErrorCode,
   downloadFile,
   notifyDownloadComplete,
   type DownloadProgressEvent,
@@ -48,7 +49,44 @@ type DecryptState =
   | { kind: "deriving" }
   | { kind: "busy"; progress: DownloadProgressEvent | null; controller: AbortController }
   | { kind: "done"; blob: Blob; fileName: string; mimeType: string; savedToDisk: boolean }
-  | { kind: "error"; messageKey: "decrypt.error.downloadFailed"; rawMessage: string };
+  | { kind: "error"; messageKey: DecryptErrorMessageKey };
+
+/**
+ * The decrypt-error translation keys the receiver UI can render. Each maps to a
+ * specific DownloadErrorCode so the actionable message in `download.ts` (e.g.
+ * "already delivered — ask the sender to re-upload", "failed its integrity
+ * check") actually reaches the user instead of a single generic line.
+ */
+type DecryptErrorMessageKey =
+  | "decrypt.error.downloadFailed"
+  | "decrypt.error.shareNotFound"
+  | "decrypt.error.keyInvalid"
+  | "decrypt.error.transport"
+  | "decrypt.error.metadata"
+  | "decrypt.error.integrity"
+  | "decrypt.error.alreadyUsed";
+
+/** Map a DownloadErrorCode to the receiver-facing message key. */
+function downloadErrorMessageKey(code: DownloadErrorCode): DecryptErrorMessageKey {
+  switch (code) {
+    case "share_not_found":
+      return "decrypt.error.shareNotFound";
+    case "key_invalid":
+      return "decrypt.error.keyInvalid";
+    case "transport":
+      return "decrypt.error.transport";
+    case "metadata":
+      return "decrypt.error.metadata";
+    case "decrypt":
+      return "decrypt.error.integrity";
+    case "already_used":
+      return "decrypt.error.alreadyUsed";
+    default:
+      // password_required / wrong_password / cancelled are handled before this
+      // is reached; unknown falls back to the generic message.
+      return "decrypt.error.downloadFailed";
+  }
+}
 
 export function Decrypt({ shortId, descriptor, decryptionKey }: DecryptProps) {
   const { t, lang } = useLanguage();
@@ -149,7 +187,7 @@ export function Decrypt({ shortId, descriptor, decryptionKey }: DecryptProps) {
       // form's value so the user can retype the password without losing
       // context. All other error codes fall through to the generic
       // error state (the existing v0.1 behaviour).
-      const code = err instanceof DownloadError ? err.code : "unknown";
+      const code: DownloadErrorCode = err instanceof DownloadError ? err.code : "unknown";
       const rawMessage = err instanceof Error ? err.message : "download failed";
       if (code === "cancelled" || rawMessage === "download cancelled") {
         setState({ kind: "ready" });
@@ -164,7 +202,9 @@ export function Decrypt({ shortId, descriptor, decryptionKey }: DecryptProps) {
         setState({ kind: "ready" });
         return;
       }
-      setState({ kind: "error", messageKey: "decrypt.error.downloadFailed", rawMessage });
+      // All remaining codes render a distinct, actionable message keyed off the
+      // DownloadErrorCode (truncation/tamper, already-used, not-found, etc.).
+      setState({ kind: "error", messageKey: downloadErrorMessageKey(code) });
       toast.error(t("decrypt.toast.downloadFailed"));
     }
   }, [shortId, decryptionKey, passwordRequired, password, t]);

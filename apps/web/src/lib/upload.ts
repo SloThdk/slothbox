@@ -218,9 +218,15 @@ export async function uploadFile(file: File, options: UploadOptions = {}): Promi
   const chunkSize = CHUNK_SIZE_BYTES;
   const chunkCount = Math.ceil(file.size / chunkSize);
 
-  // Hash the plaintext as a single pass — used as the file content address
-  // in the audit trail. Server stores it; client recomputes on download to
-  // detect tampering.
+  // Hash the plaintext as a single pass — the whole-file content address.
+  // It travels two ways: (1) to the gateway as `fileHash` for the audit
+  // trail / content addressing, and (2) sealed INSIDE the encrypted metadata
+  // blob below, where the server can neither read it (no key) nor forge it.
+  // The receiver recomputes this hash after reassembly and compares against
+  // the sealed copy to detect a truncated/tampered download — see
+  // `download.ts`. The gateway copy is deliberately NOT returned on the
+  // metadata GET (would let an attacker hash-ratchet shortIds); the sealed
+  // copy is the one the receiver trusts.
   const wholeFile = new Uint8Array(await file.arrayBuffer());
   const fileHashBytes = await hashBytes(wholeFile);
 
@@ -228,9 +234,17 @@ export async function uploadFile(file: File, options: UploadOptions = {}): Promi
   // for the AAD because we don't have a real shareId yet (the server hasn't
   // assigned one) — the server-side decrypt path will rebuild AAD with the
   // same constant. Documented in CRYPTO.md.
+  //
+  // fileHash + chunkCount are sealed here so the receiver can verify whole-file
+  // integrity and detect a server that lies about the chunk count (silent
+  // truncation). Both are authenticated by the AEAD tag — a server that mutates
+  // the metadata fails the tag, and one that drops chunks fails the hash.
   const metaJson = JSON.stringify({
     fileName: file.name,
     mimeType: file.type || "application/octet-stream",
+    fileHash: bytesToBase64Url(fileHashBytes),
+    chunkCount,
+    fileSize: file.size,
   });
   const metaBytes = stringToBytes(metaJson);
   const nonceMeta = await generateNonce();

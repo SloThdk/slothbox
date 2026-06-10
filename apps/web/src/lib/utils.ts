@@ -31,30 +31,10 @@ export function formatBytes(bytes: number): string {
 }
 
 /**
- * Format milliseconds as a humane duration string.
- * 0–60s → "12s", 60s–60m → "5m 12s", 1h+ → "1h 5m".
- */
-export function formatDuration(ms: number): string {
-  const seconds = Math.floor(ms / 1000);
-  if (seconds < 60) return `${seconds}s`;
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}m ${seconds % 60}s`;
-  const hours = Math.floor(minutes / 60);
-  return `${hours}h ${minutes % 60}m`;
-}
-
-/**
- * Clamp a numeric value into [min, max].
- */
-export function clamp(value: number, min: number, max: number): number {
-  if (value < min) return min;
-  if (value > max) return max;
-  return value;
-}
-
-/**
  * Cheap equality check for two `Uint8Array`s. Used by the receiver-side
- * integrity checks. NOT constant-time — do NOT use on secrets.
+ * whole-file integrity check in `download.ts` (recomputed BLAKE2b vs the hash
+ * sealed in the metadata). NOT constant-time — fine here because both operands
+ * are non-secret content hashes; do NOT use it on secret key material.
  */
 export function bytesEqual(a: Uint8Array, b: Uint8Array): boolean {
   if (a.length !== b.length) return false;
@@ -62,16 +42,4 @@ export function bytesEqual(a: Uint8Array, b: Uint8Array): boolean {
     if (a[i] !== b[i]) return false;
   }
   return true;
-}
-
-/**
- * Conservative environment getter. Reads a `NEXT_PUBLIC_*` var with a fallback
- * appropriate for the docker-compose default ports.
- */
-export function publicEnv(name: string, fallback: string): string {
-  // Next.js inlines `process.env.NEXT_PUBLIC_*` at build time — accessing
-  // through this helper keeps the call sites tidy without changing the
-  // semantics.
-  const value = (process.env as Record<string, string | undefined>)[name];
-  return value && value.length > 0 ? value : fallback;
 }

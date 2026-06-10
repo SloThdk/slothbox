@@ -9,6 +9,7 @@ import {
   buildChunkAad,
   deriveChunkToken,
   hashBytes,
+  hashChunks,
   KEY_BYTES,
   NONCE_BYTES,
   TAG_BYTES,
@@ -166,5 +167,45 @@ describe("deriveChunkToken (single-use chunk capabilities)", () => {
     // a conscious-decision sentinel.
     const expected = new TextEncoder().encode("slothbox-chunk-token-v1");
     expect(Array.from(CHUNK_TOKEN_LABEL)).toEqual(Array.from(expected));
+  });
+});
+
+describe("hashChunks (whole-file integrity / truncation detection)", () => {
+  it("equals hashBytes over the concatenation of the chunks", async () => {
+    const a = new Uint8Array([1, 2, 3, 4, 5]);
+    const b = new Uint8Array([6, 7, 8]);
+    const c = new Uint8Array([9, 10, 11, 12]);
+    const whole = new Uint8Array([...a, ...b, ...c]);
+
+    const streamed = await hashChunks([a, b, c]);
+    const oneShot = await hashBytes(whole);
+
+    expect(streamed.length).toBe(32);
+    expect(Array.from(streamed)).toEqual(Array.from(oneShot));
+  });
+
+  it("is unaffected by chunk boundaries (same bytes, different splits)", async () => {
+    const splitA = await hashChunks([new Uint8Array([1, 2, 3, 4, 5, 6])]);
+    const splitB = await hashChunks([new Uint8Array([1, 2, 3]), new Uint8Array([4, 5, 6])]);
+    expect(Array.from(splitA)).toEqual(Array.from(splitB));
+  });
+
+  it("detects a dropped trailing chunk — the silent-truncation case", async () => {
+    // A server that drops the last chunk yields a different whole-file hash, so
+    // the receiver's post-reassembly comparison (download.ts) catches the
+    // truncation that per-chunk AEAD alone cannot.
+    const full = [new Uint8Array([1, 2, 3]), new Uint8Array([4, 5, 6]), new Uint8Array([7, 8, 9])];
+    const truncated = full.slice(0, 2);
+
+    const fullHash = await hashChunks(full);
+    const truncatedHash = await hashChunks(truncated);
+
+    expect(Array.from(truncatedHash)).not.toEqual(Array.from(fullHash));
+  });
+
+  it("hashes an empty chunk list deterministically", async () => {
+    const h1 = await hashChunks([]);
+    const h2 = await hashBytes(new Uint8Array(0));
+    expect(Array.from(h1)).toEqual(Array.from(h2));
   });
 });

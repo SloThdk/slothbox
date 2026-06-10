@@ -272,8 +272,8 @@ export const TRANSLATIONS = {
     da: "Slip en fil",
   },
   "how.step1.body": {
-    en: "Pick or drag a file. Up to 4 GiB per share. Nothing has left your machine yet.",
-    da: "Vælg eller træk en fil. Op til 4 GiB pr. deling. Intet har forladt din maskine endnu.",
+    en: "Pick or drag a file. Up to 1 GiB per share. Nothing has left your machine yet.",
+    da: "Vælg eller træk en fil. Op til 1 GiB pr. deling. Intet har forladt din maskine endnu.",
   },
   "how.step2.title": {
     en: "Encrypted locally",
@@ -1390,6 +1390,30 @@ export const TRANSLATIONS = {
   "decrypt.error.downloadFailed": {
     en: "Download failed. Try again or ask the sender for a fresh link.",
     da: "Download mislykkedes. Prøv igen eller bed afsenderen om et nyt link.",
+  },
+  "decrypt.error.shareNotFound": {
+    en: "This share doesn't exist anymore — it may have expired or been deleted. Ask the sender for a fresh link.",
+    da: "Denne deling findes ikke længere — den kan være udløbet eller slettet. Bed afsenderen om et nyt link.",
+  },
+  "decrypt.error.keyInvalid": {
+    en: "The decryption key in this link is invalid. The URL is probably missing the part after the # — ask the sender to paste it again.",
+    da: "Dekrypteringsnøglen i linket er ugyldig. URL'en mangler sandsynligvis delen efter # — bed afsenderen om at indsætte det igen.",
+  },
+  "decrypt.error.transport": {
+    en: "Couldn't reach the server. Check your connection and try again.",
+    da: "Kunne ikke nå serveren. Tjek din forbindelse og prøv igen.",
+  },
+  "decrypt.error.metadata": {
+    en: "This share's data is malformed and can't be opened. Ask the sender to re-upload.",
+    da: "Denne delings data er beskadiget og kan ikke åbnes. Bed afsenderen om at uploade igen.",
+  },
+  "decrypt.error.integrity": {
+    en: "The file failed its integrity check — it may have been truncated or tampered with in transit. Don't trust it; ask the sender for a fresh link.",
+    da: "Filen bestod ikke sin integritetskontrol — den kan være afkortet eller manipuleret undervejs. Stol ikke på den; bed afsenderen om et nyt link.",
+  },
+  "decrypt.error.alreadyUsed": {
+    en: "This link has already been used and the share is gone. Ask the sender to upload it again.",
+    da: "Dette link er allerede brugt, og delingen er væk. Bed afsenderen om at uploade den igen.",
   },
 
   // ─── 404 page (/not-found) ───────────────────────────────────────────

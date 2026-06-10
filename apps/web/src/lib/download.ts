@@ -26,10 +26,12 @@ import {
   deriveAeadKey,
   deriveChunkToken,
   deriveKeyFromPassword,
+  hashChunks,
   initCrypto,
 } from "@slothbox/crypto-core";
 import { getShare, markDownloaded, type ShareDescriptor } from "./api";
 import { INGEST_URL } from "./config";
+import { bytesEqual } from "./utils";
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -73,6 +75,15 @@ export interface DownloadResult {
 interface ShareMeta {
   fileName: string;
   mimeType: string;
+  /**
+   * base64url BLAKE2b-256 of the whole plaintext, sealed by the sender inside
+   * the AEAD metadata blob. Optional because shares sealed before this field
+   * existed (in-flight within the TTL window) don't carry it — those fall back
+   * to per-chunk integrity only.
+   */
+  fileHash?: string;
+  /** Authentic chunk count, sealed alongside fileHash. */
+  chunkCount?: number;
 }
 
 /**
@@ -88,6 +99,7 @@ export type DownloadErrorCode =
   | "transport"
   | "metadata"
   | "decrypt"
+  | "already_used"
   | "cancelled"
   | "unknown";
 
@@ -212,14 +224,25 @@ export async function downloadFile(
     passwordProtected: descriptor.password.enabled,
   });
 
+  // The authenticated chunk count (sealed in the metadata) must match the
+  // count the server reports. A mismatch means the server is lying about how
+  // many chunks exist — the setup for a silent truncation or chunk-injection
+  // attempt. Fail before downloading anything.
+  if (meta.chunkCount !== undefined && meta.chunkCount !== descriptor.chunkCount) {
+    throw new DownloadError(
+      "share is inconsistent — the server reported a different chunk count than the file was sealed with",
+      { code: "decrypt" }
+    );
+  }
+
   const totalChunks = descriptor.chunkCount;
   const bytesTotal = Number(descriptor.fileSize);
   let chunksDownloaded = 0;
   let bytesDownloaded = 0;
 
   // Allocate a list of plaintext chunks to concat at the end. Holding all
-  // chunks in memory is fine for v0.1's max file size (4 GiB clamp); v0.5
-  // moves to a streaming Blob via TransformStream to lift that ceiling.
+  // chunks in memory is why the per-share cap is 1 GiB (see lib/config.ts);
+  // a streaming Blob via TransformStream to lift that ceiling is future work.
   const plaintextChunks: Uint8Array[] = new Array<Uint8Array>(totalChunks);
 
   for (let i = 0; i < totalChunks; i += 1) {
@@ -274,6 +297,32 @@ export async function downloadFile(
       bytesDownloaded,
       bytesTotal,
     });
+  }
+
+  // Whole-file integrity gate. Recompute the plaintext hash from the decrypted
+  // chunks (already in memory for the Blob) and compare against the
+  // authenticated hash sealed in the metadata. Per-chunk AEAD proves each chunk
+  // is genuine and in the right slot, but binds nothing about the total — so a
+  // server that drops trailing chunks yields a reassembly that decrypts cleanly
+  // yet is silently truncated. This check is what catches that. Legacy shares
+  // (no sealed hash) skip it and rely on per-chunk integrity only.
+  if (meta.fileHash) {
+    let expectedHash: Uint8Array;
+    try {
+      expectedHash = base64UrlToBytes(meta.fileHash);
+    } catch (err) {
+      throw new DownloadError("share metadata carries a malformed file hash", {
+        code: "metadata",
+        cause: err,
+      });
+    }
+    const actualHash = await hashChunks(plaintextChunks);
+    if (!bytesEqual(actualHash, expectedHash)) {
+      throw new DownloadError(
+        "file failed its integrity check — it may have been truncated or tampered with in transit",
+        { code: "decrypt" }
+      );
+    }
   }
 
   // TS 5.7 narrowed Uint8Array to a generic over the underlying buffer kind,
@@ -377,9 +426,16 @@ async function decryptShareMeta(
     throw new DownloadError("share metadata missing fileName or mimeType", { code: "metadata" });
   }
 
+  // fileHash + chunkCount are optional (legacy shares predate them); only carry
+  // them through when they're the expected type so the integrity checks in
+  // downloadFile can decide whether they're present.
+  const rawHash = (parsed as { fileHash?: unknown }).fileHash;
+  const rawChunkCount = (parsed as { chunkCount?: unknown }).chunkCount;
   return {
     fileName: (parsed as { fileName: string }).fileName,
     mimeType: (parsed as { mimeType: string }).mimeType,
+    ...(typeof rawHash === "string" ? { fileHash: rawHash } : {}),
+    ...(typeof rawChunkCount === "number" ? { chunkCount: rawChunkCount } : {}),
   };
 }
 
@@ -432,7 +488,7 @@ async function fetchChunk(args: FetchChunkArgs): Promise<FetchChunkResult> {
     if (response.status === 410) {
       throw new DownloadError(
         "this share has already been delivered to someone else — ask the sender to re-upload",
-        { code: "decrypt" }
+        { code: "already_used" }
       );
     }
     throw new DownloadError(`ingest returned HTTP ${response.status}`, { code: "transport" });
