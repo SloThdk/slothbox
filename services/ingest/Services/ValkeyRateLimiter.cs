@@ -4,11 +4,16 @@
 // scores are unix-ms timestamps. On each call we
 //   1. ZREMRANGEBYSCORE to evict expired entries,
 //   2. ZCARD to count what's left,
-//   3. ZADD ourselves if still under the limit,
-//   4. EXPIRE so empty buckets don't pile up.
+//   3. ZADD ourselves only if still under the limit,
+//   4. PEXPIRE so empty buckets don't pile up.
 //
-// We pipeline 1+2+3+4 in a single MULTI/EXEC so concurrent callers can't slip
-// through a window race.
+// Steps 1-4 run as a single Lua script (EVAL) so the evict->count->add
+// sequence executes atomically on the server — concurrent callers cannot slip
+// through a check-then-act window race (an earlier version awaited the four
+// commands separately, which let N callers all read count < limit between ZCARD
+// and ZADD and collectively exceed the limit). StackExchange.Redis caches the
+// script by SHA after the first call, so steady-state cost is one EVALSHA
+// round-trip.
 
 using System.Globalization;
 using Microsoft.Extensions.Options;
@@ -22,6 +27,27 @@ namespace SlothBox.Ingest.Services;
 /// </summary>
 public sealed class ValkeyRateLimiter : IRateLimiter, IAsyncDisposable
 {
+    // Atomic sliding-window acquire. KEYS[1] = bucket key; ARGV = now(ms),
+    // cutoff(ms), limit, ttl(ms), member. Returns 1 if the caller is admitted,
+    // 0 if the window is full. The whole evict->count->conditional-add runs in
+    // one server-side step, so there is no window between the count and the add
+    // for a concurrent caller to exploit.
+    private const string AcquireScript = @"
+local key = KEYS[1]
+local now = tonumber(ARGV[1])
+local cutoff = tonumber(ARGV[2])
+local limit = tonumber(ARGV[3])
+local ttl_ms = tonumber(ARGV[4])
+local member = ARGV[5]
+redis.call('ZREMRANGEBYSCORE', key, '-inf', cutoff)
+local count = redis.call('ZCARD', key)
+if count >= limit then
+  return 0
+end
+redis.call('ZADD', key, now, member)
+redis.call('PEXPIRE', key, ttl_ms)
+return 1";
+
     private readonly Lazy<Task<IConnectionMultiplexer>> _muxLazy;
     private readonly ILogger<ValkeyRateLimiter> _logger;
 
@@ -60,25 +86,18 @@ public sealed class ValkeyRateLimiter : IRateLimiter, IAsyncDisposable
             var nowMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
             var windowMs = (long)windowSeconds * 1000;
             var cutoff = nowMs - windowMs;
+            var ttlMs = ((long)windowSeconds + 5) * 1000;
             var memberId = $"{nowMs}:{Guid.NewGuid():N}";
 
-            // Evict expired
-            await db.SortedSetRemoveRangeByScoreAsync(key, double.NegativeInfinity, cutoff)
+            // One atomic EVAL: evict expired -> count -> add-if-under-limit ->
+            // refresh TTL. Returns 1 (admitted) or 0 (limited).
+            var result = await db.ScriptEvaluateAsync(
+                AcquireScript,
+                new RedisKey[] { key },
+                new RedisValue[] { nowMs, cutoff, limit, ttlMs, memberId })
                 .ConfigureAwait(false);
 
-            // Count what's left
-            var count = await db.SortedSetLengthAsync(key).ConfigureAwait(false);
-            if (count >= limit)
-            {
-                return false;
-            }
-
-            // Add ourselves and refresh TTL
-            await db.SortedSetAddAsync(key, memberId, nowMs).ConfigureAwait(false);
-            await db.KeyExpireAsync(key, TimeSpan.FromSeconds(windowSeconds + 5))
-                .ConfigureAwait(false);
-
-            return true;
+            return (long)result == 1;
         }
         catch (Exception ex)
         {

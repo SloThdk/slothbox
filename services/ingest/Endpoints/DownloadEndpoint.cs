@@ -33,7 +33,7 @@
 //   bytes left the server. The gateway endpoint stays in place as a
 //   no-op signal for legacy clients but is no longer load-bearing.
 //
-// Chunk-token regime (v0.2 migration 0007; v0.2.7 burn-only scoping):
+// Chunk-token regime (v0.2 migration 0007; v0.2.15 burn-only scoping):
 //   Each chunk uploaded after migration 0007 carries a 32-byte SHA-256
 //   commitment of a client-derived single-use download token. The
 //   recipient presents the raw token as `Authorization: Bearer …`;
@@ -42,7 +42,7 @@
 //   requester knows the URL-fragment key — it fires on EVERY chunk
 //   request, first delivery or retry.
 //
-//   v0.2.7 behaviour change: the single-use enforcement (return 410
+//   v0.2.15 behaviour change: the single-use enforcement (return 410
 //   when served_at is already set) is now SCOPED to burn-after-read
 //   shares. Non-burn shares allow re-downloads of the same chunk as
 //   long as the share is in a servable state and not expired — the
@@ -175,7 +175,7 @@ public static class DownloadEndpoint
             return Results.NotFound(new { error = "chunk_not_found" });
         }
 
-        // Chunk-token validation (v0.2, migration 0007; v0.2.7 burn-only scoping).
+        // Chunk-token validation (v0.2, migration 0007; v0.2.15 burn-only scoping).
         //
         // Four states:
         //   1. ServedAt is non-null AND share is burn-after-read
@@ -261,7 +261,7 @@ public static class DownloadEndpoint
         // reading" and the documented trade-off for the security
         // primitive.
         //
-        // For non-burn shares (v0.2.7) the mark still runs but doesn't
+        // For non-burn shares (v0.2.15) the mark still runs but doesn't
         // gate re-downloads — recipients can retry freely within the
         // share's TTL. The mark is still useful: it records the first
         // delivery time and bumps served_count for sender-visible
