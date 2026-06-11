@@ -1,0 +1,23 @@
+<svg width="500" height="168" viewBox="0 0 500 168" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title">
+  <title id="title">SlothBox — end-to-end encrypted file transfer</title>
+  <!-- README header lockup, light-theme variant (brand-dark wordmark).
+       The cube glyph is a 1:1 copy of CubeMark in apps/web/src/components/Header.tsx
+       (same 0 0 32 32 coords, same canonical BLUE palette + keyhole) so the
+       repo page shows exactly the mark the product ships. If the palette
+       changes in Header.tsx, regenerate both README variants. -->
+  <g transform="translate(8 8) scale(4.75)">
+    <!-- Isometric cube: top lit, left mid, right in shadow. -->
+    <path d="M16 3.5 L27 10 L16 16.5 L5 10 Z" fill="#5b9dff" />
+    <path d="M5 10 L16 16.5 L16 29 L5 22.5 Z" fill="#3b82f6" />
+    <path d="M27 10 L16 16.5 L16 29 L27 22.5 Z" fill="#1e4fc4" />
+    <!-- Edge highlight along the lit top so the cube reads crisp. -->
+    <path d="M16 3.5 L27 10 L16 16.5 L5 10 Z" fill="none" stroke="#8ab8ff" stroke-width="0.75" stroke-linejoin="round" />
+    <!-- Keyhole on the front seam — the box is locked. -->
+    <circle cx="16" cy="20" r="2.4" fill="#eaf2ff" />
+    <path d="M15.05 20.4 L16.95 20.4 L17.5 25.2 L14.5 25.2 Z" fill="#eaf2ff" />
+  </g>
+  <text x="166" y="85" dominant-baseline="central"
+        font-family="-apple-system, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif"
+        font-size="68" font-weight="800" letter-spacing="-2"
+        fill="#0a0d14">SlothBox</text>
+</svg>

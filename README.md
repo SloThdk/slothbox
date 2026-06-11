@@ -1,17 +1,32 @@
-# SlothBox
+<!-- Header lockup: the cube + wordmark SVGs mirror CubeMark in
+     apps/web/src/components/Header.tsx — regenerate both variants if the
+     brand palette changes there. Dark/light variants swap via the
+     prefers-color-scheme <picture> sources GitHub supports natively. -->
+<p align="center">
+  <a href="https://slothbox.philipsloth.com">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="docs/assets/logo-dark.svg">
+      <source media="(prefers-color-scheme: light)" srcset="docs/assets/logo-light.svg">
+      <img src="docs/assets/logo-dark.svg" alt="SlothBox" width="460">
+    </picture>
+  </a>
+</p>
 
-> **End-to-end encrypted file transfer. The server cannot decrypt anything — and the full source code is open so anyone can audit that claim. Tamper-evident RFC 3161 delivery receipts are the v0.5 flagship.**
+<p align="center"><strong>End-to-end encrypted file transfer. The server cannot decrypt anything — and the full source code is open so anyone can audit that claim. Tamper-evident RFC 3161 delivery receipts are the v0.5 flagship.</strong></p>
 
-**Live: <https://slothbox.philipsloth.com>**
+<p align="center"><strong>Live: <a href="https://slothbox.philipsloth.com">slothbox.philipsloth.com</a></strong></p>
 
-[![Live](https://img.shields.io/badge/live-slothbox.philipsloth.com-success)](https://slothbox.philipsloth.com)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![CI](https://github.com/SloThdk/slothbox/actions/workflows/ci.yml/badge.svg)](https://github.com/SloThdk/slothbox/actions/workflows/ci.yml)
-[![Security](https://github.com/SloThdk/slothbox/actions/workflows/security.yml/badge.svg)](https://github.com/SloThdk/slothbox/actions/workflows/security.yml)
-[![Deploy](https://github.com/SloThdk/slothbox/actions/workflows/deploy.yml/badge.svg)](https://github.com/SloThdk/slothbox/actions/workflows/deploy.yml)
-[![Crypto: libsodium (E2E) + age (backups)](https://img.shields.io/badge/crypto-libsodium%20E2E%20%2B%20age%20backups-brightgreen)](docs/CRYPTO.md)
-[![Status: v0.2.16](https://img.shields.io/badge/status-v0.2.16-blue)](MILESTONES.md)
-[![EU-hosted](https://img.shields.io/badge/region-EU--only-blue)](#why-eu-hosted)
+<p align="center">
+  <a href="https://slothbox.philipsloth.com"><img src="https://img.shields.io/badge/live-slothbox.philipsloth.com-success" alt="Live"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT"></a>
+  <a href="https://github.com/SloThdk/slothbox/actions/workflows/ci.yml"><img src="https://github.com/SloThdk/slothbox/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://github.com/SloThdk/slothbox/actions/workflows/security.yml"><img src="https://github.com/SloThdk/slothbox/actions/workflows/security.yml/badge.svg" alt="Security"></a>
+  <a href="https://github.com/SloThdk/slothbox/actions/workflows/deploy.yml"><img src="https://github.com/SloThdk/slothbox/actions/workflows/deploy.yml/badge.svg" alt="Deploy"></a>
+  <br>
+  <a href="docs/CRYPTO.md"><img src="https://img.shields.io/badge/crypto-libsodium%20E2E%20%2B%20age%20backups-brightgreen" alt="Crypto: libsodium (E2E) + age (backups)"></a>
+  <a href="MILESTONES.md"><img src="https://img.shields.io/badge/status-v0.2.16-blue" alt="Status: v0.2.16"></a>
+  <a href="#why-eu-hosted"><img src="https://img.shields.io/badge/region-EU--only-blue" alt="EU-hosted"></a>
+</p>
 
 > [!NOTE]
 > **v0.2.16 — current release. Read this before sending real data.**
