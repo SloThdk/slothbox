@@ -23,7 +23,7 @@ require (
 	// pgx v5 — native Postgres driver. Faster than database/sql + lib/pq and
 	// gives first-class support for JSONB, LISTEN/NOTIFY, COPY, and array
 	// types. We reach for the *pgxpool* connection pool inside the daemon.
-	github.com/jackc/pgx/v5 v5.9.2
+	github.com/jackc/pgx/v5 v5.10.0
 
 	// MinIO Go SDK — talks to any S3-compatible object store. We use it for
 	// `RemoveObject` against the chunk blobs.
