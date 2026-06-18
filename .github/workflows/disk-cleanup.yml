@@ -22,7 +22,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: SSH cleanup
-        uses: appleboy/ssh-action@v1.2.0
+        uses: appleboy/ssh-action@v1.2.5
         with:
           host: ${{ secrets.HETZNER_HOST }}
           username: ${{ secrets.HETZNER_USER }}
